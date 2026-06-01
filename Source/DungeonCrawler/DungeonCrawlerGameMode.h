@@ -27,5 +27,6 @@ protected:
 
 private:
 	void EnsureLighting();
+	void EnsurePostProcess();
 	void BuildWorld();
 };

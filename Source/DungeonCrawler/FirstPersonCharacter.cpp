@@ -126,10 +126,11 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 		SwordPlaceholderParts.Add(Part);
 	};
 
-	AddSwordPart(TEXT("SwordGrip"),   FVector(0.f, 0.f, 0.f),   FVector(3.f, 3.f, 16.f));
-	AddSwordPart(TEXT("SwordPommel"), FVector(-10.f, 0.f, 0.f), FVector(5.f, 5.f, 5.f));
-	AddSwordPart(TEXT("SwordGuard"),  FVector(10.f, 0.f, 0.f),  FVector(4.f, 20.f, 5.f));
-	AddSwordPart(TEXT("SwordBlade"),  FVector(48.f, 0.f, 0.f),  FVector(72.f, 5.f, 1.5f));
+	// Whole sword lies along +X (forward): pommel -> grip -> crossguard -> blade, in a straight line.
+	AddSwordPart(TEXT("SwordPommel"), FVector(-16.f, 0.f, 0.f), FVector(5.f, 5.f, 5.f));
+	AddSwordPart(TEXT("SwordGrip"),   FVector(-4.f, 0.f, 0.f),  FVector(18.f, 4.f, 4.f));   // along X
+	AddSwordPart(TEXT("SwordGuard"),  FVector(8.f, 0.f, 0.f),   FVector(4.f, 20.f, 5.f));   // crossbar (wide in Y)
+	AddSwordPart(TEXT("SwordBlade"),  FVector(46.f, 0.f, 0.f),  FVector(72.f, 4.f, 1.5f));  // long in X, flat
 
 	// ---- Torch (floats above the left hand) ----
 	TorchBase = FVector(40.f, -HandSide, 14.f); // above and slightly forward of the left hand
@@ -150,8 +151,10 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	TorchLight->SetupAttachment(FirstPersonCamera); // not the scaled torch cube
 	TorchLight->SetRelativeLocation(TorchBase + FVector(0.f, 0.f, 20.f)); // flame floats above the handle
 	TorchLight->SetIntensity(5000.f);
-	TorchLight->SetAttenuationRadius(1800.f);
+	TorchLight->SetAttenuationRadius(2200.f);
 	TorchLight->SetLightColor(FLinearColor(1.0f, 0.72f, 0.36f)); // warm torch glow
+	TorchLight->SetSourceRadius(20.f);       // soft penumbra
+	TorchLight->SetSoftSourceRadius(60.f);
 	TorchLight->SetCastShadows(true);
 	TorchLight->SetVisibility(false); // default OFF
 

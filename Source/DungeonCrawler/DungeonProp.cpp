@@ -3,6 +3,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "UObject/SoftObjectPath.h"
+
+// Content paths that finished props pull their meshes from (import your assets here).
+static const TCHAR* StoolMeshPath = TEXT("/Game/Furniture/SM_Stool.SM_Stool");
+static const TCHAR* CrateMeshPath = TEXT("/Game/Furniture/SM_Crate.SM_Crate");
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
 static constexpr float CubeUnitCm = 100.f;
@@ -63,16 +68,10 @@ void ADungeonProp::Rebuild()
 	}
 	Parts.Reset();
 
-	// Blender swap-in: a single finished mesh replaces the whole graybox assembly.
-	if (MeshOverride)
+	// Finished-mesh swap-in: a single imported mesh replaces the whole graybox assembly.
+	if (UStaticMesh* Finished = GetFinishedMesh())
 	{
-		UStaticMeshComponent* Whole = NewObject<UStaticMeshComponent>(this);
-		Whole->SetupAttachment(Root);
-		Whole->RegisterComponent();
-		Whole->SetMobility(EComponentMobility::Movable);
-		Whole->SetStaticMesh(MeshOverride);
-		Whole->SetCollisionProfileName(TEXT("BlockAll"));
-		Parts.Add(Whole);
+		BuildFinishedMesh(Finished);
 		return;
 	}
 
@@ -92,7 +91,7 @@ void ADungeonProp::Rebuild()
 		AddBox(FVector(-LegX, -LegY, TopZ * 0.5f), LegSize);
 		break;
 	}
-	case EPropType::Chair:
+	case EPropType::Stool:
 	{
 		const float SeatZ = 45.f;
 		const FVector SeatSize(45.f, 45.f, 6.f);
@@ -139,7 +138,55 @@ void ADungeonProp::Rebuild()
 		}
 		break;
 	}
+	case EPropType::Crate:
+	{
+		// Simple box graybox (normally replaced by the imported SM_Crate mesh).
+		const FVector Size(70.f, 70.f, 70.f);
+		AddBox(FVector(0.f, 0.f, Size.Z * 0.5f), Size);
+		break;
+	}
 	default:
 		break;
 	}
+}
+
+UStaticMesh* ADungeonProp::GetFinishedMesh() const
+{
+	// A per-instance override always wins.
+	if (MeshOverride)
+	{
+		return MeshOverride;
+	}
+
+	// Otherwise use the imported mesh registered for this prop type (only Stool for now). An
+	// editor-assigned StoolMesh wins; failing that, try to load it from the conventional path at
+	// runtime so importing the stool and re-Playing is enough (no editor restart needed).
+	switch (PropType)
+	{
+	case EPropType::Stool:
+		if (StoolMesh)
+		{
+			return StoolMesh;
+		}
+		return Cast<UStaticMesh>(FSoftObjectPath(StoolMeshPath).TryLoad());
+	case EPropType::Crate:
+		if (CrateMesh)
+		{
+			return CrateMesh;
+		}
+		return Cast<UStaticMesh>(FSoftObjectPath(CrateMeshPath).TryLoad());
+	default:
+		return nullptr;
+	}
+}
+
+void ADungeonProp::BuildFinishedMesh(UStaticMesh* Mesh)
+{
+	UStaticMeshComponent* Whole = NewObject<UStaticMeshComponent>(this);
+	Whole->SetupAttachment(Root);
+	Whole->RegisterComponent();
+	Whole->SetMobility(EComponentMobility::Movable);
+	Whole->SetStaticMesh(Mesh);
+	Whole->SetCollisionProfileName(TEXT("BlockAll"));
+	Parts.Add(Whole);
 }

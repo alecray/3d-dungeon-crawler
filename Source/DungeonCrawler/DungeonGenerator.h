@@ -114,12 +114,19 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Boss", meta = (ClampMin = "6"))
 	int32 BossRoomCells = 13;
 
-	// ---- Lighting ----
+	// ---- Lighting (wall torches) ----
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting")
-	bool bSpawnRoomLights = true;
+	bool bSpawnTorches = true;
+
+	/** Place a wall torch roughly every N cells along walls (rooms and hallways). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "1"))
+	int32 TorchSpacingCells = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
-	float RoomLightIntensity = 5000.f;
+	float TorchLightIntensity = 2400.f;
+
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
+	float TorchLightRadius = 950.f;
 
 	// ---- Determinism ----
 	/** Seed for layout. < 0 picks a fresh random seed every Generate(). */
@@ -137,6 +144,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UInstancedStaticMeshComponent> WallISM;
+
+	UPROPERTY()
+	TObjectPtr<UInstancedStaticMeshComponent> TorchISM;
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;
@@ -172,5 +182,7 @@ private:
 	void ScatterProps();
 	void ScatterMonsters();
 	void SpawnBoss();
-	void SpawnRoomLights();
+	void SpawnWallTorches();
+	/** Places one wall torch (bracket mesh + warm light) on the wall in the given outward direction. */
+	void PlaceWallTorch(const FVector& CellLocal, const FVector& OutwardDir);
 };

@@ -10,11 +10,12 @@ class UStaticMeshComponent;
 UENUM(BlueprintType)
 enum class EPropType : uint8
 {
-	Chair		UMETA(DisplayName = "Chair"),
+	Stool		UMETA(DisplayName = "Stool"),
 	Table		UMETA(DisplayName = "Table"),
 	Cabinet		UMETA(DisplayName = "Cabinet"),
 	Dresser		UMETA(DisplayName = "Dresser"),
 	Bookshelf	UMETA(DisplayName = "Bookshelf"),
+	Crate		UMETA(DisplayName = "Crate"),
 
 	MAX			UMETA(Hidden)
 };
@@ -42,14 +43,29 @@ protected:
 
 	/** Which furniture this prop represents. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop")
-	EPropType PropType = EPropType::Chair;
+	EPropType PropType = EPropType::Stool;
 
 	/**
 	 * Optional finished mesh. If set, the graybox cubes are skipped and this single mesh is used
-	 * instead — the swap-in point for Blender assets.
+	 * instead — a per-instance swap-in point for Blender assets. Takes priority over the per-type
+	 * meshes below.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop")
 	TObjectPtr<UStaticMesh> MeshOverride;
+
+	/**
+	 * Imported finished mesh used for ALL Stool props. Auto-loaded from /Game/Furniture/SM_Stool if
+	 * that asset exists; assign here to override. When set, Stool props use this instead of graybox.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
+	TObjectPtr<UStaticMesh> StoolMesh;
+
+	/**
+	 * Imported finished mesh used for ALL Crate props. Auto-loaded from /Game/Furniture/SM_Crate if
+	 * that asset exists; assign here to override. When set, Crate props use this instead of graybox.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
+	TObjectPtr<UStaticMesh> CrateMesh;
 
 private:
 	UPROPERTY()
@@ -61,8 +77,14 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;
 
-	/** Clears existing parts and rebuilds from PropType (or MeshOverride). */
+	/** Clears existing parts and rebuilds from PropType (or a finished mesh). */
 	void Rebuild();
+
+	/** Returns the finished mesh to use for this prop, or null to build the graybox version. */
+	UStaticMesh* GetFinishedMesh() const;
+
+	/** Spawns a single static-mesh part for a finished (non-graybox) prop. */
+	void BuildFinishedMesh(UStaticMesh* Mesh);
 
 	/**
 	 * Adds one graybox box.
