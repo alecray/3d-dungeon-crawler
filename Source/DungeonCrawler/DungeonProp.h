@@ -67,6 +67,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
 	TObjectPtr<UStaticMesh> CrateMesh;
 
+	/**
+	 * Imported finished mesh used for ALL Table props. Auto-loaded from /Game/Furniture/SM_Table if
+	 * that asset exists; assign here to override. When set, Table props use this instead of graybox.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
+	TObjectPtr<UStaticMesh> TableMesh;
+
 private:
 	UPROPERTY()
 	TObjectPtr<USceneComponent> Root;

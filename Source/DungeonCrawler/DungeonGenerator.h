@@ -123,10 +123,10 @@ protected:
 	int32 TorchSpacingCells = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
-	float TorchLightIntensity = 2400.f;
+	float TorchLightIntensity = 3600.f;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
-	float TorchLightRadius = 950.f;
+	float TorchLightRadius = 1300.f;
 
 	// ---- Determinism ----
 	/** Seed for layout. < 0 picks a fresh random seed every Generate(). */

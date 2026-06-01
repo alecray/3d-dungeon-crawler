@@ -374,23 +374,23 @@ void ADungeonGenerator::ScatterProps()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	// Test lineup: place ONE of every furniture type in the player's start room (room 0), laid out in
-	// a grid in front of where the player spawns (room center, facing +X), so you can eyeball every
-	// prop the instant the game starts.
+	// Only furniture that has a finished imported mesh is spawned (the graybox-only types are left
+	// out of generation). Add a type here once its SM_ asset exists.
+	static const EPropType ModeledProps[] = { EPropType::Stool, EPropType::Table, EPropType::Crate };
+	const int32 NumModeled = UE_ARRAY_COUNT(ModeledProps);
+
+	// Test lineup: place ONE of every modeled furniture type in the player's start room (room 0), in
+	// a row in front of where the player spawns (room center, facing +X), so you can eyeball them.
 	if (Rooms.Num() > 0)
 	{
 		const FVector Base = GetRoomCenterWorld(0);
-		const int32 NumTypes = static_cast<int32>(EPropType::MAX);
-		const int32 Cols = 3;
-		for (int32 i = 0; i < NumTypes; ++i)
+		for (int32 i = 0; i < NumModeled; ++i)
 		{
-			const int32 Row = i / Cols;
-			const int32 Col = i % Cols;
-			const FVector Offset(220.f + Row * 190.f, (Col - 1) * 180.f, 0.f);
+			const FVector Offset(260.f, (i - (NumModeled - 1) * 0.5f) * 200.f, 0.f);
 			if (ADungeonProp* Prop = World->SpawnActor<ADungeonProp>(
 				ADungeonProp::StaticClass(), FTransform(FRotator::ZeroRotator, Base + Offset), Params))
 			{
-				Prop->Configure(static_cast<EPropType>(i));
+				Prop->Configure(ModeledProps[i]);
 				SpawnedActors.Add(Prop);
 			}
 		}
@@ -418,9 +418,7 @@ void ADungeonGenerator::ScatterProps()
 					ADungeonProp::StaticClass(), FTransform(Rot, WorldLoc), Params);
 				if (Prop)
 				{
-					const EPropType Type = static_cast<EPropType>(
-						Rng.RandRange(0, static_cast<int32>(EPropType::MAX) - 1));
-					Prop->Configure(Type);
+					Prop->Configure(ModeledProps[Rng.RandRange(0, NumModeled - 1)]);
 					SpawnedActors.Add(Prop);
 				}
 			}
@@ -501,9 +499,11 @@ void ADungeonGenerator::SpawnWallTorches()
 	}
 
 	const int32 Spacing = FMath::Max(1, TorchSpacingCells);
+	const int32 Stride = Spacing * 2; // half as many torches as before
 
-	// Walk every floor cell; on edges that border a non-floor cell (a wall) place a torch on a
-	// regular cell spacing. Vertical walls (along Y) are spaced by Y; horizontal walls by X.
+	// Walk every floor cell; on edges that border a non-floor cell (a wall) place a torch. Torches
+	// sit every Stride cells, and the two facing walls are offset by Spacing so they alternate /
+	// stagger down the corridor instead of lining up.
 	for (int32 y = 0; y < GridHeight; ++y)
 	{
 		for (int32 x = 0; x < GridWidth; ++x)
@@ -515,10 +515,10 @@ void ADungeonGenerator::SpawnWallTorches()
 
 			const FVector C = CellToLocal(x, y);
 
-			if (!IsFloor(x + 1, y) && (y % Spacing) == 0) { PlaceWallTorch(C, FVector(1.f, 0.f, 0.f)); }
-			if (!IsFloor(x - 1, y) && (y % Spacing) == 0) { PlaceWallTorch(C, FVector(-1.f, 0.f, 0.f)); }
-			if (!IsFloor(x, y + 1) && (x % Spacing) == 0) { PlaceWallTorch(C, FVector(0.f, 1.f, 0.f)); }
-			if (!IsFloor(x, y - 1) && (x % Spacing) == 0) { PlaceWallTorch(C, FVector(0.f, -1.f, 0.f)); }
+			if (!IsFloor(x + 1, y) && (y % Stride) == 0)       { PlaceWallTorch(C, FVector(1.f, 0.f, 0.f)); }
+			if (!IsFloor(x - 1, y) && (y % Stride) == Spacing) { PlaceWallTorch(C, FVector(-1.f, 0.f, 0.f)); }
+			if (!IsFloor(x, y + 1) && (x % Stride) == 0)       { PlaceWallTorch(C, FVector(0.f, 1.f, 0.f)); }
+			if (!IsFloor(x, y - 1) && (x % Stride) == Spacing) { PlaceWallTorch(C, FVector(0.f, -1.f, 0.f)); }
 		}
 	}
 }

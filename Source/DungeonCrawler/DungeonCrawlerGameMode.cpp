@@ -71,10 +71,10 @@ void ADungeonCrawlerGameMode::EnsureLighting()
 			if (USkyLightComponent* SC = Sky->GetLightComponent())
 			{
 				SC->SetMobility(EComponentMobility::Movable);
-				SC->SetIntensity(1.5f);
-				SC->SetLightColor(FLinearColor(0.55f, 0.6f, 0.75f)); // soft blue ambient
+				SC->SetIntensity(3.0f);                              // strong, even ambient fill
+				SC->SetLightColor(FLinearColor(0.7f, 0.72f, 0.82f)); // soft, near-neutral
 				SC->bLowerHemisphereIsBlack = false;                 // fill the floor/shadows too
-				SC->LowerHemisphereColor = FLinearColor(0.25f, 0.25f, 0.3f);
+				SC->LowerHemisphereColor = FLinearColor(0.4f, 0.4f, 0.45f);
 				SC->RecaptureSky();
 			}
 		}
@@ -107,23 +107,42 @@ void ADungeonCrawlerGameMode::EnsurePostProcess()
 
 	FPostProcessSettings& S = PPV->Settings;
 
-	// Lock exposure so the view doesn't harshly auto-adjust between bright and dark spots.
+	// Lock exposure (no harsh auto-adjust) and bias it BRIGHT — low-poly games read as well-lit and
+	// flat, not moody. A lower locked brightness target makes the rendered image brighter.
 	S.bOverride_AutoExposureMinBrightness = true;
-	S.AutoExposureMinBrightness = 1.0f;
+	S.AutoExposureMinBrightness = 0.3f;
 	S.bOverride_AutoExposureMaxBrightness = true;
-	S.AutoExposureMaxBrightness = 1.0f;
+	S.AutoExposureMaxBrightness = 0.3f;
 
 	// Ease ambient occlusion so contact shadows aren't a hard black line.
 	S.bOverride_AmbientOcclusionIntensity = true;
-	S.AmbientOcclusionIntensity = 0.4f;
+	S.AmbientOcclusionIntensity = 0.25f;
 	S.bOverride_AmbientOcclusionRadius = true;
 	S.AmbientOcclusionRadius = 80.f;
 
-	// Lift indirect bounce a touch and soften the highlights for a gentle, stylized look.
+	// Strong indirect bounce so shadowed areas fill with soft colored light, never black.
 	S.bOverride_IndirectLightingIntensity = true;
-	S.IndirectLightingIntensity = 1.4f;
+	S.IndirectLightingIntensity = 2.2f;
+
+	// Stylized grade: warm white balance, lower contrast, lifted (warm) shadows, a touch more
+	// saturation, gentle bloom + vignette — the flat, cozy low-poly look.
+	S.bOverride_WhiteTemp = true;
+	S.WhiteTemp = 5800.f; // warmer than neutral 6500
+
+	S.bOverride_ColorContrast = true;
+	S.ColorContrast = FVector4(0.9f, 0.9f, 0.9f, 1.0f);
+
+	S.bOverride_ColorSaturation = true;
+	S.ColorSaturation = FVector4(1.15f, 1.15f, 1.15f, 1.0f);
+
+	S.bOverride_ColorOffset = true;
+	S.ColorOffset = FVector4(0.02f, 0.018f, 0.012f, 0.0f); // lift blacks toward warm gray
+
 	S.bOverride_BloomIntensity = true;
-	S.BloomIntensity = 0.4f;
+	S.BloomIntensity = 0.5f;
+
+	S.bOverride_VignetteIntensity = true;
+	S.VignetteIntensity = 0.3f;
 }
 
 void ADungeonCrawlerGameMode::BuildWorld()

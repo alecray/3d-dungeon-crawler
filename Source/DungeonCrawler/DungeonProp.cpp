@@ -8,6 +8,7 @@
 // Content paths that finished props pull their meshes from (import your assets here).
 static const TCHAR* StoolMeshPath = TEXT("/Game/Furniture/SM_Stool.SM_Stool");
 static const TCHAR* CrateMeshPath = TEXT("/Game/Furniture/SM_Crate.SM_Crate");
+static const TCHAR* TableMeshPath = TEXT("/Game/Furniture/SM_Table.SM_Table");
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
 static constexpr float CubeUnitCm = 100.f;
@@ -175,6 +176,12 @@ UStaticMesh* ADungeonProp::GetFinishedMesh() const
 			return CrateMesh;
 		}
 		return Cast<UStaticMesh>(FSoftObjectPath(CrateMeshPath).TryLoad());
+	case EPropType::Table:
+		if (TableMesh)
+		{
+			return TableMesh;
+		}
+		return Cast<UStaticMesh>(FSoftObjectPath(TableMeshPath).TryLoad());
 	default:
 		return nullptr;
 	}

@@ -85,14 +85,16 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 
 	// ---- Sword held in the right hand ----
 	// SwordRoot is parented to the camera (not the hand cube) so the hand's 0.125 scale doesn't
-	// shrink it. It sits just in front of/above the right hand, blade pointing forward (+X), tilted
-	// up slightly. Everything sword-related hangs off it so it bobs/thrusts as one piece.
-	SwordBase = FVector(55.f, HandSide, -14.f);
+	// shrink it. The sword is modeled along +X; we pitch it up so the blade is held roughly VERTICAL
+	// (pointing up) just to the lower-right of the view, leaning slightly forward. Everything
+	// sword-related hangs off it so it bobs/thrusts as one piece.
+	SwordBase = FVector(42.f, 24.f, -34.f);
 
 	SwordRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SwordRoot"));
 	SwordRoot->SetupAttachment(FirstPersonCamera);
 	SwordRoot->SetRelativeLocation(SwordBase);
-	SwordRoot->SetRelativeRotation(FRotator(-12.f, 0.f, 8.f)); // tilt blade up, slight roll
+	// Pitch ~82° points the blade (+X) nearly straight up; small yaw angles it across the view.
+	SwordRoot->SetRelativeRotation(FRotator(82.f, 8.f, 0.f));
 
 	// Real-mesh sword (used only when a mesh is assigned).
 	SwordMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SwordMesh"));
