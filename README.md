@@ -16,27 +16,30 @@ graybox so Blender assets can drop in later without code changes.
 
 ## Core Feature Plan
 
-Built so far (prototype):
+Built so far:
 
-- [x] First-person controller (WASD + mouse look, jump)
+- [x] First-person controller (WASD + mouse look, jump, sprint)
 - [x] Procedurally generated dungeon (rooms + hallways, scattered props)
-- [x] Custom floor/wall meshes + textured furniture (stool/table/crate)
+- [x] Custom floor/wall meshes + textured furniture (stool/table/crate); floor mesh reused as the
+      ceiling (underside shown for separate texturing); walls alternate facing for variety
 - [x] Stylized lighting (Lumen) + amber wall torches
 - [x] Health & damage system (player + monsters)
 - [x] Melee combat (skeletal sword + swing animation)
 - [x] Enemy AI (chase/attack, hit-react) + 3-phase morphing boss
 - [x] Player death → level restart
+- [x] Attributes (Strength, Intelligence, Dexterity, Vitality) + level/XP progression (XP on kills,
+      melee scales with Strength)
+- [x] Health / Mana / Stamina bars (pure-C++ UMG HUD); stamina drives sprint
+- [x] Save persistence (profile: attributes/level/XP/gold via a Game Instance + SaveGame)
 
 Planned RPG systems (art-independent, in dependency order):
 
-- [ ] Attributes / skills (Strength, Intelligence, Dexterity, Vitality)
-- [ ] Health / Mana / Stamina bars (UMG HUD)
-- [ ] Save persistence
+- [ ] Stats screen to spend attribute points
 - [ ] Inventory system with draggable items (Diablo-style)
 - [ ] Lootable chests
 - [ ] Collection log (rare items)
 - [ ] Different enemy types
-- [ ] Ranged & mage combat styles
+- [ ] Ranged & mage combat styles (mage spends mana)
 - [ ] Skill tree (Borderlands-style)
 - [ ] Home town scene with a shop (buy/sell)
 
@@ -52,8 +55,14 @@ Planned RPG systems (art-independent, in dependency order):
   non-floor cell, so doorways appear automatically where corridors meet rooms. Tunables (room count,
   cell size, wall height, prop density, seed) are exposed in the Details panel; **Generate** can be
   re-run in-editor.
-- `ADungeonProp` — graybox furniture (chair/table/cabinet/dresser/bookshelf) assembled from cubes.
-  Set `MeshOverride` to swap in a finished mesh later.
+- `ADungeonProp` — furniture spawned by the generator; uses imported meshes for the modeled types
+  (stool/table/crate) and falls back to graybox cubes otherwise.
+- `UStatsComponent` — attributes (STR/INT/DEX/VIT), level/XP, skill & attribute points, and derived
+  stats (max health/mana/stamina, damage multipliers).
+- `UHealthComponent` / `UResourceComponent` — health+damage (player & monsters) and the regenerating
+  mana/stamina pools.
+- `ADungeonPlayerController` + `UHUDWidget` — pure-C++ UMG HUD (HP/mana/stamina bars + level).
+- `UDungeonGameInstance` + `UDungeonSaveGame` — persistent player profile across levels and to disk.
 
-Everything is code-driven graybox primitives (`/Engine/BasicShapes/Cube`) — no binary Content
-assets, so the prototype stays diff-friendly and mesh-agnostic.
+The dungeon geometry and props start as code-driven graybox primitives and swap in imported meshes
+where available, so the project stays diff-friendly and mesh-agnostic.

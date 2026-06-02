@@ -323,9 +323,11 @@ void ADungeonGenerator::BuildGeometry()
 	const bool bCustomFloor = (FloorMesh != nullptr) && (FloorISM != nullptr);
 	float FloorScale = 1.f;
 	FVector FloorOffset = FVector::ZeroVector;
-	// Ceiling reuses the floor mesh, flipped upside-down so its painted face looks down into the room.
+	// Ceiling reuses the floor mesh, NOT flipped — so the player sees its underside (which can be
+	// textured differently for variety). The mesh's bottom face is placed at the ceiling plane.
 	FVector FloorCtr = FVector::ZeroVector;
 	float FloorMaxZ = 0.f;
+	float FloorMinZ = 0.f;
 	if (bCustomFloor)
 	{
 		FloorISM->SetStaticMesh(FloorMesh);
@@ -334,6 +336,7 @@ void ADungeonGenerator::BuildGeometry()
 		const FVector Size = Box.GetSize();
 		FloorCtr = Box.GetCenter();
 		FloorMaxZ = Box.Max.Z;
+		FloorMinZ = Box.Min.Z;
 		const float Denom = FMath::Max(Size.X, Size.Y);
 		FloorScale = (Denom > KINDA_SMALL_NUMBER) ? (CellSize / Denom) : 1.f;
 		// Center the mesh on the cell (XY) and land its top face at Z = 0.
@@ -398,12 +401,13 @@ void ADungeonGenerator::BuildGeometry()
 					FVector(CellSize, CellSize, SlabThickness));
 			}
 
-			// Ceiling: reuse the floor mesh flipped upside-down (painted face down) at WallHeight; else a cube.
+			// Ceiling: reuse the floor mesh UN-flipped (its bottom face shows from below) with that
+			// bottom face sitting at the ceiling plane Z = WallHeight; else a cube.
 			if (bCustomFloor)
 			{
-				const FVector CeilLoc = C + FVector(-FloorCtr.X * FloorScale, FloorCtr.Y * FloorScale,
-					WallHeight + FloorMaxZ * FloorScale);
-				CeilingISM->AddInstance(FTransform(FRotator(0.f, 0.f, 180.f), CeilLoc, FVector(FloorScale)), /*bWorldSpace*/ false);
+				const FVector CeilLoc = C + FVector(-FloorCtr.X * FloorScale, -FloorCtr.Y * FloorScale,
+					WallHeight - FloorMinZ * FloorScale);
+				CeilingISM->AddInstance(FTransform(FRotator::ZeroRotator, CeilLoc, FVector(FloorScale)), /*bWorldSpace*/ false);
 			}
 			else
 			{
