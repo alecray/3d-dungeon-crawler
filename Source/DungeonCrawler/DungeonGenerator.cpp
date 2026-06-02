@@ -9,6 +9,12 @@
 #include "Engine/PointLight.h"
 #include "Engine/StaticMesh.h"
 #include "UObject/ConstructorHelpers.h"
+#include "UObject/SoftObjectPath.h"
+
+// Optional imported environment meshes; fall back to the graybox cube when absent. (Add collision to
+// these meshes themselves in the editor so they block the player.)
+static const TCHAR* FloorMeshPath = TEXT("/Game/Furniture/SM_Floor.SM_Floor");
+static const TCHAR* WallMeshPath = TEXT("/Game/Furniture/SM_Wall.SM_Wall");
 
 // The engine cube is a 100cm cube centered on its origin, so an instance scale of 1.0 == 100cm.
 static constexpr float CubeUnitCm = 100.f;
@@ -311,6 +317,59 @@ void ADungeonGenerator::BuildGeometry()
 	// fully covered by the perpendicular segment's thickness.)
 	const float WallSpan = CellSize;
 
+	// If a custom floor mesh exists, drive FloorISM with it. Auto-fit any authored size: uniform
+	// scale so its footprint fills the cell (no stretch), centered, with its top at Z = 0.
+	UStaticMesh* FloorMesh = Cast<UStaticMesh>(FSoftObjectPath(FloorMeshPath).TryLoad());
+	const bool bCustomFloor = (FloorMesh != nullptr) && (FloorISM != nullptr);
+	float FloorScale = 1.f;
+	FVector FloorOffset = FVector::ZeroVector;
+	if (bCustomFloor)
+	{
+		FloorISM->SetStaticMesh(FloorMesh);
+		const FBox Box = FloorMesh->GetBoundingBox();
+		const FVector Size = Box.GetSize();
+		const FVector Ctr = Box.GetCenter();
+		const float Denom = FMath::Max(Size.X, Size.Y);
+		FloorScale = (Denom > KINDA_SMALL_NUMBER) ? (CellSize / Denom) : 1.f;
+		// Center the mesh on the cell (XY) and land its top face at Z = 0.
+		FloorOffset = FVector(-Ctr.X * FloorScale, -Ctr.Y * FloorScale, -Box.Max.Z * FloorScale);
+	}
+
+	// If a custom wall mesh exists, drive WallISM with it. Auto-fit: scale its length to the cell, its
+	// thickness to WallThickness, and its height to WallHeight; rotate so its length runs along the
+	// wall. (Falls back to the graybox cube wall otherwise.)
+	UStaticMesh* WallMesh = Cast<UStaticMesh>(FSoftObjectPath(WallMeshPath).TryLoad());
+	const bool bCustomWall = (WallMesh != nullptr) && (WallISM != nullptr);
+	bool bWallLenAlongX = true;
+	FVector WallScale = FVector::OneVector;
+	FBox WallBox(ForceInit);
+	if (bCustomWall)
+	{
+		WallISM->SetStaticMesh(WallMesh);
+		WallBox = WallMesh->GetBoundingBox();
+		const FVector Sz = WallBox.GetSize();
+		bWallLenAlongX = (Sz.X >= Sz.Y); // longer horizontal axis is the wall's length
+		if (bWallLenAlongX)
+		{
+			WallScale = FVector(CellSize / Sz.X, WallThickness / Sz.Y, WallHeight / Sz.Z);
+		}
+		else
+		{
+			WallScale = FVector(WallThickness / Sz.X, CellSize / Sz.Y, WallHeight / Sz.Z);
+		}
+	}
+
+	// Places one custom wall instance centered on an edge midpoint, bottom at Z = 0, length running
+	// along X or Y as requested.
+	auto AddWall = [&](const FVector& EdgeMid, bool bRunAlongX)
+	{
+		const float Yaw = bRunAlongX ? (bWallLenAlongX ? 0.f : 90.f) : (bWallLenAlongX ? 90.f : 0.f);
+		const FRotator Rot(0.f, Yaw, 0.f);
+		const FVector CRot = Rot.RotateVector(WallBox.GetCenter() * WallScale);
+		const FVector Loc(EdgeMid.X - CRot.X, EdgeMid.Y - CRot.Y, -WallBox.Min.Z * WallScale.Z);
+		WallISM->AddInstance(FTransform(Rot, Loc, WallScale), /*bWorldSpace*/ false);
+	};
+
 	for (int32 y = 0; y < GridHeight; ++y)
 	{
 		for (int32 x = 0; x < GridWidth; ++x)
@@ -322,17 +381,23 @@ void ADungeonGenerator::BuildGeometry()
 
 			const FVector C = CellToLocal(x, y);
 
-			// Floor: top sits at Z = 0.
-			AddTile(FloorISM, C + FVector(0.f, 0.f, -SlabThickness * 0.5f),
-				FVector(CellSize, CellSize, SlabThickness));
+			// Floor: top sits at Z = 0. (Collision comes from the mesh itself — cube or imported.)
+			if (bCustomFloor)
+			{
+				FloorISM->AddInstance(FTransform(FRotator::ZeroRotator, C + FloorOffset, FVector(FloorScale)), /*bWorldSpace*/ false);
+			}
+			else
+			{
+				AddTile(FloorISM, C + FVector(0.f, 0.f, -SlabThickness * 0.5f),
+					FVector(CellSize, CellSize, SlabThickness));
+			}
 
 			// Ceiling: bottom sits at Z = WallHeight.
 			AddTile(CeilingISM, C + FVector(0.f, 0.f, WallHeight + SlabThickness * 0.5f),
 				FVector(CellSize, CellSize, SlabThickness));
 
-			// Embed the wall into both slabs (bottom buried in the floor at -SlabThickness, top buried
-			// in the ceiling at WallHeight + SlabThickness) so no wall face is coplanar with the
-			// floor-top or ceiling-bottom faces — coplanar overlaps are what cause z-fighting.
+			// Cube-wall geometry (used when there's no custom wall mesh): embed into both slabs so no
+			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting).
 			const float WallTall = WallHeight + 2.f * SlabThickness;
 			const float WallZ = WallHeight * 0.5f;
 
@@ -340,23 +405,23 @@ void ADungeonGenerator::BuildGeometry()
 			// floor cells meet, so no wall is built there).
 			if (!IsFloor(x + 1, y))
 			{
-				AddTile(WallISM, C + FVector(HalfCell, 0.f, WallZ),
-					FVector(WallThickness, WallSpan, WallTall));
+				if (bCustomWall) { AddWall(C + FVector(HalfCell, 0.f, 0.f), /*bRunAlongX*/ false); }
+				else { AddTile(WallISM, C + FVector(HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
 			}
 			if (!IsFloor(x - 1, y))
 			{
-				AddTile(WallISM, C + FVector(-HalfCell, 0.f, WallZ),
-					FVector(WallThickness, WallSpan, WallTall));
+				if (bCustomWall) { AddWall(C + FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false); }
+				else { AddTile(WallISM, C + FVector(-HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
 			}
 			if (!IsFloor(x, y + 1))
 			{
-				AddTile(WallISM, C + FVector(0.f, HalfCell, WallZ),
-					FVector(WallSpan, WallThickness, WallTall));
+				if (bCustomWall) { AddWall(C + FVector(0.f, HalfCell, 0.f), /*bRunAlongX*/ true); }
+				else { AddTile(WallISM, C + FVector(0.f, HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
 			}
 			if (!IsFloor(x, y - 1))
 			{
-				AddTile(WallISM, C + FVector(0.f, -HalfCell, WallZ),
-					FVector(WallSpan, WallThickness, WallTall));
+				if (bCustomWall) { AddWall(C + FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true); }
+				else { AddTile(WallISM, C + FVector(0.f, -HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
 			}
 		}
 	}
@@ -553,7 +618,7 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 			LC->SetMobility(EComponentMobility::Movable);
 			LC->SetIntensity(TorchLightIntensity);
 			LC->SetAttenuationRadius(TorchLightRadius);
-			LC->SetLightColor(FLinearColor(1.0f, 0.74f, 0.42f)); // warm flame
+			LC->SetLightColor(FLinearColor(1.0f, 0.55f, 0.2f)); // deep amber medieval flame
 			LC->SetSourceRadius(14.f);
 			LC->SetSoftSourceRadius(40.f);
 			// Many torches: keep them as cheap, soft fill (no per-light shadows). Lumen + the sky

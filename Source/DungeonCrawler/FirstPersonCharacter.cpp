@@ -154,7 +154,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	TorchLight->SetRelativeLocation(TorchBase + FVector(0.f, 0.f, 20.f)); // flame floats above the handle
 	TorchLight->SetIntensity(5000.f);
 	TorchLight->SetAttenuationRadius(2200.f);
-	TorchLight->SetLightColor(FLinearColor(1.0f, 0.72f, 0.36f)); // warm torch glow
+	TorchLight->SetLightColor(FLinearColor(1.0f, 0.55f, 0.2f)); // deep amber medieval flame
 	TorchLight->SetSourceRadius(20.f);       // soft penumbra
 	TorchLight->SetSoftSourceRadius(60.f);
 	TorchLight->SetCastShadows(true);
