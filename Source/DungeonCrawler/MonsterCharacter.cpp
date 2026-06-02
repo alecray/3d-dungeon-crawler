@@ -1,5 +1,6 @@
 #include "MonsterCharacter.h"
 #include "HealthComponent.h"
+#include "StatsComponent.h"
 
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
@@ -149,6 +150,18 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 {
 	bDead = true;
+
+	// Award XP to the player.
+	if (XPReward > 0)
+	{
+		if (APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
+		{
+			if (UStatsComponent* PlayerStats = Player->FindComponentByClass<UStatsComponent>())
+			{
+				PlayerStats->AddXP(XPReward);
+			}
+		}
+	}
 
 	// Stop chasing, drop collision, and let the corpse linger briefly before cleanup.
 	GetCharacterMovement()->StopMovementImmediately();

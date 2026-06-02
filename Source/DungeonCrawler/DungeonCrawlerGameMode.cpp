@@ -1,6 +1,7 @@
 #include "DungeonCrawlerGameMode.h"
 #include "DungeonGenerator.h"
 #include "FirstPersonCharacter.h"
+#include "DungeonPlayerController.h"
 
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkyLight.h"
@@ -15,6 +16,7 @@
 ADungeonCrawlerGameMode::ADungeonCrawlerGameMode()
 {
 	DefaultPawnClass = AFirstPersonCharacter::StaticClass();
+	PlayerControllerClass = ADungeonPlayerController::StaticClass();
 	DungeonGeneratorClass = ADungeonGenerator::StaticClass();
 }
 

@@ -323,16 +323,21 @@ void ADungeonGenerator::BuildGeometry()
 	const bool bCustomFloor = (FloorMesh != nullptr) && (FloorISM != nullptr);
 	float FloorScale = 1.f;
 	FVector FloorOffset = FVector::ZeroVector;
+	// Ceiling reuses the floor mesh, flipped upside-down so its painted face looks down into the room.
+	FVector FloorCtr = FVector::ZeroVector;
+	float FloorMaxZ = 0.f;
 	if (bCustomFloor)
 	{
 		FloorISM->SetStaticMesh(FloorMesh);
+		CeilingISM->SetStaticMesh(FloorMesh);
 		const FBox Box = FloorMesh->GetBoundingBox();
 		const FVector Size = Box.GetSize();
-		const FVector Ctr = Box.GetCenter();
+		FloorCtr = Box.GetCenter();
+		FloorMaxZ = Box.Max.Z;
 		const float Denom = FMath::Max(Size.X, Size.Y);
 		FloorScale = (Denom > KINDA_SMALL_NUMBER) ? (CellSize / Denom) : 1.f;
 		// Center the mesh on the cell (XY) and land its top face at Z = 0.
-		FloorOffset = FVector(-Ctr.X * FloorScale, -Ctr.Y * FloorScale, -Box.Max.Z * FloorScale);
+		FloorOffset = FVector(-FloorCtr.X * FloorScale, -FloorCtr.Y * FloorScale, -FloorMaxZ * FloorScale);
 	}
 
 	// If a custom wall mesh exists, drive WallISM with it. Auto-fit: scale its length to the cell, its
@@ -360,10 +365,11 @@ void ADungeonGenerator::BuildGeometry()
 	}
 
 	// Places one custom wall instance centered on an edge midpoint, bottom at Z = 0, length running
-	// along X or Y as requested.
-	auto AddWall = [&](const FVector& EdgeMid, bool bRunAlongX)
+	// along X or Y as requested. bFlip adds a 180° yaw so the wall's other face shows, for variety.
+	auto AddWall = [&](const FVector& EdgeMid, bool bRunAlongX, bool bFlip)
 	{
-		const float Yaw = bRunAlongX ? (bWallLenAlongX ? 0.f : 90.f) : (bWallLenAlongX ? 90.f : 0.f);
+		float Yaw = bRunAlongX ? (bWallLenAlongX ? 0.f : 90.f) : (bWallLenAlongX ? 90.f : 0.f);
+		if (bFlip) { Yaw += 180.f; }
 		const FRotator Rot(0.f, Yaw, 0.f);
 		const FVector CRot = Rot.RotateVector(WallBox.GetCenter() * WallScale);
 		const FVector Loc(EdgeMid.X - CRot.X, EdgeMid.Y - CRot.Y, -WallBox.Min.Z * WallScale.Z);
@@ -392,9 +398,18 @@ void ADungeonGenerator::BuildGeometry()
 					FVector(CellSize, CellSize, SlabThickness));
 			}
 
-			// Ceiling: bottom sits at Z = WallHeight.
-			AddTile(CeilingISM, C + FVector(0.f, 0.f, WallHeight + SlabThickness * 0.5f),
-				FVector(CellSize, CellSize, SlabThickness));
+			// Ceiling: reuse the floor mesh flipped upside-down (painted face down) at WallHeight; else a cube.
+			if (bCustomFloor)
+			{
+				const FVector CeilLoc = C + FVector(-FloorCtr.X * FloorScale, FloorCtr.Y * FloorScale,
+					WallHeight + FloorMaxZ * FloorScale);
+				CeilingISM->AddInstance(FTransform(FRotator(0.f, 0.f, 180.f), CeilLoc, FVector(FloorScale)), /*bWorldSpace*/ false);
+			}
+			else
+			{
+				AddTile(CeilingISM, C + FVector(0.f, 0.f, WallHeight + SlabThickness * 0.5f),
+					FVector(CellSize, CellSize, SlabThickness));
+			}
 
 			// Cube-wall geometry (used when there's no custom wall mesh): embed into both slabs so no
 			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting).
@@ -402,25 +417,26 @@ void ADungeonGenerator::BuildGeometry()
 			const float WallZ = WallHeight * 0.5f;
 
 			// Raise a wall on each edge that borders a non-floor cell (doorways are where two
-			// floor cells meet, so no wall is built there).
+			// floor cells meet, so no wall is built there). Custom walls alternate facing (flip every
+			// other cell along the run) so the painted side varies.
 			if (!IsFloor(x + 1, y))
 			{
-				if (bCustomWall) { AddWall(C + FVector(HalfCell, 0.f, 0.f), /*bRunAlongX*/ false); }
+				if (bCustomWall) { AddWall(C + FVector(HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) != 0); }
 				else { AddTile(WallISM, C + FVector(HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
 			}
 			if (!IsFloor(x - 1, y))
 			{
-				if (bCustomWall) { AddWall(C + FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false); }
+				if (bCustomWall) { AddWall(C + FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) == 0); }
 				else { AddTile(WallISM, C + FVector(-HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
 			}
 			if (!IsFloor(x, y + 1))
 			{
-				if (bCustomWall) { AddWall(C + FVector(0.f, HalfCell, 0.f), /*bRunAlongX*/ true); }
+				if (bCustomWall) { AddWall(C + FVector(0.f, HalfCell, 0.f), /*bRunAlongX*/ true, (x & 1) != 0); }
 				else { AddTile(WallISM, C + FVector(0.f, HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
 			}
 			if (!IsFloor(x, y - 1))
 			{
-				if (bCustomWall) { AddWall(C + FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true); }
+				if (bCustomWall) { AddWall(C + FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true, (x & 1) == 0); }
 				else { AddTile(WallISM, C + FVector(0.f, -HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
 			}
 		}

@@ -13,7 +13,11 @@ public class DungeonCrawler : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
-			"AIModule"
+			"AIModule",
+			"UMG",
+			"Slate",
+			"SlateCore",
+			"GameplayTags"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

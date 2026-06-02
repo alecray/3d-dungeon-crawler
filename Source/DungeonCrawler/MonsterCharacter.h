@@ -69,6 +69,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Monster", meta = (ClampMin = "1"))
 	float MonsterMaxHealth = 45.f;
 
+	/** XP awarded to the player when this monster dies. */
+	UPROPERTY(EditAnywhere, Category = "Monster", meta = (ClampMin = "0"))
+	int32 XPReward = 25;
+
 	/** How long the hit-react pop lasts after taking damage (s). */
 	UPROPERTY(EditAnywhere, Category = "Monster")
 	float HitReactDuration = 0.18f;

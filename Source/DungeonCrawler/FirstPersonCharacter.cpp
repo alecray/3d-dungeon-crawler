@@ -1,21 +1,30 @@
 #include "FirstPersonCharacter.h"
 #include "HealthComponent.h"
+#include "ResourceComponent.h"
+#include "StatsComponent.h"
 #include "MonsterCharacter.h"
+#include "DungeonGameInstance.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/StaticMeshComponent.h"
-#include "Components/PointLightComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "UObject/SoftObjectPath.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "CollisionShape.h"
 #include "TimerManager.h"
+
+// Skeletal sword + its swing animation are loaded from these paths if not assigned in the editor.
+static const TCHAR* SwordSkeletalPath = TEXT("/Game/Weapons/SK_Sword.SK_Sword");
+static const TCHAR* SwordSwingAnimPath = TEXT("/Game/Weapons/A_Sword_Swing.A_Sword_Swing");
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -26,7 +35,7 @@
 
 AFirstPersonCharacter::AFirstPersonCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true; // drives the hand walking sway
+	PrimaryActorTick.bCanEverTick = true; // drives the sword walking sway
 
 	// Standard human-sized capsule.
 	GetCapsuleComponent()->InitCapsuleSize(34.f, 88.f);
@@ -38,7 +47,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = false;
-	Movement->MaxWalkSpeed = 450.f;
+	Movement->MaxWalkSpeed = WalkSpeed;
 	Movement->BrakingDecelerationWalking = 2000.f;
 	Movement->AirControl = 0.2f;
 
@@ -48,144 +57,90 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, 64.f)); // near the top of the capsule
 	FirstPersonCamera->bUsePawnControlRotation = true;
 
-	// ---- Graybox hands (engine cube), parented to the camera so they track the view ----
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
-
-	const FVector HandScale(0.125f, 0.125f, 0.125f); // ~12.5cm cubes
-	const float HandForward = 45.f;
-	const float HandSide = 18.f;
-	const float HandDown = -22.f;
-
-	LeftHandBase = FVector(HandForward, -HandSide, HandDown);
-	RightHandBase = FVector(HandForward, HandSide, HandDown);
-
-	LeftHand = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LeftHand"));
-	LeftHand->SetupAttachment(FirstPersonCamera);
-	LeftHand->SetMobility(EComponentMobility::Movable);
-	LeftHand->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	LeftHand->SetRelativeLocation(LeftHandBase);
-	LeftHand->SetRelativeScale3D(HandScale);
-	LeftHand->SetOnlyOwnerSee(true);
-	if (CubeMesh.Succeeded())
-	{
-		LeftHand->SetStaticMesh(CubeMesh.Object);
-	}
-
-	RightHand = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RightHand"));
-	RightHand->SetupAttachment(FirstPersonCamera);
-	RightHand->SetMobility(EComponentMobility::Movable);
-	RightHand->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	RightHand->SetRelativeLocation(RightHandBase);
-	RightHand->SetRelativeScale3D(HandScale);
-	RightHand->SetOnlyOwnerSee(true);
-	if (CubeMesh.Succeeded())
-	{
-		RightHand->SetStaticMesh(CubeMesh.Object);
-	}
-
-	// ---- Sword held in the right hand ----
-	// SwordRoot is parented to the camera (not the hand cube) so the hand's 0.125 scale doesn't
-	// shrink it. The sword is modeled along +X; we pitch it up so the blade is held roughly VERTICAL
-	// (pointing up) just to the lower-right of the view, leaning slightly forward. Everything
-	// sword-related hangs off it so it bobs/thrusts as one piece.
+	// ---- Skeletal-mesh sword held in view ----
+	// Parented to the camera. A skeletal mesh lets it play Blender-authored swing animations; its
+	// resting orientation comes from how it's rigged in Blender, this transform just places it in view.
 	SwordBase = FVector(42.f, 24.f, -34.f);
 
-	SwordRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SwordRoot"));
-	SwordRoot->SetupAttachment(FirstPersonCamera);
-	SwordRoot->SetRelativeLocation(SwordBase);
-	// Pitch ~82° points the blade (+X) nearly straight up; small yaw angles it across the view.
-	SwordRoot->SetRelativeRotation(FRotator(82.f, 8.f, 0.f));
-
-	// Real-mesh sword (used only when a mesh is assigned).
-	SwordMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SwordMesh"));
-	SwordMesh->SetupAttachment(SwordRoot);
-	SwordMesh->SetMobility(EComponentMobility::Movable);
+	SwordMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SwordMesh"));
+	SwordMesh->SetupAttachment(FirstPersonCamera);
+	SwordMesh->SetRelativeLocation(SwordBase);
 	SwordMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SwordMesh->SetOnlyOwnerSee(true);
+	// Single-node animation mode so PlayAnimation() can fire the swing on demand.
+	SwordMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 
-	// Default to an imported sword at /Game/Weapons/SM_Sword if one exists.
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> SwordFinder(TEXT("/Game/Weapons/SM_Sword.SM_Sword"));
-	if (SwordFinder.Succeeded())
-	{
-		SwordMeshAsset = SwordFinder.Object;
-	}
-
-	// Graybox placeholder sword assembled from cubes (blade / crossguard / grip / pommel), built
-	// along +X from the grip. Hidden automatically when a real SwordMeshAsset is present.
-	auto AddSwordPart = [&](const TCHAR* Name, const FVector& Center, const FVector& SizeCm)
-	{
-		UStaticMeshComponent* Part = CreateDefaultSubobject<UStaticMeshComponent>(Name);
-		Part->SetupAttachment(SwordRoot);
-		Part->SetMobility(EComponentMobility::Movable);
-		Part->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		Part->SetOnlyOwnerSee(true);
-		Part->SetRelativeLocation(Center);
-		Part->SetRelativeScale3D(SizeCm / 100.f); // engine cube is 100cm
-		if (CubeMesh.Succeeded())
-		{
-			Part->SetStaticMesh(CubeMesh.Object);
-		}
-		SwordPlaceholderParts.Add(Part);
-	};
-
-	// Whole sword lies along +X (forward): pommel -> grip -> crossguard -> blade, in a straight line.
-	AddSwordPart(TEXT("SwordPommel"), FVector(-16.f, 0.f, 0.f), FVector(5.f, 5.f, 5.f));
-	AddSwordPart(TEXT("SwordGrip"),   FVector(-4.f, 0.f, 0.f),  FVector(18.f, 4.f, 4.f));   // along X
-	AddSwordPart(TEXT("SwordGuard"),  FVector(8.f, 0.f, 0.f),   FVector(4.f, 20.f, 5.f));   // crossbar (wide in Y)
-	AddSwordPart(TEXT("SwordBlade"),  FVector(46.f, 0.f, 0.f),  FVector(72.f, 4.f, 1.5f));  // long in X, flat
-
-	// ---- Torch (floats above the left hand) ----
-	TorchBase = FVector(40.f, -HandSide, 14.f); // above and slightly forward of the left hand
-
-	TorchMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TorchMesh"));
-	TorchMesh->SetupAttachment(FirstPersonCamera);
-	TorchMesh->SetMobility(EComponentMobility::Movable);
-	TorchMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	TorchMesh->SetRelativeLocation(TorchBase);
-	TorchMesh->SetRelativeScale3D(FVector(0.06f, 0.06f, 0.12f)); // small handle-sized cube
-	TorchMesh->SetOnlyOwnerSee(true);
-	if (CubeMesh.Succeeded())
-	{
-		TorchMesh->SetStaticMesh(CubeMesh.Object);
-	}
-
-	TorchLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("TorchLight"));
-	TorchLight->SetupAttachment(FirstPersonCamera); // not the scaled torch cube
-	TorchLight->SetRelativeLocation(TorchBase + FVector(0.f, 0.f, 20.f)); // flame floats above the handle
-	TorchLight->SetIntensity(5000.f);
-	TorchLight->SetAttenuationRadius(2200.f);
-	TorchLight->SetLightColor(FLinearColor(1.0f, 0.55f, 0.2f)); // deep amber medieval flame
-	TorchLight->SetSourceRadius(20.f);       // soft penumbra
-	TorchLight->SetSoftSourceRadius(60.f);
-	TorchLight->SetCastShadows(true);
-	TorchLight->SetVisibility(false); // default OFF
-
-	// ---- Health ----
+	// ---- Stats & resources ----
+	Stats = CreateDefaultSubobject<UStatsComponent>(TEXT("Stats"));
 	Health = CreateDefaultSubobject<UHealthComponent>(TEXT("Health"));
+	Mana = CreateDefaultSubobject<UResourceComponent>(TEXT("Mana"));
+	Stamina = CreateDefaultSubobject<UResourceComponent>(TEXT("Stamina"));
 }
 
 void AFirstPersonCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Use the real sword mesh if one is assigned; otherwise fall back to the graybox placeholder.
-	const bool bUseRealSword = (SwordMeshAsset != nullptr);
+	// Resolve the sword skeletal mesh + swing animation (editor assignment wins; else load by path).
+	if (!SwordSkeletalAsset)
+	{
+		SwordSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(SwordSkeletalPath).TryLoad());
+	}
+	if (!SwingAnim)
+	{
+		SwingAnim = Cast<UAnimSequence>(FSoftObjectPath(SwordSwingAnimPath).TryLoad());
+	}
 	if (SwordMesh)
 	{
-		SwordMesh->SetStaticMesh(SwordMeshAsset);
-		SwordMesh->SetVisibility(bUseRealSword);
-	}
-	for (UStaticMeshComponent* Part : SwordPlaceholderParts)
-	{
-		if (Part)
-		{
-			Part->SetVisibility(!bUseRealSword);
-		}
+		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset);
+		SwordMesh->SetVisibility(SwordSkeletalAsset != nullptr);
 	}
 
 	if (Health)
 	{
 		Health->OnDepleted.AddUObject(this, &AFirstPersonCharacter::HandleDeath);
+	}
+
+	// Load the persistent profile (attributes/level/gold) into the stats component, then size the
+	// resources off the resulting stats. Auto-save whenever stats subsequently change.
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		GI->ApplyToStats(Stats);
+		if (GI->HasProfile())
+		{
+			Gold = GI->GetProfile().Gold;
+		}
+	}
+	if (Stats)
+	{
+		Stats->OnStatsChanged.AddUObject(this, &AFirstPersonCharacter::HandleStatsChanged);
+	}
+	RefreshResourceMaxes(/*bRefill*/ true);
+}
+
+void AFirstPersonCharacter::RefreshResourceMaxes(bool bRefill)
+{
+	if (!Stats)
+	{
+		return;
+	}
+	if (Health)  { Health->SetMaxHealth(Stats->GetMaxHealth(), bRefill); }
+	if (Mana)    { Mana->SetMax(Stats->GetMaxMana(), bRefill); }
+	if (Stamina) { Stamina->SetMax(Stats->GetMaxStamina(), bRefill); }
+}
+
+void AFirstPersonCharacter::HandleStatsChanged(UStatsComponent* /*ChangedStats*/)
+{
+	RefreshResourceMaxes(/*bRefill*/ false);
+	PersistProfile();
+}
+
+void AFirstPersonCharacter::PersistProfile()
+{
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		GI->CaptureFromStats(Stats, Gold);
+		GI->SaveProfile();
 	}
 }
 
@@ -193,15 +148,26 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!LeftHand || !RightHand)
-	{
-		return;
-	}
-
-	const UCharacterMovementComponent* Movement = GetCharacterMovement();
-	const float MaxSpeed = (Movement && Movement->MaxWalkSpeed > 1.f) ? Movement->MaxWalkSpeed : 450.f;
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	const float Speed2D = GetVelocity().Size2D();
 	const bool bWalking = Movement && !Movement->IsFalling() && Speed2D > 10.f;
+
+	// Sprint: drain stamina while held + moving on the ground; stop when it runs out.
+	const bool bSprinting = bSprintHeld && bWalking && Stamina && Stamina->GetCurrent() > 1.f;
+	if (Stamina)
+	{
+		Stamina->SetRegenPaused(bSprinting);
+		if (bSprinting)
+		{
+			Stamina->Drain(SprintStaminaPerSecond * DeltaSeconds);
+		}
+	}
+	if (Movement)
+	{
+		Movement->MaxWalkSpeed = bSprinting ? SprintSpeed : WalkSpeed;
+	}
+
+	const float MaxSpeed = (Movement && Movement->MaxWalkSpeed > 1.f) ? Movement->MaxWalkSpeed : WalkSpeed;
 
 	// Blend the sway in while walking and out while idle/airborne.
 	const float TargetWeight = bWalking ? 1.f : 0.f;
@@ -212,44 +178,18 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 	BobPhase += DeltaSeconds * (2.f * PI * BobStepRate) * SpeedFrac;
 	BobPhase = FMath::Fmod(BobPhase, 2.f * PI);
 
-	// Vertical bobs at twice the step rate (a dip per footfall); side sway at the step rate.
+	// Vertical bobs at twice the step rate (a dip per footfall); side sway at the step rate. (The
+	// sword swing itself is now a played animation, so there's no procedural thrust here.)
 	const float Vert = FMath::Sin(BobPhase * 2.f) * BobVertAmplitude * BobWeight;
 	const float Side = FMath::Sin(BobPhase) * BobSideAmplitude * BobWeight;
 
-	// Forward thrust during a swing: ramps out and back over AttackThrustDuration (sine arc).
-	float ThrustFwd = 0.f;
-	if (AttackThrustTimeLeft > 0.f && AttackThrustDuration > 0.f)
-	{
-		AttackThrustTimeLeft = FMath::Max(0.f, AttackThrustTimeLeft - DeltaSeconds);
-		const float Alpha = 1.f - (AttackThrustTimeLeft / AttackThrustDuration); // 0 -> 1
-		ThrustFwd = FMath::Sin(Alpha * PI) * AttackThrustDistance;
-	}
+	const FVector Offset(0.f, Side, Vert);
 
-	const FVector Offset(ThrustFwd, Side, Vert);
-
-	LeftHand->SetRelativeLocation(LeftHandBase + Offset);
-	RightHand->SetRelativeLocation(RightHandBase + Offset);
-	if (SwordRoot)
+	if (SwordMesh)
 	{
-		SwordRoot->SetRelativeLocation(SwordBase + Offset);
+		SwordMesh->SetRelativeLocation(SwordBase + Offset);
 	}
-	if (TorchMesh)
-	{
-		TorchMesh->SetRelativeLocation(TorchBase + Offset);
-	}
-	if (TorchLight)
-	{
-		TorchLight->SetRelativeLocation(TorchBase + FVector(0.f, 0.f, 20.f) + Offset);
-	}
-
-	// Lightweight on-screen health readout (prototype HUD).
-	if (GEngine && Health)
-	{
-		const FString Msg = bDead
-			? TEXT("YOU DIED — restarting...")
-			: FString::Printf(TEXT("Health: %.0f / %.0f"), Health->GetHealth(), Health->GetMaxHealth());
-		GEngine->AddOnScreenDebugMessage(/*Key*/ 1, 0.f, bDead ? FColor::Red : FColor::Green, Msg);
-	}
+	// (Health/mana/stamina now show on the UMG HUD via ADungeonPlayerController.)
 }
 
 void AFirstPersonCharacter::EnsureInputAssets()
@@ -272,8 +212,8 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	AttackAction = NewObject<UInputAction>(this, TEXT("AttackAction"));
 	AttackAction->ValueType = EInputActionValueType::Boolean;
 
-	ToggleTorchAction = NewObject<UInputAction>(this, TEXT("ToggleTorchAction"));
-	ToggleTorchAction->ValueType = EInputActionValueType::Boolean;
+	SprintAction = NewObject<UInputAction>(this, TEXT("SprintAction"));
+	SprintAction->ValueType = EInputActionValueType::Boolean;
 
 	DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("DefaultMappingContext"));
 
@@ -302,8 +242,8 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	// Attack (left mouse button).
 	DefaultMappingContext->MapKey(AttackAction, EKeys::LeftMouseButton);
 
-	// Toggle torch (F).
-	DefaultMappingContext->MapKey(ToggleTorchAction, EKeys::F);
+	// Sprint (Left Shift).
+	DefaultMappingContext->MapKey(SprintAction, EKeys::LeftShift);
 }
 
 void AFirstPersonCharacter::PawnClientRestart()
@@ -343,17 +283,19 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Attack);
-		EIC->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleTorch);
+		EIC->BindAction(SprintAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::StartSprint);
+		EIC->BindAction(SprintAction, ETriggerEvent::Completed, this, &AFirstPersonCharacter::StopSprint);
 	}
 }
 
-void AFirstPersonCharacter::ToggleTorch(const FInputActionValue& /*Value*/)
+void AFirstPersonCharacter::StartSprint(const FInputActionValue& /*Value*/)
 {
-	bTorchOn = !bTorchOn;
-	if (TorchLight)
-	{
-		TorchLight->SetVisibility(bTorchOn);
-	}
+	bSprintHeld = true;
+}
+
+void AFirstPersonCharacter::StopSprint(const FInputActionValue& /*Value*/)
+{
+	bSprintHeld = false;
 }
 
 void AFirstPersonCharacter::Move(const FInputActionValue& Value)
@@ -397,7 +339,12 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		return;
 	}
 	LastAttackTime = Now;
-	AttackThrustTimeLeft = AttackThrustDuration; // kick off the thrust animation
+
+	// Play the Blender-authored swing animation on the sword.
+	if (SwordMesh && SwingAnim)
+	{
+		SwordMesh->PlayAnimation(SwingAnim, /*bLooping*/ false);
+	}
 
 	// Sphere-sweep forward from the camera and damage every monster caught in the swing.
 	const FVector Start = FirstPersonCamera->GetComponentLocation();
@@ -423,7 +370,8 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 
 		if (UHealthComponent* MonsterHealth = HitActor->FindComponentByClass<UHealthComponent>())
 		{
-			MonsterHealth->ApplyDamage(AttackDamage);
+			const float Damage = AttackDamage * (Stats ? Stats->GetMeleeDamageMult() : 1.f);
+			MonsterHealth->ApplyDamage(Damage);
 			bHitSomething = true;
 		}
 	}
@@ -441,6 +389,9 @@ void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 		return;
 	}
 	bDead = true;
+
+	// Persist progress so attributes/level/gold survive the restart.
+	PersistProfile();
 
 	// Freeze the player and hand control back, then reload the level for a fresh dungeon run.
 	GetCharacterMovement()->DisableMovement();

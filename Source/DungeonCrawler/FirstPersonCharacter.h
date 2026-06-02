@@ -5,11 +5,14 @@
 #include "FirstPersonCharacter.generated.h"
 
 class UCameraComponent;
-class UStaticMeshComponent;
-class UPointLightComponent;
+class USkeletalMeshComponent;
+class USkeletalMesh;
+class UAnimSequence;
 class UInputAction;
 class UInputMappingContext;
 class UHealthComponent;
+class UResourceComponent;
+class UStatsComponent;
 struct FInputActionValue;
 
 /**
@@ -29,6 +32,12 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	virtual void PawnClientRestart() override;
 
+	// Accessors for the HUD and other systems.
+	UHealthComponent* GetHealthComponent() const { return Health; }
+	UResourceComponent* GetManaComponent() const { return Mana; }
+	UResourceComponent* GetStaminaComponent() const { return Stamina; }
+	UStatsComponent* GetStatsComponent() const { return Stats; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -36,44 +45,31 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
 
-	// ---- Graybox hands (parented to the camera so they track the view) ----
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hands")
-	TObjectPtr<UStaticMeshComponent> LeftHand;
+	/** Skeletal-mesh sword held in view (parented to the camera). A skeletal mesh is used so it can
+	 *  play Blender-authored swing animations. Defaults to /Game/Weapons/SK_Sword. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<USkeletalMeshComponent> SwordMesh;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hands")
-	TObjectPtr<UStaticMeshComponent> RightHand;
+	/** Skeletal mesh for the sword. Assign your imported sword here to override the default path. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<USkeletalMesh> SwordSkeletalAsset;
 
-	/** Holder for the sword, parented to the camera (not the hand cube, so the hand's small scale
-	 *  doesn't shrink it). Both the graybox placeholder and the optional real mesh hang off this, and
-	 *  it's what bobs/thrusts with the hands. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hands")
-	TObjectPtr<USceneComponent> SwordRoot;
+	/** Swing animation played on attack. Defaults to /Game/Weapons/A_Sword_Swing. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<UAnimSequence> SwingAnim;
 
-	/** Real-mesh sword. Used when SwordMeshAsset is set (defaults to /Game/Weapons/SM_Sword if it
-	 *  exists); otherwise hidden in favor of the graybox placeholder below. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hands")
-	TObjectPtr<UStaticMeshComponent> SwordMesh;
+	// ---- Stats & resources ----
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	TObjectPtr<UStatsComponent> Stats;
 
-	/** Static mesh used for the sword. Assign your imported Blender sword here to replace the
-	 *  graybox placeholder (no code change needed). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hands")
-	TObjectPtr<UStaticMesh> SwordMeshAsset;
-
-	/** Cube parts making up the graybox placeholder sword (blade/guard/grip/pommel). */
-	UPROPERTY()
-	TArray<TObjectPtr<UStaticMeshComponent>> SwordPlaceholderParts;
-
-	// ---- Torch (floats above the left hand; toggled with F, off by default) ----
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Torch")
-	TObjectPtr<UPointLightComponent> TorchLight;
-
-	/** Small graybox cube standing in for the torch object itself. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Torch")
-	TObjectPtr<UStaticMeshComponent> TorchMesh;
-
-	// ---- Health ----
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
 	TObjectPtr<UHealthComponent> Health;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Resources")
+	TObjectPtr<UResourceComponent> Mana;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Resources")
+	TObjectPtr<UResourceComponent> Stamina;
 
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()
@@ -92,7 +88,7 @@ protected:
 	TObjectPtr<UInputAction> AttackAction;
 
 	UPROPERTY()
-	TObjectPtr<UInputAction> ToggleTorchAction;
+	TObjectPtr<UInputAction> SprintAction;
 
 	// ---- Tunables ----
 	/** Mouse look sensitivity multiplier. */
@@ -107,24 +103,24 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Camera")
 	float CameraPitchMax = 80.f;
 
-	// ---- Hand walking sway (head-bob style) ----
-	/** Vertical bob amplitude of the hands while walking (cm). */
-	UPROPERTY(EditAnywhere, Category = "Hands")
+	// ---- Sword walking sway (head-bob style) ----
+	/** Vertical bob amplitude of the sword while walking (cm). */
+	UPROPERTY(EditAnywhere, Category = "Sword")
 	float BobVertAmplitude = 1.2f;
 
-	/** Side-to-side sway amplitude of the hands while walking (cm). */
-	UPROPERTY(EditAnywhere, Category = "Hands")
+	/** Side-to-side sway amplitude of the sword while walking (cm). */
+	UPROPERTY(EditAnywhere, Category = "Sword")
 	float BobSideAmplitude = 0.8f;
 
 	/** Steps per second of bob at full walk speed. */
-	UPROPERTY(EditAnywhere, Category = "Hands")
+	UPROPERTY(EditAnywhere, Category = "Sword")
 	float BobStepRate = 1.9f;
 
 	/** How quickly the bob blends in/out as the player starts/stops moving. */
-	UPROPERTY(EditAnywhere, Category = "Hands")
+	UPROPERTY(EditAnywhere, Category = "Sword")
 	float BobBlendSpeed = 8.f;
 
-	// ---- Melee attack (fists / sword swing) ----
+	// ---- Melee attack (sword swing) ----
 	/** Reach of a melee swing from the camera (cm). */
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackRange = 220.f;
@@ -141,40 +137,49 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackCooldown = 0.45f;
 
-	/** How long the forward hand/sword thrust animation lasts (s). */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackThrustDuration = 0.18f;
+	// ---- Movement / sprint ----
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float WalkSpeed = 450.f;
 
-	/** How far the hands/sword punch forward during a swing (cm). */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackThrustDistance = 14.f;
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float SprintSpeed = 720.f;
+
+	/** Stamina drained per second while sprinting. */
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float SprintStaminaPerSecond = 24.f;
 
 private:
 	// Input handlers
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Attack(const FInputActionValue& Value);
-	void ToggleTorch(const FInputActionValue& Value);
+	void StartSprint(const FInputActionValue& Value);
+	void StopSprint(const FInputActionValue& Value);
 
 	void HandleDeath(UHealthComponent* DeadComponent);
+	void HandleStatsChanged(UStatsComponent* ChangedStats);
+
+	/** Push current stats into the GameInstance profile and write it to disk. */
+	void PersistProfile();
+
+	/** Recompute resource maxes from the stats component. */
+	void RefreshResourceMaxes(bool bRefill);
 
 	// Builds the Enhanced Input actions + mapping context once (called before bind/registration).
 	void EnsureInputAssets();
 
 	bool bInputAssetsBuilt = false;
 
-	// Resting local offsets of the hands/sword relative to the camera (animations move around these).
-	FVector LeftHandBase = FVector::ZeroVector;
-	FVector RightHandBase = FVector::ZeroVector;
+	// Resting local offset of the sword relative to the camera (the bob animates around this).
 	FVector SwordBase = FVector::ZeroVector;
-	FVector TorchBase = FVector::ZeroVector;
-
-	bool bTorchOn = false;
 
 	float BobPhase = 0.f;   // advancing sway phase, in radians
 	float BobWeight = 0.f;  // 0 = idle (no sway), 1 = fully walking
 
 	float LastAttackTime = -1000.f;
-	float AttackThrustTimeLeft = 0.f; // counts down during the swing thrust
 	bool bDead = false;
+	bool bSprintHeld = false;
+
+	/** Player gold (persisted in the profile). */
+	int32 Gold = 0;
 };

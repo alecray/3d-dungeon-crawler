@@ -20,6 +20,7 @@ ABossMonster::ABossMonster()
 	AggroRange = 6000.f;       // notices the player anywhere in the big boss room
 	AttackCooldown = 1.6f;
 	MoveSpeed = 280.f;
+	XPReward = 300;
 
 	// Three cube "growths" revealed one per phase to show the boss morphing. Sized in BodyRoot's
 	// un-scaled space (BodyRoot itself is scaled by BodyScale).
