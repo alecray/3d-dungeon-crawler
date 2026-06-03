@@ -80,6 +80,27 @@ FVector ADungeonGenerator::CellToLocal(int32 X, int32 Y) const
 	return FVector(X * CellSize + OffsetX, Y * CellSize + OffsetY, 0.f);
 }
 
+bool ADungeonGenerator::IsBossRoomCell(int32 X, int32 Y) const
+{
+	if (!Rooms.IsValidIndex(BossRoomIndex))
+	{
+		return false;
+	}
+	const FDungeonRoom& R = Rooms[BossRoomIndex];
+	return X >= R.X && X < R.X + R.W && Y >= R.Y && Y < R.Y + R.H;
+}
+
+bool ADungeonGenerator::WorldToCell(const FVector& World, int32& OutX, int32& OutY) const
+{
+	// Inverse of CellToLocal: undo the actor transform, then the grid centering offset.
+	const FVector Local = GetActorTransform().InverseTransformPosition(World);
+	const float OffsetX = -(GridWidth - 1) * 0.5f * CellSize;
+	const float OffsetY = -(GridHeight - 1) * 0.5f * CellSize;
+	OutX = FMath::RoundToInt((Local.X - OffsetX) / CellSize);
+	OutY = FMath::RoundToInt((Local.Y - OffsetY) / CellSize);
+	return InBounds(OutX, OutY);
+}
+
 FVector ADungeonGenerator::GetRoomCenterWorld(int32 Index) const
 {
 	if (!Rooms.IsValidIndex(Index))

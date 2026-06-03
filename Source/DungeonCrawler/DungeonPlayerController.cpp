@@ -2,6 +2,7 @@
 #include "HUDWidget.h"
 #include "HotbarWidget.h"
 #include "InventoryWidget.h"
+#include "MinimapWidget.h"
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
@@ -29,6 +30,11 @@ void ADungeonPlayerController::BeginPlay()
 		if (UHotbarWidget* Bar = CreateWidget<UHotbarWidget>(this, UHotbarWidget::StaticClass()))
 		{
 			Bar->AddToViewport(1);
+		}
+		// Always-on corner minimap.
+		if (UMinimapWidget* Minimap = CreateWidget<UMinimapWidget>(this, UMinimapWidget::StaticClass()))
+		{
+			Minimap->AddToViewport(1);
 		}
 	}
 }

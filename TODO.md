@@ -6,6 +6,7 @@
 - [ ] Improve enemy pathing (runtime navmesh + MoveTo so enemies path around walls instead of steering straight)
 - [ ] Dungeon traps (e.g. spike floors, dart shooters, pressure plates)
 - [ ] Weapon usage should cost stamina (melee swing + ranged already partial; unify stamina cost across all weapons)
+- [ ] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 
 ## Art / VFX
 

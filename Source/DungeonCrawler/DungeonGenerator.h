@@ -49,6 +49,16 @@ public:
 
 	int32 GetRoomCount() const { return Rooms.Num(); }
 
+	// ---- Minimap read API ----
+	int32 GetGridWidth() const { return GridWidth; }
+	int32 GetGridHeight() const { return GridHeight; }
+	/** True if cell (X,Y) is walkable floor (room or corridor). */
+	bool IsFloorCell(int32 X, int32 Y) const { return IsFloor(X, Y); }
+	/** True if cell (X,Y) lies inside the boss room. */
+	bool IsBossRoomCell(int32 X, int32 Y) const;
+	/** Maps a world position to its grid cell; returns false if outside the grid. */
+	bool WorldToCell(const FVector& World, int32& OutX, int32& OutY) const;
+
 protected:
 	virtual void BeginPlay() override;
 
