@@ -4,6 +4,7 @@
 #include "MonsterTypes.h"
 #include "BossMonster.h"
 #include "LootChest.h"
+#include "ItemPickup.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SceneComponent.h"
@@ -477,6 +478,7 @@ void ADungeonGenerator::ScatterProps()
 	if (Rooms.Num() > 0)
 	{
 		const FVector Base = GetRoomCenterWorld(0);
+		ADungeonProp* TableProp = nullptr;
 		for (int32 i = 0; i < NumModeled; ++i)
 		{
 			const FVector Offset(260.f, (i - (NumModeled - 1) * 0.5f) * 200.f, 0.f);
@@ -485,6 +487,31 @@ void ADungeonGenerator::ScatterProps()
 			{
 				Prop->Configure(ModeledProps[i]);
 				SpawnedActors.Add(Prop);
+				if (ModeledProps[i] == EPropType::Table)
+				{
+					TableProp = Prop;
+				}
+			}
+		}
+
+		// Test display: one of each potion on the table top so the recolored potion meshes are
+		// visible (and grabbable) the instant the game starts.
+		if (TableProp)
+		{
+			FVector Origin, Extent;
+			TableProp->GetActorBounds(/*bOnlyColliding=*/false, Origin, Extent);
+			const float TopZ = Origin.Z + Extent.Z;
+			static const TCHAR* Potions[] = { TEXT("HealthPotion"), TEXT("ManaPotion"), TEXT("StaminaPotion") };
+			const int32 NumPotions = UE_ARRAY_COUNT(Potions);
+			for (int32 i = 0; i < NumPotions; ++i)
+			{
+				const FVector Loc(Origin.X, Origin.Y + (i - (NumPotions - 1) * 0.5f) * 35.f, TopZ + 1.f);
+				if (AItemPickup* Pickup = World->SpawnActor<AItemPickup>(
+					AItemPickup::StaticClass(), FTransform(FRotator::ZeroRotator, Loc), Params))
+				{
+					Pickup->Configure(FName(Potions[i]), 1);
+					SpawnedActors.Add(Pickup);
+				}
 			}
 		}
 	}
