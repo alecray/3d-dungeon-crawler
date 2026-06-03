@@ -29,6 +29,9 @@ protected:
 	void EnsureLighting();
 	void EnsurePostProcess();
 
+	/** Adds an atmospheric exponential height fog (with volumetric fog) if the level lacks one. */
+	void EnsureFog();
+
 	/** Builds the level's contents. Base spawns the dungeon; subclasses (e.g. town) override. */
 	virtual void BuildWorld();
 };

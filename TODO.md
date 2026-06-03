@@ -17,7 +17,7 @@
 ## Art / VFX
 
 - [ ] Chest model and opening animation
-- [ ] Dungeon fog (atmospheric volumetric/height fog for mood + depth)
+- [x] Dungeon fog (atmospheric volumetric/height fog for mood + depth)
 - [ ] Scenery props — clutter scattered on the floor and on top of tables/surfaces:
   - Floor: barrels, sacks, baskets, clay pots/urns, crates (have), wooden buckets,
     rubble/rock piles, bone piles & skulls, broken pottery shards, hay piles,

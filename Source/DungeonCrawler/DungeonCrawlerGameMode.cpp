@@ -6,6 +6,8 @@
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkyLight.h"
 #include "Engine/PostProcessVolume.h"
+#include "Engine/ExponentialHeightFog.h"
+#include "Components/ExponentialHeightFogComponent.h"
 #include "Components/LightComponent.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/SkyLightComponent.h"
@@ -147,6 +149,48 @@ void ADungeonCrawlerGameMode::EnsurePostProcess()
 	S.VignetteIntensity = 0.3f;
 }
 
+void ADungeonCrawlerGameMode::EnsureFog()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// Reuse an existing fog actor if the level already has one.
+	for (TActorIterator<AExponentialHeightFog> It(World); It; ++It)
+	{
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// Fog origin slightly below the floor so the haze fills the rooms and corridors.
+	AExponentialHeightFog* Fog = World->SpawnActor<AExponentialHeightFog>(
+		AExponentialHeightFog::StaticClass(), FTransform(FVector(0.f, 0.f, -50.f)), Params);
+	if (!Fog)
+	{
+		return;
+	}
+
+	if (UExponentialHeightFogComponent* C = Fog->GetComponent())
+	{
+		C->SetFogDensity(0.04f);
+		C->SetFogHeightFalloff(0.12f);                                  // gentle: haze lingers up the walls
+		C->SetFogInscatteringColor(FLinearColor(0.03f, 0.04f, 0.06f));  // cool, dim
+		C->SetFogMaxOpacity(0.8f);
+		C->SetStartDistance(150.f);                                     // keep it off the camera
+
+		// Volumetric fog so the torch/point lights cast soft hazy cones for depth + mood.
+		C->SetVolumetricFog(true);
+		C->SetVolumetricFogScatteringDistribution(0.2f);
+		C->SetVolumetricFogAlbedo(FColor(180, 170, 150)); // warm scatter to match the torches
+		C->SetVolumetricFogExtinctionScale(1.0f);
+		C->SetVolumetricFogDistance(6000.f);
+	}
+}
+
 void ADungeonCrawlerGameMode::BuildWorld()
 {
 	UWorld* World = GetWorld();
@@ -157,6 +201,7 @@ void ADungeonCrawlerGameMode::BuildWorld()
 
 	EnsureLighting();
 	EnsurePostProcess();
+	EnsureFog();
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
