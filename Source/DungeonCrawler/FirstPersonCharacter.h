@@ -55,6 +55,9 @@ public:
 	UInventoryComponent* GetInventoryComponent() const { return Inventory; }
 	UHotbarComponent* GetHotbarComponent() const { return Hotbar; }
 
+	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
+	FString GetInteractionPrompt() const;
+
 protected:
 	virtual void BeginPlay() override;
 

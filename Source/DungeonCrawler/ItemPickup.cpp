@@ -18,7 +18,11 @@ AItemPickup::AItemPickup()
 
 	Trigger = CreateDefaultSubobject<USphereComponent>(TEXT("Trigger"));
 	Trigger->InitSphereRadius(90.f);
-	Trigger->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	// Block only the Visibility channel so the player's interact line-trace can target it (and a
+	// generous sphere makes it easy to aim at); ignore everything else so it never impedes movement.
+	Trigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Trigger->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Trigger->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	SetRootComponent(Trigger);
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
@@ -37,12 +41,6 @@ AItemPickup::AItemPickup()
 	SkelMesh->SetVisibility(false);
 
 	Display = Mesh; // graybox cube until Configure() swaps in the item's real mesh
-}
-
-void AItemPickup::BeginPlay()
-{
-	Super::BeginPlay();
-	Trigger->OnComponentBeginOverlap.AddDynamic(this, &AItemPickup::OnOverlap);
 }
 
 void AItemPickup::Configure(FName InItemId, int32 InCount)
@@ -117,24 +115,21 @@ void AItemPickup::Tick(float DeltaSeconds)
 	}
 }
 
-void AItemPickup::OnOverlap(UPrimitiveComponent* /*OverlappedComp*/, AActor* OtherActor, UPrimitiveComponent* /*OtherComp*/,
-	int32 /*OtherBodyIndex*/, bool /*bFromSweep*/, const FHitResult& /*Sweep*/)
+bool AItemPickup::Collect(APawn* ByPawn)
 {
-	APawn* Pawn = Cast<APawn>(OtherActor);
-	if (!Pawn || ItemId.IsNone())
+	if (!ByPawn || ItemId.IsNone())
 	{
-		return;
+		return false;
 	}
-	if (UInventoryComponent* Inv = Pawn->FindComponentByClass<UInventoryComponent>())
+	if (UInventoryComponent* Inv = ByPawn->FindComponentByClass<UInventoryComponent>())
 	{
 		const int32 Leftover = Inv->AddItem(ItemId, Count);
 		if (Leftover <= 0)
 		{
 			Destroy();
+			return true;
 		}
-		else
-		{
-			Count = Leftover; // inventory full: leave the rest on the ground
-		}
+		Count = Leftover; // inventory full: leave the rest on the ground
 	}
+	return false;
 }

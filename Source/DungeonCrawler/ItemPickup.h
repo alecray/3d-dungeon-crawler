@@ -22,13 +22,10 @@ public:
 	/** Set what this pickup grants. */
 	void Configure(FName InItemId, int32 InCount);
 
+	/** Adds the item to the pawn's inventory; destroys the pickup if fully collected. Returns true if so. */
+	bool Collect(APawn* ByPawn);
+
 protected:
-	virtual void BeginPlay() override;
-
-	UFUNCTION()
-	void OnOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& Sweep);
-
 	UPROPERTY(VisibleAnywhere, Category = "Pickup")
 	TObjectPtr<USphereComponent> Trigger;
 

@@ -27,4 +27,5 @@ private:
 	UPROPERTY() TObjectPtr<UProgressBar> ManaBar;
 	UPROPERTY() TObjectPtr<UProgressBar> StaminaBar;
 	UPROPERTY() TObjectPtr<UTextBlock> LevelText;
+	UPROPERTY() TObjectPtr<UTextBlock> InteractPrompt; // "[E] Open" when looking at an interactable
 };

@@ -7,6 +7,7 @@
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
+#include "ItemPickup.h"
 #include "Projectile.h"
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
@@ -283,7 +284,49 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 				PC->OpenLootMenu(Chest);
 			}
 		}
+		else if (AItemPickup* Pickup = Cast<AItemPickup>(Hit.GetActor()))
+		{
+			Pickup->Collect(this);
+		}
 	}
+}
+
+FString AFirstPersonCharacter::GetInteractionPrompt() const
+{
+	UWorld* World = GetWorld();
+	if (!World || !FirstPersonCamera)
+	{
+		return FString();
+	}
+
+	// A loot pane already open: E closes it.
+	if (const ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
+	{
+		if (PC->IsLootMenuOpen())
+		{
+			return TEXT("Close");
+		}
+	}
+
+	const FVector Start = FirstPersonCamera->GetComponentLocation();
+	const FVector End = Start + FirstPersonCamera->GetForwardVector() * InteractRange;
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	FHitResult Hit;
+	if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		if (Cast<ALootChest>(Hit.GetActor()))
+		{
+			return TEXT("Open");
+		}
+		if (Cast<AItemPickup>(Hit.GetActor()))
+		{
+			return TEXT("Pick up");
+		}
+	}
+	return FString();
 }
 
 void AFirstPersonCharacter::ToggleInventory(const FInputActionValue& /*Value*/)

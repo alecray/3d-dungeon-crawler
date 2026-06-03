@@ -39,6 +39,18 @@ bool UHUDWidget::Initialize()
 		TS->SetAutoSize(true);
 	}
 
+	// Interaction prompt, centered just below the crosshair; hidden until looking at something usable.
+	InteractPrompt = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("InteractPrompt"));
+	InteractPrompt->SetVisibility(ESlateVisibility::Collapsed);
+	InteractPrompt->SetJustification(ETextJustify::Center);
+	if (UCanvasPanelSlot* PS = Root->AddChildToCanvas(InteractPrompt))
+	{
+		PS->SetAnchors(FAnchors(0.5f, 0.5f));
+		PS->SetAlignment(FVector2D(0.5f, 0.f));
+		PS->SetPosition(FVector2D(0.f, 40.f));
+		PS->SetAutoSize(true);
+	}
+
 	return true;
 }
 
@@ -100,6 +112,19 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		if (const UStatsComponent* St = Player->GetStatsComponent())
 		{
 			LevelText->SetText(FText::FromString(FString::Printf(TEXT("Lv %d"), St->GetLevel())));
+		}
+	}
+	if (InteractPrompt)
+	{
+		const FString Verb = Player->GetInteractionPrompt();
+		if (Verb.IsEmpty())
+		{
+			InteractPrompt->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			InteractPrompt->SetText(FText::FromString(FString::Printf(TEXT("[E] %s"), *Verb)));
+			InteractPrompt->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 	}
 }
