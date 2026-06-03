@@ -57,6 +57,23 @@ namespace ItemDatabase
 		SetSkelIcon(TEXT("RunedBlade"), TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
 		SetSkelIcon(TEXT("Crossbow"),   TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow"));
 
+		// Potions share one mesh/material (SK_Potion + MI_Potion) and recolor via a texture parameter.
+		auto SetPotionIcon = [&Items](const TCHAR* Id, const TCHAR* TexturePath)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items)
+			{
+				if (D.Id == Key)
+				{
+					D.IconSkeletalMeshPath = TEXT("/Game/Consumable/SK_Potion.SK_Potion");
+					D.IconMaterialParam = TEXT("BaseColorTex"); // texture param exposed on MI_Potion's parent material
+					D.IconTexturePath = TexturePath;
+				}
+			}
+		};
+		SetPotionIcon(TEXT("HealthPotion"), TEXT("/Game/Consumable/T_Health_BC.T_Health_BC"));
+		SetPotionIcon(TEXT("ManaPotion"),   TEXT("/Game/Consumable/T_Mana_BC.T_Mana_BC"));
+
 		return Items;
 	}
 

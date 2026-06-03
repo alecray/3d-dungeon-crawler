@@ -50,6 +50,12 @@ struct FItemDef
 	// Mesh used to render this item's UI icon (one of these; leave empty to use the rarity color).
 	UPROPERTY() FString IconStaticMeshPath;
 	UPROPERTY() FString IconSkeletalMeshPath;
+
+	// Optional per-item texture swap on the icon mesh's material: a shared material with a texture
+	// parameter (e.g. potions reuse SK_Potion/MI_Potion, recolored to health/mana/stamina). Both must
+	// be set to take effect; applied via a Dynamic Material Instance when rendering the icon.
+	UPROPERTY() FString IconMaterialParam; // texture parameter name on the material, e.g. "BaseColorTex"
+	UPROPERTY() FString IconTexturePath;   // texture to bind to that parameter
 };
 
 /** One stack in an inventory: an item id + count. Empty when Id is None / Count <= 0. */

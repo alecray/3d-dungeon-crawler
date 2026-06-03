@@ -9,6 +9,8 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
+#include "Engine/Texture.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "UObject/SoftObjectPath.h"
@@ -134,6 +136,19 @@ UTextureRenderTarget2D* UItemIconSubsystem::GetIcon(FName ItemId)
 	UPrimitiveComponent* Shown = StaticMesh ? static_cast<UPrimitiveComponent*>(StaticIcon)
 		: static_cast<UPrimitiveComponent*>(SkeletalIcon);
 	Shown->SetRelativeLocation(FVector::ZeroVector);
+
+	// Optional per-item recolor: bind a texture to the material's texture parameter via a MID so a
+	// shared mesh/material (e.g. SK_Potion) can render health/mana/stamina variants without extra assets.
+	if (!Def.IconMaterialParam.IsEmpty() && !Def.IconTexturePath.IsEmpty())
+	{
+		if (UTexture* Tex = Cast<UTexture>(FSoftObjectPath(Def.IconTexturePath).TryLoad()))
+		{
+			if (UMaterialInstanceDynamic* MID = Shown->CreateDynamicMaterialInstance(0))
+			{
+				MID->SetTextureParameterValue(FName(Def.IconMaterialParam), Tex);
+			}
+		}
+	}
 
 	// Frame the camera to the mesh bounds from a 3/4 angle. Use the largest box extent (tighter than
 	// the bounding sphere) with a small margin so the item nearly fills the icon.
