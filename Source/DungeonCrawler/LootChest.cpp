@@ -2,8 +2,9 @@
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
 
-#include "Components/StaticMeshComponent.h"
-#include "Components/SceneComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 #include "Engine/World.h"
 #include "UObject/SoftObjectPath.h"
 
@@ -11,25 +12,11 @@ ALootChest::ALootChest()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	SetRootComponent(Root);
-
-	// Base box body (meshes are assigned at runtime in ResolveMeshes — loading content in the
-	// constructor can return null at CDO time, which is why the chest looked invisible).
-	BaseMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BaseMesh"));
-	BaseMesh->SetupAttachment(Root);
-	BaseMesh->SetCollisionProfileName(TEXT("BlockAll"));
-	BaseMesh->SetRelativeLocation(FVector(0.f, 0.f, 25.f));
-
-	// Lid pivots at the back-top edge so it swings open.
-	LidPivot = CreateDefaultSubobject<USceneComponent>(TEXT("LidPivot"));
-	LidPivot->SetupAttachment(Root);
-	LidPivot->SetRelativeLocation(FVector(-35.f, 0.f, 50.f));
-
-	LidMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LidMesh"));
-	LidMesh->SetupAttachment(LidPivot);
-	LidMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	LidMesh->SetRelativeLocation(FVector(35.f, 0.f, 6.f));
+	// Skeletal chest (mesh/anims assigned at runtime in ResolveMeshes — loading content in the
+	// constructor can return null at CDO time). BlockAll so it stops the player and the interact trace.
+	ChestMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ChestMesh"));
+	SetRootComponent(ChestMesh);
+	ChestMesh->SetCollisionProfileName(TEXT("BlockAll"));
 
 	ChestInventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("ChestInventory"));
 }
@@ -48,31 +35,26 @@ void ALootChest::BeginPlay()
 
 void ALootChest::ResolveMeshes()
 {
-	if (BaseMesh && BaseMesh->GetStaticMesh())
+	if (!ChestMesh || ChestMesh->GetSkeletalMeshAsset())
 	{
 		return; // already resolved
 	}
 
-	UStaticMesh* Mesh = Cast<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Crate.SM_Crate")).TryLoad());
-	const bool bIsCrate = (Mesh != nullptr);
-	if (!Mesh)
-	{
-		Mesh = Cast<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")).TryLoad());
-	}
+	USkeletalMesh* Mesh = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SK_Chest.SK_Chest")).TryLoad());
 	if (!Mesh)
 	{
 		return;
 	}
+	ChestMesh->SetSkeletalMesh(Mesh);
+	ChestMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 
-	if (BaseMesh)
+	OpenAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Furniture/A_Chest_Open.A_Chest_Open")).TryLoad());
+	CloseAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Furniture/A_Chest_Close.A_Chest_Close")).TryLoad());
+
+	// Rest in the closed pose until opened.
+	if (CloseAnim)
 	{
-		BaseMesh->SetStaticMesh(Mesh);
-		BaseMesh->SetRelativeScale3D(bIsCrate ? FVector::OneVector : FVector(0.7f, 0.5f, 0.5f));
-	}
-	if (LidMesh)
-	{
-		LidMesh->SetStaticMesh(Mesh);
-		LidMesh->SetRelativeScale3D(bIsCrate ? FVector(1.0f, 1.0f, 0.25f) : FVector(0.7f, 0.52f, 0.12f));
+		ChestMesh->PlayAnimation(CloseAnim, /*bLooping*/ false);
 	}
 }
 
@@ -84,9 +66,9 @@ void ALootChest::Open()
 	}
 	bOpened = true;
 
-	if (LidPivot)
+	if (ChestMesh && OpenAnim)
 	{
-		LidPivot->SetRelativeRotation(FRotator(-105.f, 0.f, 0.f));
+		ChestMesh->PlayAnimation(OpenAnim, /*bLooping*/ false); // holds on the final (open) frame
 	}
 	RollLoot();
 }

@@ -4,9 +4,9 @@
 #include "GameFramework/Actor.h"
 #include "LootChest.generated.h"
 
-class UStaticMeshComponent;
-class USceneComponent;
+class USkeletalMeshComponent;
 class UInventoryComponent;
+class UAnimSequence;
 
 /**
  * A graybox lootable chest. Interacting (E) opens it: it rolls loot into its own inventory and flips
@@ -33,15 +33,12 @@ protected:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void ResolveMeshes();
 
+	/** Skeletal chest mesh; plays the open/close animations. */
 	UPROPERTY(VisibleAnywhere, Category = "Chest")
-	TObjectPtr<UStaticMeshComponent> BaseMesh;
+	TObjectPtr<USkeletalMeshComponent> ChestMesh;
 
-	/** Lid rotates around this pivot (placed at the back-top edge). */
-	UPROPERTY(VisibleAnywhere, Category = "Chest")
-	TObjectPtr<USceneComponent> LidPivot;
-
-	UPROPERTY(VisibleAnywhere, Category = "Chest")
-	TObjectPtr<UStaticMeshComponent> LidMesh;
+	UPROPERTY() TObjectPtr<UAnimSequence> OpenAnim;
+	UPROPERTY() TObjectPtr<UAnimSequence> CloseAnim;
 
 	UPROPERTY(VisibleAnywhere, Category = "Chest")
 	TObjectPtr<UInventoryComponent> ChestInventory;
