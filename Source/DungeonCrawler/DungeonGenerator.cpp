@@ -812,7 +812,7 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 	}
 
 	const float HalfCell = CellSize * 0.5f;
-	const float TorchZ = WallHeight * 0.5f;
+	const float TorchZ = WallHeight * 0.4f;
 
 	// Mount point flush on the inner wall face, at mid wall height.
 	const FVector MountLocal = CellLocal + OutwardDir * (HalfCell - 4.f) + FVector(0.f, 0.f, TorchZ);
@@ -821,18 +821,18 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 
 	if (TorchMesh && TorchISM)
 	{
-		// SM_Torch faces +Y (in Blender); align that to point into the room (away from the wall).
+		// The torch's front is along its local -Y, so point local +Y AT the wall (front faces the room).
 		const FVector IntoRoom = -OutwardDir;
-		const FRotator TorchRot(0.f, FMath::RadiansToDegrees(FMath::Atan2(IntoRoom.Y, IntoRoom.X)) - 90.f, 0.f);
+		const FRotator TorchRot(0.f, FMath::RadiansToDegrees(FMath::Atan2(OutwardDir.Y, OutwardDir.X)) - 90.f, 0.f);
 
 		// Scale the mesh to a sensible height regardless of its imported native scale.
 		const FBoxSphereBounds B = TorchMesh->GetBounds();
 		const float NativeHeight = FMath::Max(1.f, B.BoxExtent.Z * 2.f);
 		const float Scale = FMath::Clamp(TorchMeshHeight / NativeHeight, 0.01f, 50.f);
 
-		// Mount on the wall SURFACE and push the (scaled) mesh into the room so its back sits on the
-		// wall (the pivot may be anywhere in the mesh, so derive the offset from its bounds along +Y).
-		const float OutOffset = FMath::Max(0.f, (B.BoxExtent.Y - B.Origin.Y) * Scale);
+		// Mount on the wall SURFACE and push the (scaled) mesh into the room so it sits flush on the
+		// wall instead of buried in it (abs offset works regardless of where the pivot sits).
+		const float OutOffset = (FMath::Abs(B.Origin.Y) + B.BoxExtent.Y) * Scale;
 		const FVector WallFace = CellLocal + OutwardDir * HalfCell + FVector(0.f, 0.f, TorchZ);
 		const FVector Pos = WallFace + IntoRoom * OutOffset;
 

@@ -177,6 +177,7 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 
 	if (bDead)
 	{
+		UpdateDeathEffect(DeltaSeconds);
 		return;
 	}
 
@@ -300,16 +301,42 @@ void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 			FTransform(GetActorLocation() + FVector(0.f, 0.f, 30.f)), P);
 	}
 
-	// Settle into idle (placeholder until a death animation exists); graybox just tips over.
-	if (bUsingSkeletalBody && GetMesh() && IdleAnim)
+	// Pop-up & launch death effect: animate the visible mesh (skeletal crab or graybox body) up with a
+	// spin while shrinking to nothing over DeathDuration, then destroy. The poof covers the vanish.
+	DeathComp = bUsingSkeletalBody ? Cast<USceneComponent>(GetMesh()) : Cast<USceneComponent>(BodyRoot);
+	if (DeathComp)
 	{
-		GetMesh()->PlayAnimation(IdleAnim, /*bLooping*/ true);
-		AnimState = ESkelAnim::Idle;
+		DeathBaseScale = DeathComp->GetRelativeScale3D();
+		DeathBaseLoc = DeathComp->GetRelativeLocation();
 	}
-	else if (!bUsingSkeletalBody)
-	{
-		AddActorLocalRotation(FRotator(80.f, 0.f, 0.f)); // graybox tip-over
-	}
+	// Random spin axis (biased upward) so each death tumbles differently.
+	DeathSpinAxis = FVector(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(0.5f, 1.5f)).GetSafeNormal();
+	DeathTimeLeft = DeathDuration;
 
-	SetLifeSpan(4.f);
+	SetLifeSpan(DeathDuration + 0.5f); // safety net in case Tick is disabled
+}
+
+void AMonsterCharacter::UpdateDeathEffect(float DeltaSeconds)
+{
+	if (DeathTimeLeft <= 0.f || !DeathComp)
+	{
+		return;
+	}
+	DeathTimeLeft = FMath::Max(0.f, DeathTimeLeft - DeltaSeconds);
+
+	const float Alpha = 1.f - (DeathTimeLeft / DeathDuration); // 0 -> 1 over the effect
+
+	// Pop upward with gravity (launch then fall) and a fast tumble.
+	const float Up = 320.f * Alpha - 700.f * Alpha * Alpha; // simple v0*t - 0.5*g*t^2 shape (cm)
+	const FQuat Spin(DeathSpinAxis, FMath::DegreesToRadians(Alpha * 1080.f)); // up to ~3 turns about the axis
+	DeathComp->SetRelativeLocation(DeathBaseLoc + FVector(0.f, 0.f, FMath::Max(0.f, Up)));
+	DeathComp->SetRelativeRotation(Spin.Rotator());
+
+	// Aggressive shrink to nothing.
+	DeathComp->SetRelativeScale3D(DeathBaseScale * FMath::Max(0.f, 1.f - Alpha));
+
+	if (DeathTimeLeft <= 0.f)
+	{
+		Destroy();
+	}
 }

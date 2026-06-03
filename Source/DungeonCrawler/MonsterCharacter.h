@@ -118,4 +118,13 @@ private:
 	float LastAttackTime = -1000.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
+
+	// ---- Pop-up & launch death effect (code-driven; no authored animation) ----
+	void UpdateDeathEffect(float DeltaSeconds);
+	UPROPERTY() TObjectPtr<USceneComponent> DeathComp; // the mesh component being animated
+	FVector DeathBaseScale = FVector::OneVector;
+	FVector DeathBaseLoc = FVector::ZeroVector;
+	FVector DeathSpinAxis = FVector::UpVector;
+	float DeathTimeLeft = 0.f;
+	static constexpr float DeathDuration = 0.45f;
 };
