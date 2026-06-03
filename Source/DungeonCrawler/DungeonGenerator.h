@@ -154,7 +154,7 @@ protected:
 	int32 TorchSpacingCells = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
-	float TorchLightIntensity = 1600.f;
+	float TorchLightIntensity = 2600.f;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
 	float TorchLightRadius = 900.f;

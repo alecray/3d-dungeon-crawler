@@ -82,9 +82,10 @@ void UItemIconSubsystem::EnsureStage()
 
 	Capture = NewObject<USceneCaptureComponent2D>(Stage, TEXT("Capture"));
 	Capture->SetupAttachment(Root);
-	// Final color so r.PostProcessing.PropagateAlpha gives a transparent background (empty pixels
-	// keep alpha 0); the slot color then shows behind the item silhouette.
-	Capture->CaptureSource = ESceneCaptureSource::SCS_FinalColorLDR;
+	// Base color (unlit albedo): shows each item's true material colors, can't blow out from lighting,
+	// and is clean (no grain). Empty pixels keep the render target's transparent clear color, so the
+	// slot color shows behind the item.
+	Capture->CaptureSource = ESceneCaptureSource::SCS_BaseColor;
 	Capture->bCaptureEveryFrame = false;
 	Capture->bCaptureOnMovement = false;
 	Capture->FOVAngle = 30.f;

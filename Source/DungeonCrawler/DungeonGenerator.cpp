@@ -812,7 +812,7 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 	}
 
 	const float HalfCell = CellSize * 0.5f;
-	const float TorchZ = WallHeight * 0.4f;
+	const float TorchZ = WallHeight * 0.32f;
 
 	// Mount point flush on the inner wall face, at mid wall height.
 	const FVector MountLocal = CellLocal + OutwardDir * (HalfCell - 4.f) + FVector(0.f, 0.f, TorchZ);
