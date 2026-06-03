@@ -203,7 +203,8 @@ void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
 	{
 		return;
 	}
-	Chest->Open(); // roll loot + flip lid (no-op if already opened)
+	Chest->Open(); // roll loot (first time) + play the open animation
+	OpenChest = Chest;
 
 	// Chest grid on the left.
 	if (!ChestPane)
@@ -247,6 +248,11 @@ void ADungeonPlayerController::CloseLootMenu()
 	if (InventoryWidget && InventoryWidget->IsInViewport())
 	{
 		InventoryWidget->RemoveFromParent(); // also closes the player grid that was opened for looting
+	}
+	if (OpenChest.IsValid())
+	{
+		OpenChest->CloseLid(); // play the chest's close animation
+		OpenChest = nullptr;
 	}
 	UpdateInputMode();
 }

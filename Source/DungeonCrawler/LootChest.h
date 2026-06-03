@@ -22,8 +22,11 @@ class DUNGEONCRAWLER_API ALootChest : public AActor
 public:
 	ALootChest();
 
-	/** Opens the chest (once): rolls loot and flips the lid. Safe to call again (no-op once opened). */
+	/** Opens the chest: rolls loot the first time, and plays the open animation. */
 	void Open();
+
+	/** Plays the close animation (visual only — loot is unaffected). Called when the loot menu closes. */
+	void CloseLid();
 
 	bool IsOpened() const { return bOpened; }
 

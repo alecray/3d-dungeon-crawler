@@ -824,8 +824,15 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 		// SM_Torch faces +Y (in Blender); align that to point into the room (away from the wall).
 		const FVector IntoRoom = -OutwardDir;
 		const FRotator TorchRot(0.f, FMath::RadiansToDegrees(FMath::Atan2(IntoRoom.Y, IntoRoom.X)) - 90.f, 0.f);
-		const FTransform Xf(TorchRot, MountLocal, FVector::OneVector);
-		TorchISM->AddInstance(Xf, /*bWorldSpace*/ false);
+
+		// Mount on the wall SURFACE and push the whole mesh into the room so its back sits on the wall
+		// (the pivot may be anywhere in the mesh, so derive the offset from its bounds along +Y).
+		const FBoxSphereBounds B = TorchMesh->GetBounds();
+		const float OutOffset = FMath::Max(0.f, B.BoxExtent.Y - B.Origin.Y);
+		const FVector WallFace = CellLocal + OutwardDir * HalfCell + FVector(0.f, 0.f, TorchZ);
+		const FVector Pos = WallFace + IntoRoom * OutOffset;
+
+		TorchISM->AddInstance(FTransform(TorchRot, Pos, FVector::OneVector), /*bWorldSpace*/ false);
 	}
 	else
 	{

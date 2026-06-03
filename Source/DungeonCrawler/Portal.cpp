@@ -26,8 +26,10 @@ APortal::APortal()
 	Disc->SetupAttachment(Root);
 	Disc->SetStaticMesh(Cylinder);
 	Disc->SetRelativeLocation(FVector(0.f, 0.f, CenterZ));
-	Disc->SetRelativeRotation(FRotator(90.f, 0.f, 0.f)); // lay the cylinder axis along X -> vertical disc
-	Disc->SetRelativeScale3D(FVector(1.5f, 1.5f, 0.06f)); // wide radius, very thin
+	// Cylinder caps face local +Z; rotate so they face the actor's forward (+X) -> a vertical disc
+	// that faces whatever direction the portal actor is pointed.
+	Disc->SetRelativeRotation(FQuat::FindBetweenNormals(FVector::UpVector, FVector::ForwardVector).Rotator());
+	Disc->SetRelativeScale3D(FVector(1.3f, 1.3f, 0.06f)); // radius, very thin
 	Disc->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Disc->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Disc->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
@@ -57,7 +59,7 @@ APortal::APortal()
 	Glow->SetRelativeLocation(FVector(0.f, 0.f, CenterZ));
 	Glow->SetLightColor(PortalColor);
 	Glow->SetIntensity(BaseIntensity);
-	Glow->SetAttenuationRadius(900.f);
+	Glow->SetAttenuationRadius(600.f);
 	Glow->SetCastShadows(false);
 }
 

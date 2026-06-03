@@ -66,6 +66,9 @@ private:
 	UPROPERTY() TObjectPtr<UUserWidget> ShopWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> PauseWidget;
 
+	/** The chest whose loot pane is open, so its lid can be closed when the menu closes. */
+	TWeakObjectPtr<ALootChest> OpenChest;
+
 protected:
 	virtual void SetupInputComponent() override;
 };

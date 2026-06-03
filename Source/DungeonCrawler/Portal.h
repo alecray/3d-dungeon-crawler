@@ -66,5 +66,5 @@ private:
 	static constexpr float CenterZ = 150.f;     // portal center height above the floor
 	static constexpr int32 ShardCount = 12;     // shards around the ring
 	static constexpr float RingRadius = 78.f;   // shard ring radius
-	static constexpr float BaseIntensity = 5000.f;
+	static constexpr float BaseIntensity = 2600.f;
 };

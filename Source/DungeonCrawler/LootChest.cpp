@@ -79,17 +79,23 @@ void ALootChest::ResolveMeshes()
 
 void ALootChest::Open()
 {
-	if (bOpened)
+	if (!bOpened)
 	{
-		return;
+		bOpened = true;
+		RollLoot(); // roll once, on first open
 	}
-	bOpened = true;
-
 	if (ChestMesh && OpenAnim)
 	{
 		ChestMesh->PlayAnimation(OpenAnim, /*bLooping*/ false); // holds on the final (open) frame
 	}
-	RollLoot();
+}
+
+void ALootChest::CloseLid()
+{
+	if (ChestMesh && CloseAnim)
+	{
+		ChestMesh->PlayAnimation(CloseAnim, /*bLooping*/ false);
+	}
 }
 
 void ALootChest::RollLoot()
