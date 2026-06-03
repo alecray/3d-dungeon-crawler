@@ -17,6 +17,18 @@ enum class EPropType : uint8
 	Bookshelf	UMETA(DisplayName = "Bookshelf"),
 	Crate		UMETA(DisplayName = "Crate"),
 
+	// Imported scenery meshes (no graybox fallback).
+	Barrel		UMETA(DisplayName = "Barrel"),
+	Pots		UMETA(DisplayName = "Pots"),
+	Bucket		UMETA(DisplayName = "Bucket"),
+	Rocks		UMETA(DisplayName = "Rocks"),
+	Bones		UMETA(DisplayName = "Bones"),
+	WeaponRack	UMETA(DisplayName = "Weapon Rack"),
+	Anvil		UMETA(DisplayName = "Anvil"),
+	Mushrooms	UMETA(DisplayName = "Mushrooms"),
+	Banner		UMETA(DisplayName = "Banner"),
+	Coffin		UMETA(DisplayName = "Coffin"),
+
 	MAX			UMETA(Hidden)
 };
 

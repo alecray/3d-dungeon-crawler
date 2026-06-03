@@ -19,14 +19,28 @@
 - [ ] Chest model and opening animation
 - [x] Dungeon fog (atmospheric volumetric/height fog for mood + depth)
 - [ ] Scenery props — clutter scattered on the floor and on top of tables/surfaces:
-  - Floor: barrels, sacks, baskets, clay pots/urns, crates (have), wooden buckets,
-    rubble/rock piles, bone piles & skulls, broken pottery shards, hay piles,
-    weapon racks, anvil, grindstone, book stacks, candelabra/floor candlesticks,
-    chains, cobwebs, mushrooms, lanterns, banners, rugs/carpets, statues,
-    gravestones/coffins, cages, ladders, coin/treasure piles
+  - Floor:
   - Tabletop: candles & candlesticks, plates/bowls, mugs/tankards, bottles & flasks,
     books/scrolls, quill + inkpot, food (bread, cheese, apple), coin stacks, gems,
     potion vials, maps/parchment, dice, knives, small pouches
+
+- [x] in generation now: barrel, pots, bucket, rocks (random scale), bones, anvil, coffin, mushrooms
+  (random scale) as floor clutter; weapon racks against walls; banners flanking doorways.
+
+models to make later:
+- sacks
+- broken pottery shards
+- hay piles
+- candelabra/floor candlesticks
+- lantern
+- chains
+- cobwebs
+- rugs/carpets
+- statues
+- gravestones
+- cage (idk what happened here it wouldnt import, blend has been started)
+- ladder
+- coin/treasure piles
 
 ## UI
 
@@ -38,3 +52,14 @@
 ## Audio
 
 - [ ] Ambient music (dungeon background track; later boss-fight / town variants)
+
+
+## Monster ideas
+- eel
+- manta ray / sting ray
+- ant eater boss
+- goat
+- bear
+- dog
+- monkey
+- snake

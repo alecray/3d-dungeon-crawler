@@ -10,6 +10,25 @@ static const TCHAR* StoolMeshPath = TEXT("/Game/Furniture/SM_Stool.SM_Stool");
 static const TCHAR* CrateMeshPath = TEXT("/Game/Furniture/SM_Crate.SM_Crate");
 static const TCHAR* TableMeshPath = TEXT("/Game/Furniture/SM_Table.SM_Table");
 
+// Imported scenery meshes (no graybox fallback): one mesh per type.
+static const TCHAR* MeshPathForType(EPropType Type)
+{
+	switch (Type)
+	{
+	case EPropType::Barrel:     return TEXT("/Game/Furniture/SM_Barrel.SM_Barrel");
+	case EPropType::Pots:       return TEXT("/Game/Furniture/SM_Pots.SM_Pots");
+	case EPropType::Bucket:     return TEXT("/Game/Furniture/SM_Bucket.SM_Bucket");
+	case EPropType::Anvil:      return TEXT("/Game/Furniture/SM_Anvil.SM_Anvil");
+	case EPropType::Coffin:     return TEXT("/Game/Furniture/SM_Coffin.SM_Coffin");
+	case EPropType::WeaponRack: return TEXT("/Game/Furniture/SM_Weapon_Rack.SM_Weapon_Rack");
+	case EPropType::Banner:     return TEXT("/Game/Furniture/SM_Banner.SM_Banner");
+	case EPropType::Rocks:      return TEXT("/Game/World/rocks.rocks");
+	case EPropType::Bones:      return TEXT("/Game/World/bones.bones");
+	case EPropType::Mushrooms:  return TEXT("/Game/World/mushroom.mushroom");
+	default:                    return nullptr;
+	}
+}
+
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
 static constexpr float CubeUnitCm = 100.f;
 
@@ -183,6 +202,11 @@ UStaticMesh* ADungeonProp::GetFinishedMesh() const
 		}
 		return Cast<UStaticMesh>(FSoftObjectPath(TableMeshPath).TryLoad());
 	default:
+		// Imported scenery meshes (barrel/pots/rocks/etc.): load from the per-type path.
+		if (const TCHAR* Path = MeshPathForType(PropType))
+		{
+			return Cast<UStaticMesh>(FSoftObjectPath(Path).TryLoad());
+		}
 		return nullptr;
 	}
 }

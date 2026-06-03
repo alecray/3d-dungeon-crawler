@@ -184,7 +184,7 @@ void ADungeonCrawlerGameMode::EnsureFog()
 		C->SetFogHeightFalloff(0.08f);
 		C->SetFogInscatteringColor(FLinearColor(0.025f, 0.03f, 0.05f)); // dark, cool
 		C->SetFogMaxOpacity(0.9f);
-		C->SetStartDistance(0.f);
+		C->SetStartDistance(500.f); // keep the immediate area around the player clear of haze
 
 		C->SetVolumetricFog(true);
 		C->SetVolumetricFogScatteringDistribution(0.2f);

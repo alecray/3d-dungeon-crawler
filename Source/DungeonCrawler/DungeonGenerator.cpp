@@ -504,60 +504,36 @@ void ADungeonGenerator::ScatterProps()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	// Only furniture that has a finished imported mesh is spawned (the graybox-only types are left
-	// out of generation). Add a type here once its SM_ asset exists.
-	static const EPropType ModeledProps[] = { EPropType::Stool, EPropType::Table, EPropType::Crate };
-	const int32 NumModeled = UE_ARRAY_COUNT(ModeledProps);
+	// Free-standing scenery scattered on open floor cells (rocks/mushrooms get a random scale).
+	static const EPropType FloorProps[] = {
+		EPropType::Stool, EPropType::Table, EPropType::Crate, EPropType::Barrel, EPropType::Pots,
+		EPropType::Bucket, EPropType::Rocks, EPropType::Bones, EPropType::Anvil, EPropType::Coffin,
+		EPropType::Mushrooms
+	};
+	const int32 NumFloor = UE_ARRAY_COUNT(FloorProps);
 
-	// Test lineup: place ONE of every modeled furniture type in the player's start room (room 0), in
-	// a row in front of where the player spawns (room center, facing +X), so you can eyeball them.
-	if (Rooms.Num() > 0)
+	const FTransform Xf = GetActorTransform();
+	const float HalfCell = CellSize * 0.5f;
+	const float BannerChancePerDoor = 0.6f;
+	const float WeaponRackChancePerWallCell = 0.03f;
+
+	auto SpawnProp = [&](EPropType Type, const FVector& WorldLoc, const FRotator& Rot, float Scale)
 	{
-		const FVector Base = GetRoomCenterWorld(0);
-		ADungeonProp* TableProp = nullptr;
-		for (int32 i = 0; i < NumModeled; ++i)
+		if (ADungeonProp* Prop = World->SpawnActor<ADungeonProp>(
+			ADungeonProp::StaticClass(), FTransform(Rot, WorldLoc), Params))
 		{
-			const FVector Offset(260.f, (i - (NumModeled - 1) * 0.5f) * 200.f, 0.f);
-			if (ADungeonProp* Prop = World->SpawnActor<ADungeonProp>(
-				ADungeonProp::StaticClass(), FTransform(FRotator::ZeroRotator, Base + Offset), Params))
-			{
-				Prop->Configure(ModeledProps[i]);
-				SpawnedActors.Add(Prop);
-				if (ModeledProps[i] == EPropType::Table)
-				{
-					TableProp = Prop;
-				}
-			}
+			Prop->Configure(Type);
+			if (!FMath::IsNearlyEqual(Scale, 1.f)) { Prop->SetActorScale3D(FVector(Scale)); }
+			SpawnedActors.Add(Prop);
 		}
+	};
 
-		// Test display: one of each potion on the table top so the recolored potion meshes are
-		// visible (and grabbable) the instant the game starts.
-		if (TableProp)
-		{
-			FVector Origin, Extent;
-			TableProp->GetActorBounds(/*bOnlyColliding=*/false, Origin, Extent);
-			const float TopZ = Origin.Z + Extent.Z;
-			static const TCHAR* Potions[] = { TEXT("HealthPotion"), TEXT("ManaPotion"), TEXT("StaminaPotion") };
-			const int32 NumPotions = UE_ARRAY_COUNT(Potions);
-			for (int32 i = 0; i < NumPotions; ++i)
-			{
-				const FVector Loc(Origin.X, Origin.Y + (i - (NumPotions - 1) * 0.5f) * 35.f, TopZ + 1.f);
-				if (AItemPickup* Pickup = World->SpawnActor<AItemPickup>(
-					AItemPickup::StaticClass(), FTransform(FRotator::ZeroRotator, Loc), Params))
-				{
-					Pickup->Configure(FName(Potions[i]), 1);
-					SpawnedActors.Add(Pickup);
-				}
-			}
-		}
-	}
-
-	// Random scatter through the other rooms (skip room 0 so the test lineup stays clean).
+	// Skip room 0 so the player's spawn room stays clear.
 	for (int32 RoomIndex = 1; RoomIndex < Rooms.Num(); ++RoomIndex)
 	{
 		const FDungeonRoom& Room = Rooms[RoomIndex];
 
-		// Only interior cells (skip the perimeter ring so props avoid walls and doorways).
+		// --- Floor clutter on interior cells (skip the perimeter ring so it avoids walls/doors) ---
 		for (int32 y = Room.Y + 1; y < Room.Y + Room.H - 1; ++y)
 		{
 			for (int32 x = Room.X + 1; x < Room.X + Room.W - 1; ++x)
@@ -566,16 +542,59 @@ void ADungeonGenerator::ScatterProps()
 				{
 					continue;
 				}
-
-				const FVector WorldLoc = GetActorTransform().TransformPosition(CellToLocal(x, y));
+				const EPropType Type = FloorProps[Rng.RandRange(0, NumFloor - 1)];
+				const float Scale = (Type == EPropType::Rocks || Type == EPropType::Mushrooms)
+					? Rng.FRandRange(0.6f, 1.4f) : 1.f;
+				const FVector Loc = Xf.TransformPosition(CellToLocal(x, y));
 				const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
+				SpawnProp(Type, Loc, Rot, Scale);
+			}
+		}
 
-				ADungeonProp* Prop = World->SpawnActor<ADungeonProp>(
-					ADungeonProp::StaticClass(), FTransform(Rot, WorldLoc), Params);
-				if (Prop)
+		// --- Wall-mounted weapon racks + banners flanking doorways (whole room incl. perimeter) ---
+		static const int32 DX[4] = { 1, -1, 0, 0 };
+		static const int32 DY[4] = { 0, 0, 1, -1 };
+		for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
+		{
+			for (int32 x = Room.X; x < Room.X + Room.W; ++x)
+			{
+				if (!IsFloor(x, y))
 				{
-					Prop->Configure(ModeledProps[Rng.RandRange(0, NumModeled - 1)]);
-					SpawnedActors.Add(Prop);
+					continue;
+				}
+				for (int32 d = 0; d < 4; ++d)
+				{
+					const int32 nx = x + DX[d];
+					const int32 ny = y + DY[d];
+					const FVector Outward(DX[d], DY[d], 0.f);
+
+					if (CellAt(x, y) == ECell::Room && CellAt(nx, ny) == ECell::Corridor)
+					{
+						// Doorway: banners on the room-side wall flanking the opening.
+						if (Rng.FRand() <= BannerChancePerDoor)
+						{
+							const int32 PX = -DY[d];
+							const int32 PY = DX[d];
+							for (int32 s = -1; s <= 1; s += 2)
+							{
+								const int32 jx = x + s * PX;
+								const int32 jy = y + s * PY;
+								if (IsFloor(jx, jy) && !IsFloor(jx + DX[d], jy + DY[d]))
+								{
+									const FVector Loc = Xf.TransformPosition(CellToLocal(jx, jy)) + Outward * (HalfCell - 12.f);
+									SpawnProp(EPropType::Banner, Loc, (-Outward).Rotation(), 1.f);
+								}
+							}
+						}
+						break; // this cell handled as a doorway
+					}
+					if (!IsFloor(nx, ny) && Rng.FRand() <= WeaponRackChancePerWallCell)
+					{
+						// Solid wall: mount a weapon rack flush against it, facing into the room.
+						const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 18.f);
+						SpawnProp(EPropType::WeaponRack, Loc, (-Outward).Rotation(), 1.f);
+						break; // one wall prop per cell
+					}
 				}
 			}
 		}
@@ -639,18 +658,7 @@ void ADungeonGenerator::ScatterChests()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	// Always drop one chest in the start room (room 0), off to the side of the furniture lineup, so
-	// it's testable the instant the game starts.
-	if (Rooms.Num() > 0)
-	{
-		const FVector Loc = GetRoomCenterWorld(0) + FVector(CellSize * 1.3f, CellSize * 0.8f, 0.f);
-		if (ALootChest* Chest = World->SpawnActor<ALootChest>(ChestClass, FTransform(FRotator::ZeroRotator, Loc), Params))
-		{
-			SpawnedActors.Add(Chest);
-		}
-	}
-
-	// Skip the player's start room; the boss room always gets one as a reward.
+	// Skip the player's start room (kept clear); the boss room always gets one as a reward.
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
 		const bool bBossRoom = (i == BossRoomIndex);
