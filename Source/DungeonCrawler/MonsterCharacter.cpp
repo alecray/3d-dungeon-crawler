@@ -5,6 +5,8 @@
 #include "DeathPoof.h"
 
 #include "AIController.h"
+#include "Navigation/PathFollowingComponent.h" // EPathFollowingRequestResult values
+#include "NavigationInvokerComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -31,11 +33,16 @@ AMonsterCharacter::AMonsterCharacter()
 	Movement->RotationRate = FRotator(0.f, 540.f, 0.f);
 	Movement->MaxWalkSpeed = MoveSpeed;
 
-	// Auto-possess so AddMovementInput is consumed even though no player drives it.
+	// Auto-possess so AddMovementInput / path-following is consumed even though no player drives it.
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	AIControllerClass = AAIController::StaticClass();
 
 	Health = CreateDefaultSubobject<UHealthComponent>(TEXT("Health"));
+
+	// Build a navmesh tile around the monster at runtime (no baked navmesh in the procedural dungeon),
+	// so the AIController's MoveTo can path around walls.
+	NavInvoker = CreateDefaultSubobject<UNavigationInvokerComponent>(TEXT("NavInvoker"));
+	NavInvoker->SetGenerationRadii(3500.f, 5000.f);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeFinder(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeFinder.Succeeded())
@@ -201,16 +208,31 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	}
 
 	const FVector Dir = ToPlayer / Dist;
+	AAIController* AI = Cast<AAIController>(GetController());
 
 	if (Dist > AttackRange)
 	{
-		// Chase: movement orientation turns us to face the player as we go.
-		AddMovementInput(Dir, 1.f);
 		if (!bAttacking) { SetLocomotion(true); }
+
+		// Chase via navmesh so we path around walls. Re-issue periodically since the player moves.
+		RepathTimer -= DeltaSeconds;
+		if (AI && RepathTimer <= 0.f)
+		{
+			RepathTimer = RepathInterval;
+			const EPathFollowingRequestResult::Type Result =
+				AI->MoveToActor(Player, AttackRange * 0.85f, /*bStopOnOverlap*/ true, /*bUsePathfinding*/ true);
+			bNavChasing = (Result != EPathFollowingRequestResult::Failed); // navmesh tile ready?
+		}
+		if (!bNavChasing)
+		{
+			AddMovementInput(Dir, 1.f); // fallback: steer straight until the navmesh has generated
+		}
 		return;
 	}
 
-	// In range: face the player and swing on cooldown.
+	// In range: stop pathing, face the player, and swing on cooldown.
+	if (AI) { AI->StopMovement(); }
+	bNavChasing = false;
 	const FRotator Desired = Dir.Rotation();
 	SetActorRotation(FMath::RInterpTo(GetActorRotation(), FRotator(0.f, Desired.Yaw, 0.f), DeltaSeconds, 8.f));
 

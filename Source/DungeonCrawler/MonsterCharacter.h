@@ -31,6 +31,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster")
 	TObjectPtr<UHealthComponent> Health;
 
+	/** Generates a runtime navmesh tile around the monster so it can path around walls (the dungeon is
+	 *  built at runtime, so there's no baked navmesh). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster")
+	TObjectPtr<class UNavigationInvokerComponent> NavInvoker;
+
 	// ---- Graybox body ----
 	/** Parent of all body meshes; scaled for the hit-react pop so the whole monster reacts uniformly. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Monster")
@@ -118,6 +123,12 @@ private:
 	float LastAttackTime = -1000.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
+
+	// Navmesh chase: re-issue MoveTo periodically (the player keeps moving); fall back to direct
+	// steering until a navmesh tile has generated around us.
+	float RepathTimer = 0.f;
+	bool bNavChasing = false;
+	static constexpr float RepathInterval = 0.3f;
 
 	// ---- Pop-up & launch death effect (code-driven; no authored animation) ----
 	void UpdateDeathEffect(float DeltaSeconds);

@@ -14,6 +14,7 @@ public class DungeonCrawler : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",
+			"NavigationSystem",
 			"UMG",
 			"Slate",
 			"SlateCore",

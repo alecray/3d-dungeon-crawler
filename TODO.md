@@ -6,7 +6,7 @@
       volley, etc.) on a cooldown system bound to a key; workshop the ability list + graybox VFX
 
 - [ ] Change boss to spawn when you walk into the boss room (instead of at dungeon generation)
-- [ ] Improve enemy pathing (runtime navmesh + MoveTo so enemies path around walls instead of steering straight)
+- [x] Improve enemy pathing (runtime navmesh + MoveTo so enemies path around walls instead of steering straight)
 - [ ] Dungeon traps (e.g. spike floors, dart shooters, pressure plates)
 - [ ] Weapon usage should cost stamina (melee swing + ranged already partial; unify stamina cost across all weapons)
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
