@@ -60,6 +60,14 @@ public:
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
 
+	// ---- Gold (shop) ----
+	int32 GetGold() const { return Gold; }
+	void AddGold(int32 Amount);          // adds (clamped >= 0) and saves
+	bool TrySpendGold(int32 Amount);     // false if insufficient; otherwise deducts and saves
+
+	/** Captures and writes the player profile to disk (e.g. before traveling between levels). */
+	void SaveNow() { PersistProfile(); }
+
 protected:
 	virtual void BeginPlay() override;
 

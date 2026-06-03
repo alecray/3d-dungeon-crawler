@@ -9,6 +9,7 @@ class UUserWidget;
 class UInventoryWidget;
 class UInventoryComponent;
 class ALootChest;
+class AShopNPC;
 
 /**
  * Player controller that owns the on-screen UI: HUD, inventory grid, collection log, and the chest
@@ -31,6 +32,11 @@ public:
 	void CloseLootMenu();
 	bool IsLootMenuOpen() const;
 
+	/** Open/close the shop UI for an NPC's wares. */
+	void OpenShop(AShopNPC* NPC);
+	void CloseShop();
+	bool IsShopOpen() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -52,4 +58,5 @@ private:
 	UPROPERTY() TObjectPtr<UUserWidget> CollectionWidget;
 	UPROPERTY() TObjectPtr<UInventoryWidget> ChestPane;
 	UPROPERTY() TObjectPtr<UUserWidget> SkillWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> ShopWidget;
 };

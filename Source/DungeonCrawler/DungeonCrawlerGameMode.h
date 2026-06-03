@@ -25,8 +25,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Dungeon")
 	TSubclassOf<ADungeonGenerator> DungeonGeneratorClass;
 
-private:
+	/** Adds stylized lighting / post-process to the level if it lacks them (shared by the town mode). */
 	void EnsureLighting();
 	void EnsurePostProcess();
-	void BuildWorld();
+
+	/** Builds the level's contents. Base spawns the dungeon; subclasses (e.g. town) override. */
+	virtual void BuildWorld();
 };

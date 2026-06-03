@@ -5,6 +5,8 @@
 #include "BossMonster.h"
 #include "LootChest.h"
 #include "ItemPickup.h"
+#include "Portal.h"
+#include "HealthComponent.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SceneComponent.h"
@@ -131,6 +133,7 @@ void ADungeonGenerator::Generate()
 	ScatterMonsters();
 	ScatterChests();
 	SpawnBoss();
+	SpawnReturnPortals();
 	if (bSpawnTorches)
 	{
 		SpawnWallTorches();
@@ -147,6 +150,7 @@ void ADungeonGenerator::ClearLayout()
 		}
 	}
 	SpawnedActors.Reset();
+	BossReturnPortal = nullptr;
 
 	if (FloorISM)   { FloorISM->ClearInstances(); }
 	if (WallISM)    { WallISM->ClearInstances(); }
@@ -674,6 +678,55 @@ void ADungeonGenerator::SpawnBoss()
 	if (ABossMonster* Boss = World->SpawnActor<ABossMonster>(BossClass, FTransform(Loc), Params))
 	{
 		SpawnedActors.Add(Boss);
+
+		// Reward portal in the boss room: spawned dormant, activated when the boss dies.
+		TSubclassOf<APortal> PClass = PortalClass;
+		if (!PClass) { PClass = APortal::StaticClass(); }
+		const FVector PortalLoc = GetRoomCenterWorld(BossRoomIndex) + FVector(0.f, CellSize * 1.5f, 0.f);
+		if (APortal* Portal = World->SpawnActor<APortal>(PClass, FTransform(FRotator::ZeroRotator, PortalLoc), Params))
+		{
+			Portal->SetTargetMapName(TownMapName);
+			Portal->SetActive(false);
+			BossReturnPortal = Portal;
+			SpawnedActors.Add(Portal);
+		}
+
+		if (UHealthComponent* BossHealth = Boss->FindComponentByClass<UHealthComponent>())
+		{
+			BossHealth->OnDepleted.AddUObject(this, &ADungeonGenerator::HandleBossDefeated);
+		}
+	}
+}
+
+void ADungeonGenerator::SpawnReturnPortals()
+{
+	UWorld* World = GetWorld();
+	if (!World || Rooms.Num() == 0)
+	{
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// Always-on return portal in the start room, off to one side of the furniture/chest lineup.
+	TSubclassOf<APortal> PClass = PortalClass;
+	if (!PClass) { PClass = APortal::StaticClass(); }
+	const FVector Loc = GetRoomCenterWorld(0) + FVector(-CellSize * 1.2f, 0.f, 0.f);
+	if (APortal* Portal = World->SpawnActor<APortal>(PClass, FTransform(FRotator::ZeroRotator, Loc), Params))
+	{
+		Portal->SetTargetMapName(TownMapName);
+		Portal->SetActive(true);
+		SpawnedActors.Add(Portal);
+	}
+}
+
+void ADungeonGenerator::HandleBossDefeated(UHealthComponent* /*DeadComponent*/)
+{
+	if (BossReturnPortal)
+	{
+		BossReturnPortal->SetActive(true);
 	}
 }
 

@@ -9,6 +9,8 @@ class UStaticMesh;
 class AMonsterCharacter;
 class ABossMonster;
 class ALootChest;
+class APortal;
+class UHealthComponent;
 
 /** A placed room as a rectangle of grid cells. */
 USTRUCT()
@@ -134,6 +136,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Loot", meta = (ClampMin = "0", ClampMax = "1"))
 	float ChestChancePerRoom = 0.45f;
 
+	// ---- Return portals (back to town) ----
+	/** Portal class for the return-to-town portals (defaults to APortal). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Portals")
+	TSubclassOf<APortal> PortalClass;
+
+	/** Level name the return portals travel to. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Portals")
+	FName TownMapName = TEXT("L_Town");
+
 	// ---- Lighting (wall torches) ----
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting")
 	bool bSpawnTorches = true;
@@ -181,6 +192,10 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<AActor>> SpawnedActors;
 
+	/** The dormant return portal in the boss room, activated when the boss is defeated. */
+	UPROPERTY()
+	TObjectPtr<APortal> BossReturnPortal;
+
 	TArray<ECell> Cells;
 	FRandomStream Rng;
 
@@ -203,6 +218,10 @@ private:
 	void ScatterMonsters();
 	void ScatterChests();
 	void SpawnBoss();
+	/** Spawns the always-on return portal in the start room (the boss-room one is spawned with the boss). */
+	void SpawnReturnPortals();
+	/** Activates the dormant boss-room return portal when the boss dies. */
+	void HandleBossDefeated(UHealthComponent* DeadComponent);
 	void SpawnWallTorches();
 	/** Places one wall torch (bracket mesh + warm light) on the wall in the given outward direction. */
 	void PlaceWallTorch(const FVector& CellLocal, const FVector& OutwardDir);

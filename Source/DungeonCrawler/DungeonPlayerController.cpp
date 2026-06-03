@@ -4,6 +4,8 @@
 #include "InventoryWidget.h"
 #include "MinimapWidget.h"
 #include "SkillTreeWidget.h"
+#include "ShopWidget.h"
+#include "ShopNPC.h"
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
@@ -111,6 +113,42 @@ void ADungeonPlayerController::ToggleSkillTree()
 	UpdateInputMode();
 }
 
+void ADungeonPlayerController::OpenShop(AShopNPC* NPC)
+{
+	if (!NPC)
+	{
+		return;
+	}
+	if (UShopWidget* ExistingShop = Cast<UShopWidget>(ShopWidget))
+	{
+		// already open: refresh wares
+		ExistingShop->SetWares(NPC->GetWares());
+		ExistingShop->Refresh();
+	}
+	else if (UShopWidget* NewShop = CreateWidget<UShopWidget>(this, UShopWidget::StaticClass()))
+	{
+		NewShop->SetWares(NPC->GetWares());
+		ShopWidget = NewShop;
+		NewShop->AddToViewport(10);
+	}
+	UpdateInputMode();
+}
+
+void ADungeonPlayerController::CloseShop()
+{
+	if (ShopWidget && ShopWidget->IsInViewport())
+	{
+		ShopWidget->RemoveFromParent();
+	}
+	ShopWidget = nullptr;
+	UpdateInputMode();
+}
+
+bool ADungeonPlayerController::IsShopOpen() const
+{
+	return ShopWidget && ShopWidget->IsInViewport();
+}
+
 void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
 {
 	if (!Chest || !InventoryWidgetClass)
@@ -176,7 +214,8 @@ void ADungeonPlayerController::UpdateInputMode()
 		(InventoryWidget && InventoryWidget->IsInViewport()) ||
 		(CollectionWidget && CollectionWidget->IsInViewport()) ||
 		(ChestPane && ChestPane->IsInViewport()) ||
-		(SkillWidget && SkillWidget->IsInViewport());
+		(SkillWidget && SkillWidget->IsInViewport()) ||
+		(ShopWidget && ShopWidget->IsInViewport());
 
 	bShowMouseCursor = bUIOpen;
 	if (bUIOpen)

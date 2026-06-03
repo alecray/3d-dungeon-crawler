@@ -9,6 +9,9 @@
 #include "MonsterCharacter.h"
 #include "LootChest.h"
 #include "ItemPickup.h"
+#include "Portal.h"
+#include "ShopNPC.h"
+#include "Kismet/GameplayStatics.h"
 #include "Projectile.h"
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
@@ -181,6 +184,23 @@ void AFirstPersonCharacter::HandleStatsChanged(UStatsComponent* /*ChangedStats*/
 	PersistProfile();
 }
 
+void AFirstPersonCharacter::AddGold(int32 Amount)
+{
+	Gold = FMath::Max(0, Gold + Amount);
+	PersistProfile();
+}
+
+bool AFirstPersonCharacter::TrySpendGold(int32 Amount)
+{
+	if (Amount <= 0 || Gold < Amount)
+	{
+		return false;
+	}
+	Gold -= Amount;
+	PersistProfile();
+	return true;
+}
+
 void AFirstPersonCharacter::PersistProfile()
 {
 	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
@@ -265,10 +285,15 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 
 	ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController());
 
-	// If a loot pane is already open, E closes it.
+	// If a loot pane or the shop is already open, E closes it.
 	if (PC && PC->IsLootMenuOpen())
 	{
 		PC->CloseLootMenu();
+		return;
+	}
+	if (PC && PC->IsShopOpen())
+	{
+		PC->CloseShop();
 		return;
 	}
 
@@ -292,6 +317,21 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 		{
 			Pickup->Collect(this);
 		}
+		else if (AShopNPC* NPC = Cast<AShopNPC>(Hit.GetActor()))
+		{
+			if (PC)
+			{
+				PC->OpenShop(NPC);
+			}
+		}
+		else if (APortal* Portal = Cast<APortal>(Hit.GetActor()))
+		{
+			if (Portal->IsActive() && !Portal->GetTargetMapName().IsNone())
+			{
+				SaveNow(); // carry gold/inventory/stats across the level load
+				UGameplayStatics::OpenLevel(this, Portal->GetTargetMapName());
+			}
+		}
 	}
 }
 
@@ -303,10 +343,10 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		return FString();
 	}
 
-	// A loot pane already open: E closes it.
+	// A loot pane or shop already open: E closes it.
 	if (const ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
 	{
-		if (PC->IsLootMenuOpen())
+		if (PC->IsLootMenuOpen() || PC->IsShopOpen())
 		{
 			return TEXT("Close");
 		}
@@ -328,6 +368,14 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		if (Cast<AItemPickup>(Hit.GetActor()))
 		{
 			return TEXT("Pick up");
+		}
+		if (Cast<AShopNPC>(Hit.GetActor()))
+		{
+			return TEXT("Shop");
+		}
+		if (const APortal* Portal = Cast<APortal>(Hit.GetActor()))
+		{
+			return Portal->IsActive() ? TEXT("Enter") : FString();
 		}
 	}
 	return FString();
