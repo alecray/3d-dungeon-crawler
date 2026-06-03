@@ -157,37 +157,40 @@ void ADungeonCrawlerGameMode::EnsureFog()
 		return;
 	}
 
-	// Reuse an existing fog actor if the level already has one.
+	// Configure an existing fog actor if the level already has one (level templates ship a near-invisible
+	// ExponentialHeightFog) — otherwise our settings would be ignored. Spawn one only if none exists.
+	UExponentialHeightFogComponent* C = nullptr;
 	for (TActorIterator<AExponentialHeightFog> It(World); It; ++It)
 	{
-		return;
+		C = It->GetComponent();
+		break;
+	}
+	if (!C)
+	{
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		// Fog origin slightly below the floor so the haze fills the rooms and corridors.
+		if (AExponentialHeightFog* Fog = World->SpawnActor<AExponentialHeightFog>(
+			AExponentialHeightFog::StaticClass(), FTransform(FVector(0.f, 0.f, -50.f)), Params))
+		{
+			C = Fog->GetComponent();
+		}
 	}
 
-	FActorSpawnParameters Params;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	// Fog origin slightly below the floor so the haze fills the rooms and corridors.
-	AExponentialHeightFog* Fog = World->SpawnActor<AExponentialHeightFog>(
-		AExponentialHeightFog::StaticClass(), FTransform(FVector(0.f, 0.f, -50.f)), Params);
-	if (!Fog)
+	if (C)
 	{
-		return;
-	}
+		// TEMP debug values: very thick + bright so the fog is unmistakable. Dial back once confirmed.
+		C->SetFogDensity(1.0f);
+		C->SetFogHeightFalloff(0.05f);                                 // barely falls off with height
+		C->SetFogInscatteringColor(FLinearColor(0.45f, 0.5f, 0.6f));   // bright cool grey
+		C->SetFogMaxOpacity(1.0f);
+		C->SetStartDistance(0.f);
 
-	if (UExponentialHeightFogComponent* C = Fog->GetComponent())
-	{
-		C->SetFogDensity(0.04f);
-		C->SetFogHeightFalloff(0.12f);                                  // gentle: haze lingers up the walls
-		C->SetFogInscatteringColor(FLinearColor(0.03f, 0.04f, 0.06f));  // cool, dim
-		C->SetFogMaxOpacity(0.8f);
-		C->SetStartDistance(150.f);                                     // keep it off the camera
-
-		// Volumetric fog so the torch/point lights cast soft hazy cones for depth + mood.
 		C->SetVolumetricFog(true);
 		C->SetVolumetricFogScatteringDistribution(0.2f);
-		C->SetVolumetricFogAlbedo(FColor(180, 170, 150)); // warm scatter to match the torches
+		C->SetVolumetricFogAlbedo(FColor(200, 195, 185));
 		C->SetVolumetricFogExtinctionScale(1.0f);
-		C->SetVolumetricFogDistance(6000.f);
+		C->SetVolumetricFogDistance(2500.f);
 	}
 }
 
