@@ -14,7 +14,7 @@ namespace MonsterDatabase
 			Crab.MaxHealth = 35.f;
 			Crab.MoveSpeed = 360.f;
 			Crab.AttackDamage = 8.f;
-			Crab.AttackRange = 150.f;
+			Crab.AttackRange = 300.f; // attack from further out so the lunge in the anim closes the gap
 			Crab.BodyScale = 0.9f;
 			Crab.MeshScale = 0.5f; // halve the imported crab
 			Crab.XPReward = 20;
