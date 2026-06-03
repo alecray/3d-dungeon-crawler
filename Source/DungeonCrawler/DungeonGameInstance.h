@@ -7,6 +7,7 @@
 
 class UStatsComponent;
 class UInventoryComponent;
+class UHotbarComponent;
 
 /**
  * Holds the player profile in memory across level transitions and brokers save/load to disk.
@@ -34,6 +35,10 @@ public:
 
 	/** Apply the profile's saved inventory onto a component (e.g. on player spawn). */
 	void ApplyInventory(UInventoryComponent* Inventory) const;
+
+	/** Copy / apply the action-bar slots. */
+	void CaptureHotbar(const UHotbarComponent* Hotbar);
+	void ApplyHotbar(UHotbarComponent* Hotbar) const;
 
 	/** Record a first-time discovery for the collection log (no duplicates). */
 	void AddDiscovered(FName ItemId);

@@ -14,7 +14,19 @@ class UHealthComponent;
 class UResourceComponent;
 class UStatsComponent;
 class UInventoryComponent;
+class UHotbarComponent;
+class USkeletalMesh;
 struct FInputActionValue;
+struct FInputActionInstance;
+
+/** How the equipped weapon attacks (ranged/mage behaviour arrives in Phase 3). */
+UENUM(BlueprintType)
+enum class ECombatStyle : uint8
+{
+	Melee,
+	Ranged,
+	Mage
+};
 
 /**
  * Player-controlled first-person character: an eye-height camera that follows the controller
@@ -39,6 +51,7 @@ public:
 	UResourceComponent* GetStaminaComponent() const { return Stamina; }
 	UStatsComponent* GetStatsComponent() const { return Stats; }
 	UInventoryComponent* GetInventoryComponent() const { return Inventory; }
+	UHotbarComponent* GetHotbarComponent() const { return Hotbar; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -60,6 +73,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<UAnimSequence> SwingAnim;
 
+	/** Optional crossbow skeletal mesh (equipping the Crossbow item swaps to it). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<USkeletalMesh> CrossbowSkeletalAsset;
+
 	// ---- Stats & resources ----
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
 	TObjectPtr<UStatsComponent> Stats;
@@ -75,6 +92,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UInventoryComponent> Inventory;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UHotbarComponent> Hotbar;
 
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()
@@ -103,6 +123,10 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> CollectionToggleAction;
+
+	/** Number keys 1-8 select hotbar slots. */
+	UPROPERTY()
+	TArray<TObjectPtr<UInputAction>> HotbarActions;
 
 	/** Reach of the interact line-trace (cm). */
 	UPROPERTY(EditAnywhere, Category = "Interaction")
@@ -181,6 +205,11 @@ private:
 	void HandleStatsChanged(UStatsComponent* ChangedStats);
 	void HandleInventoryChanged(UInventoryComponent* ChangedInventory);
 	void HandleItemDiscovered(FName ItemId);
+	void HandleHotbarChanged(UHotbarComponent* ChangedHotbar);
+	void OnHotbarKey(const FInputActionInstance& Instance);
+
+	/** Swap the held weapon mesh + combat style to match the active hotbar slot. */
+	void EquipActiveHotbarItem();
 
 	/** Push current stats into the GameInstance profile and write it to disk. */
 	void PersistProfile();
@@ -202,6 +231,7 @@ private:
 	float LastAttackTime = -1000.f;
 	bool bDead = false;
 	bool bSprintHeld = false;
+	ECombatStyle CurrentStyle = ECombatStyle::Melee;
 
 	/** Player gold (persisted in the profile). */
 	int32 Gold = 0;

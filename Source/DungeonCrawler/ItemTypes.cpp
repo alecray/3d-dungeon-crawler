@@ -18,7 +18,7 @@ namespace ItemDatabase
 {
 	static TArray<FItemDef> BuildItems()
 	{
-		auto MakeItem = [](const TCHAR* Id, const TCHAR* Name, EItemType Type, EItemRarity Rarity, int32 MaxStack, int32 Value)
+		auto MakeItem = [](const TCHAR* Id, const TCHAR* Name, EItemType Type, EItemRarity Rarity, int32 MaxStack, int32 Value, EEquipKind Equip = EEquipKind::None)
 		{
 			FItemDef D;
 			D.Id = FName(Id);
@@ -27,6 +27,7 @@ namespace ItemDatabase
 			D.Rarity = Rarity;
 			D.MaxStack = MaxStack;
 			D.Value = Value;
+			D.EquipKind = Equip;
 			return D;
 		};
 
@@ -35,10 +36,13 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("ManaPotion"),   TEXT("Mana Potion"),   EItemType::Consumable, EItemRarity::Common, 10, 15));
 		Items.Add(MakeItem(TEXT("Bone"),         TEXT("Old Bone"),      EItemType::Material,   EItemRarity::Common, 20, 2));
 		Items.Add(MakeItem(TEXT("IronShard"),    TEXT("Iron Shard"),    EItemType::Material,   EItemRarity::Common, 20, 5));
-		Items.Add(MakeItem(TEXT("IronSword"),    TEXT("Iron Sword"),    EItemType::Weapon,     EItemRarity::Uncommon, 1, 60));
+		// Equippable weapons (action-bar / equip system).
+		Items.Add(MakeItem(TEXT("Sword"),        TEXT("Sword"),         EItemType::Weapon,     EItemRarity::Common,   1, 40, EEquipKind::Sword));
+		Items.Add(MakeItem(TEXT("Crossbow"),     TEXT("Crossbow"),      EItemType::Weapon,     EItemRarity::Uncommon, 1, 80, EEquipKind::Crossbow));
+		Items.Add(MakeItem(TEXT("IronSword"),    TEXT("Iron Sword"),    EItemType::Weapon,     EItemRarity::Uncommon, 1, 60, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("LeatherArmor"), TEXT("Leather Armor"), EItemType::Armor,      EItemRarity::Uncommon, 1, 55));
 		Items.Add(MakeItem(TEXT("RubyGem"),      TEXT("Ruby Gem"),      EItemType::Treasure,   EItemRarity::Rare,     5, 120));
-		Items.Add(MakeItem(TEXT("RunedBlade"),   TEXT("Runed Blade"),   EItemType::Weapon,     EItemRarity::Epic,     1, 400));
+		Items.Add(MakeItem(TEXT("RunedBlade"),   TEXT("Runed Blade"),   EItemType::Weapon,     EItemRarity::Epic,     1, 400, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("AncientRelic"), TEXT("Ancient Relic"), EItemType::Treasure,   EItemRarity::Legendary, 1, 1000));
 		return Items;
 	}

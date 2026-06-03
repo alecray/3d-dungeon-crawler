@@ -1,9 +1,10 @@
 #include "DungeonPlayerController.h"
 #include "HUDWidget.h"
+#include "HotbarWidget.h"
 #include "InventoryWidget.h"
 #include "CollectionLogWidget.h"
-#include "LootWidget.h"
 #include "LootChest.h"
+#include "FirstPersonCharacter.h"
 #include "Blueprint/UserWidget.h"
 
 ADungeonPlayerController::ADungeonPlayerController()
@@ -11,31 +12,64 @@ ADungeonPlayerController::ADungeonPlayerController()
 	HUDWidgetClass = UHUDWidget::StaticClass();
 	InventoryWidgetClass = UInventoryWidget::StaticClass();
 	CollectionWidgetClass = UCollectionLogWidget::StaticClass();
-	LootWidgetClass = ULootWidget::StaticClass();
 }
 
 void ADungeonPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (IsLocalPlayerController() && HUDWidgetClass)
+	if (IsLocalPlayerController())
 	{
-		HUDWidget = CreateWidget<UUserWidget>(this, HUDWidgetClass);
-		if (HUDWidget)
+		if (HUDWidgetClass)
 		{
-			HUDWidget->AddToViewport(0);
+			HUDWidget = CreateWidget<UUserWidget>(this, HUDWidgetClass);
+			if (HUDWidget) { HUDWidget->AddToViewport(0); }
+		}
+		// Always-on action bar.
+		if (UHotbarWidget* Bar = CreateWidget<UHotbarWidget>(this, UHotbarWidget::StaticClass()))
+		{
+			Bar->AddToViewport(1);
 		}
 	}
 }
 
+UInventoryComponent* ADungeonPlayerController::GetPlayerInventory() const
+{
+	if (AFirstPersonCharacter* FPChar = Cast<AFirstPersonCharacter>(GetPawn()))
+	{
+		return FPChar->GetInventoryComponent();
+	}
+	return nullptr;
+}
+
 void ADungeonPlayerController::ToggleInventory()
 {
-	TogglePanel(InventoryWidget, InventoryWidgetClass);
+	if (!InventoryWidgetClass)
+	{
+		return;
+	}
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromParent();
+	}
+	else
+	{
+		if (!InventoryWidget)
+		{
+			InventoryWidget = CreateWidget<UInventoryWidget>(this, InventoryWidgetClass);
+		}
+		if (InventoryWidget)
+		{
+			InventoryWidget->SetInventory(GetPlayerInventory(), TEXT("Inventory"));
+			InventoryWidget->SetPanelPosition(FVector2D::ZeroVector); // centered
+			InventoryWidget->AddToViewport(10);
+		}
+	}
+	UpdateInputMode();
 }
 
 void ADungeonPlayerController::ToggleCollectionLog()
 {
-	// The collection log rebuilds its contents each time it's shown (recreate for a fresh list).
 	if (CollectionWidget && CollectionWidget->IsInViewport())
 	{
 		CollectionWidget->RemoveFromParent();
@@ -52,65 +86,63 @@ void ADungeonPlayerController::ToggleCollectionLog()
 	UpdateInputMode();
 }
 
-void ADungeonPlayerController::TogglePanel(TObjectPtr<UUserWidget>& Widget, TSubclassOf<UUserWidget> WidgetClass)
-{
-	if (!WidgetClass)
-	{
-		return;
-	}
-	if (Widget && Widget->IsInViewport())
-	{
-		Widget->RemoveFromParent();
-	}
-	else
-	{
-		if (!Widget)
-		{
-			Widget = CreateWidget<UUserWidget>(this, WidgetClass);
-		}
-		if (Widget)
-		{
-			Widget->AddToViewport(10);
-		}
-	}
-	UpdateInputMode();
-}
-
 void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
 {
-	if (!Chest || !LootWidgetClass)
+	if (!Chest || !InventoryWidgetClass)
 	{
 		return;
 	}
 	Chest->Open(); // roll loot + flip lid (no-op if already opened)
 
-	if (!LootWidget)
+	// Chest grid on the left.
+	if (!ChestPane)
 	{
-		LootWidget = CreateWidget<ULootWidget>(this, LootWidgetClass);
+		ChestPane = CreateWidget<UInventoryWidget>(this, InventoryWidgetClass);
 	}
-	if (LootWidget)
+	if (ChestPane)
 	{
-		LootWidget->SetChest(Chest);
-		if (!LootWidget->IsInViewport())
+		ChestPane->SetInventory(Chest->GetInventory(), TEXT("Chest"));
+		ChestPane->SetPanelPosition(FVector2D(-360.f, 0.f));
+		if (!ChestPane->IsInViewport())
 		{
-			LootWidget->AddToViewport(10);
+			ChestPane->AddToViewport(10);
 		}
 	}
+
+	// Player inventory on the right (so you can drag items across).
+	if (!InventoryWidget)
+	{
+		InventoryWidget = CreateWidget<UInventoryWidget>(this, InventoryWidgetClass);
+	}
+	if (InventoryWidget)
+	{
+		InventoryWidget->SetInventory(GetPlayerInventory(), TEXT("Inventory"));
+		InventoryWidget->SetPanelPosition(FVector2D(360.f, 0.f));
+		if (!InventoryWidget->IsInViewport())
+		{
+			InventoryWidget->AddToViewport(10);
+		}
+	}
+
 	UpdateInputMode();
 }
 
 void ADungeonPlayerController::CloseLootMenu()
 {
-	if (LootWidget && LootWidget->IsInViewport())
+	if (ChestPane && ChestPane->IsInViewport())
 	{
-		LootWidget->RemoveFromParent();
+		ChestPane->RemoveFromParent();
+	}
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromParent(); // also closes the player grid that was opened for looting
 	}
 	UpdateInputMode();
 }
 
 bool ADungeonPlayerController::IsLootMenuOpen() const
 {
-	return LootWidget && LootWidget->IsInViewport();
+	return ChestPane && ChestPane->IsInViewport();
 }
 
 void ADungeonPlayerController::UpdateInputMode()
@@ -118,7 +150,7 @@ void ADungeonPlayerController::UpdateInputMode()
 	const bool bUIOpen =
 		(InventoryWidget && InventoryWidget->IsInViewport()) ||
 		(CollectionWidget && CollectionWidget->IsInViewport()) ||
-		(LootWidget && LootWidget->IsInViewport());
+		(ChestPane && ChestPane->IsInViewport());
 
 	bShowMouseCursor = bUIOpen;
 	if (bUIOpen)

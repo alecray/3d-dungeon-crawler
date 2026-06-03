@@ -24,6 +24,15 @@ enum class EItemRarity : uint8
 	Legendary
 };
 
+/** What equipping this item does (drives the held weapon + combat style). None = not equippable. */
+UENUM(BlueprintType)
+enum class EEquipKind : uint8
+{
+	None,
+	Sword,    // melee
+	Crossbow  // ranged
+};
+
 /** Static definition of an item kind (no art — a rarity color stands in for the icon for now). */
 USTRUCT(BlueprintType)
 struct FItemDef
@@ -36,6 +45,7 @@ struct FItemDef
 	UPROPERTY() EItemRarity Rarity = EItemRarity::Common;
 	UPROPERTY() int32 MaxStack = 1;
 	UPROPERTY() int32 Value = 1; // gold value (used by the shop later)
+	UPROPERTY() EEquipKind EquipKind = EEquipKind::None; // equippable weapon kind, if any
 };
 
 /** One stack in an inventory: an item id + count. Empty when Id is None / Count <= 0. */

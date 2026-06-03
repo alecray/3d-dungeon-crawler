@@ -4,7 +4,6 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
-#include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "UObject/SoftObjectPath.h"
 
@@ -31,6 +30,8 @@ ALootChest::ALootChest()
 	LidMesh->SetupAttachment(LidPivot);
 	LidMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	LidMesh->SetRelativeLocation(FVector(35.f, 0.f, 6.f));
+
+	ChestInventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("ChestInventory"));
 }
 
 void ALootChest::OnConstruction(const FTransform& Transform)
@@ -52,7 +53,6 @@ void ALootChest::ResolveMeshes()
 		return; // already resolved
 	}
 
-	// Prefer the crate mesh; fall back to the engine cube.
 	UStaticMesh* Mesh = Cast<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Crate.SM_Crate")).TryLoad());
 	const bool bIsCrate = (Mesh != nullptr);
 	if (!Mesh)
@@ -67,7 +67,6 @@ void ALootChest::ResolveMeshes()
 	if (BaseMesh)
 	{
 		BaseMesh->SetStaticMesh(Mesh);
-		// Size the engine cube into a chest-ish box; the crate keeps its own size.
 		BaseMesh->SetRelativeScale3D(bIsCrate ? FVector::OneVector : FVector(0.7f, 0.5f, 0.5f));
 	}
 	if (LidMesh)
@@ -85,18 +84,19 @@ void ALootChest::Open()
 	}
 	bOpened = true;
 
-	// Flip the lid open.
 	if (LidPivot)
 	{
 		LidPivot->SetRelativeRotation(FRotator(-105.f, 0.f, 0.f));
 	}
-
 	RollLoot();
 }
 
 void ALootChest::RollLoot()
 {
-	Contents.Reset();
+	if (!ChestInventory)
+	{
+		return;
+	}
 
 	FRandomStream Rng(FMath::Rand());
 	const int32 Drops = Rng.RandRange(FMath::Min(MinDrops, MaxDrops), FMath::Max(MinDrops, MaxDrops));
@@ -107,59 +107,7 @@ void ALootChest::RollLoot()
 		{
 			continue;
 		}
-		FInventorySlot Slot;
-		Slot.ItemId = ItemId;
-		Slot.Count = (ItemDatabase::Get(ItemId).MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
-		Contents.Add(Slot);
+		const int32 Count = (ItemDatabase::Get(ItemId).MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
+		ChestInventory->AddItem(ItemId, Count);
 	}
-	OnContentsChanged.Broadcast(this);
-}
-
-bool ALootChest::IsEmpty() const
-{
-	for (const FInventorySlot& Slot : Contents)
-	{
-		if (!Slot.IsEmpty())
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-void ALootChest::TakeItem(int32 Index, UInventoryComponent* Into)
-{
-	if (!Into || !Contents.IsValidIndex(Index) || Contents[Index].IsEmpty())
-	{
-		return;
-	}
-	const int32 Leftover = Into->AddItem(Contents[Index].ItemId, Contents[Index].Count);
-	if (Leftover <= 0)
-	{
-		Contents[Index].Clear();
-	}
-	else
-	{
-		Contents[Index].Count = Leftover; // inventory full: leave the remainder in the chest
-	}
-	OnContentsChanged.Broadcast(this);
-}
-
-void ALootChest::TakeAll(UInventoryComponent* Into)
-{
-	if (!Into)
-	{
-		return;
-	}
-	for (FInventorySlot& Slot : Contents)
-	{
-		if (Slot.IsEmpty())
-		{
-			continue;
-		}
-		const int32 Leftover = Into->AddItem(Slot.ItemId, Slot.Count);
-		if (Leftover <= 0) { Slot.Clear(); }
-		else { Slot.Count = Leftover; }
-	}
-	OnContentsChanged.Broadcast(this);
 }

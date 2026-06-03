@@ -3,10 +3,13 @@
 #include "ResourceComponent.h"
 #include "StatsComponent.h"
 #include "InventoryComponent.h"
+#include "HotbarComponent.h"
+#include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
+#include "Engine/SkeletalMesh.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
@@ -79,6 +82,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Mana = CreateDefaultSubobject<UResourceComponent>(TEXT("Mana"));
 	Stamina = CreateDefaultSubobject<UResourceComponent>(TEXT("Stamina"));
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
+	Hotbar = CreateDefaultSubobject<UHotbarComponent>(TEXT("Hotbar"));
 }
 
 void AFirstPersonCharacter::BeginPlay()
@@ -94,10 +98,9 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		SwingAnim = Cast<UAnimSequence>(FSoftObjectPath(SwordSwingAnimPath).TryLoad());
 	}
-	if (SwordMesh)
+	if (!CrossbowSkeletalAsset)
 	{
-		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset);
-		SwordMesh->SetVisibility(SwordSkeletalAsset != nullptr);
+		CrossbowSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow")).TryLoad());
 	}
 
 	if (Health)
@@ -111,6 +114,7 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		GI->ApplyToStats(Stats);
 		GI->ApplyInventory(Inventory);
+		GI->ApplyHotbar(Hotbar);
 		if (GI->HasProfile())
 		{
 			Gold = GI->GetProfile().Gold;
@@ -124,6 +128,17 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		Inventory->OnInventoryChanged.AddUObject(this, &AFirstPersonCharacter::HandleInventoryChanged);
 		Inventory->OnItemDiscovered.AddUObject(this, &AFirstPersonCharacter::HandleItemDiscovered);
+	}
+	if (Hotbar)
+	{
+		// Start with a sword equipped if the action bar is empty (fresh game).
+		if (Hotbar->GetSlotItem(0).IsNone())
+		{
+			Hotbar->SetSlot(0, FName(TEXT("Sword")));
+			Hotbar->SelectSlot(0);
+		}
+		Hotbar->OnHotbarChanged.AddUObject(this, &AFirstPersonCharacter::HandleHotbarChanged);
+		EquipActiveHotbarItem();
 	}
 	RefreshResourceMaxes(/*bRefill*/ true);
 }
@@ -151,6 +166,7 @@ void AFirstPersonCharacter::PersistProfile()
 	{
 		GI->CaptureFromStats(Stats, Gold);
 		GI->CaptureInventory(Inventory);
+		GI->CaptureHotbar(Hotbar);
 		GI->SaveProfile();
 	}
 }
@@ -158,6 +174,54 @@ void AFirstPersonCharacter::PersistProfile()
 void AFirstPersonCharacter::HandleInventoryChanged(UInventoryComponent* /*ChangedInventory*/)
 {
 	PersistProfile();
+}
+
+void AFirstPersonCharacter::HandleHotbarChanged(UHotbarComponent* /*ChangedHotbar*/)
+{
+	EquipActiveHotbarItem();
+	PersistProfile();
+}
+
+void AFirstPersonCharacter::OnHotbarKey(const FInputActionInstance& Instance)
+{
+	if (!Hotbar)
+	{
+		return;
+	}
+	const int32 Index = HotbarActions.IndexOfByKey(Instance.GetSourceAction());
+	if (Index != INDEX_NONE)
+	{
+		Hotbar->SelectSlot(Index);
+	}
+}
+
+void AFirstPersonCharacter::EquipActiveHotbarItem()
+{
+	if (!SwordMesh || !Hotbar)
+	{
+		return;
+	}
+
+	const FName ItemId = Hotbar->GetActiveItem();
+	const EEquipKind Kind = ItemDatabase::Contains(ItemId) ? ItemDatabase::Get(ItemId).EquipKind : EEquipKind::None;
+
+	switch (Kind)
+	{
+	case EEquipKind::Sword:
+		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset);
+		SwordMesh->SetVisibility(SwordSkeletalAsset != nullptr);
+		CurrentStyle = ECombatStyle::Melee;
+		break;
+	case EEquipKind::Crossbow:
+		SwordMesh->SetSkeletalMesh(CrossbowSkeletalAsset);
+		SwordMesh->SetVisibility(CrossbowSkeletalAsset != nullptr);
+		CurrentStyle = ECombatStyle::Ranged;
+		break;
+	default:
+		SwordMesh->SetVisibility(false); // nothing equippable in the active slot
+		CurrentStyle = ECombatStyle::Melee;
+		break;
+	}
 }
 
 void AFirstPersonCharacter::HandleItemDiscovered(FName ItemId)
@@ -335,6 +399,18 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	DefaultMappingContext->MapKey(InteractAction, EKeys::E);
 	DefaultMappingContext->MapKey(InventoryToggleAction, EKeys::I);
 	DefaultMappingContext->MapKey(CollectionToggleAction, EKeys::C);
+
+	// Hotbar select (number keys 1-8).
+	static const FKey HotbarKeys[8] = {
+		EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four,
+		EKeys::Five, EKeys::Six, EKeys::Seven, EKeys::Eight };
+	HotbarActions.SetNum(8);
+	for (int32 i = 0; i < 8; ++i)
+	{
+		HotbarActions[i] = NewObject<UInputAction>(this, *FString::Printf(TEXT("HotbarAction%d"), i + 1));
+		HotbarActions[i]->ValueType = EInputActionValueType::Boolean;
+		DefaultMappingContext->MapKey(HotbarActions[i], HotbarKeys[i]);
+	}
 }
 
 void AFirstPersonCharacter::PawnClientRestart()
@@ -379,6 +455,13 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Interact);
 		EIC->BindAction(InventoryToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleInventory);
 		EIC->BindAction(CollectionToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleCollectionLog);
+		for (UInputAction* HotbarAct : HotbarActions)
+		{
+			if (HotbarAct)
+			{
+				EIC->BindAction(HotbarAct, ETriggerEvent::Started, this, &AFirstPersonCharacter::OnHotbarKey);
+			}
+		}
 	}
 }
 

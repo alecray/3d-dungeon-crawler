@@ -1,12 +1,15 @@
 #include "InventorySlotWidget.h"
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
+#include "ItemPickup.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
 #include "Components/TextBlock.h"
+#include "GameFramework/Pawn.h"
+#include "Engine/World.h"
 #include "Input/Reply.h"
 
 bool UInventorySlotWidget::Initialize()
@@ -91,6 +94,7 @@ void UInventorySlotWidget::NativeOnDragDetected(const FGeometry& InGeometry, con
 		Op->DefaultDragVisual = Vis;
 	}
 
+	Op->OnDragCancelled.AddDynamic(this, &UInventorySlotWidget::HandleDragCancelled);
 	OutOperation = Op;
 }
 
@@ -101,10 +105,60 @@ bool UInventorySlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 		return false;
 	}
 	UInventorySlotWidget* Source = Cast<UInventorySlotWidget>(InOperation->Payload);
-	if (Source && Inventory.IsValid())
+	if (!Source || !Inventory.IsValid() || !Source->GetInventory())
 	{
-		Inventory->MoveItem(Source->GetSlotIndex(), SlotIndex);
-		return true;
+		return false;
 	}
-	return false;
+
+	UInventoryComponent* SourceInv = Source->GetInventory();
+	if (SourceInv == Inventory.Get())
+	{
+		// Same container: reorder / swap / merge.
+		Inventory->MoveItem(Source->GetSlotIndex(), SlotIndex);
+	}
+	else
+	{
+		// Cross-container (e.g. chest -> inventory): move as much of the source stack as fits.
+		const FInventorySlot& Src = SourceInv->GetSlot(Source->GetSlotIndex());
+		if (!Src.IsEmpty())
+		{
+			const int32 Leftover = Inventory->AddItem(Src.ItemId, Src.Count);
+			const int32 Taken = Src.Count - Leftover;
+			if (Taken > 0)
+			{
+				SourceInv->RemoveAt(Source->GetSlotIndex(), Taken);
+			}
+		}
+	}
+	return true;
+}
+
+void UInventorySlotWidget::HandleDragCancelled(UDragDropOperation* /*Operation*/)
+{
+	// Dropped on empty space: drop this slot's item into the world as a pickup.
+	if (!Inventory.IsValid() || !Inventory->GetSlots().IsValidIndex(SlotIndex))
+	{
+		return;
+	}
+	const FInventorySlot& InvSlot = Inventory->GetSlot(SlotIndex);
+	if (InvSlot.IsEmpty())
+	{
+		return;
+	}
+
+	APawn* Pawn = GetOwningPlayerPawn();
+	UWorld* World = GetWorld();
+	if (!Pawn || !World)
+	{
+		return;
+	}
+
+	const FVector Drop = Pawn->GetActorLocation() + Pawn->GetActorForwardVector() * 180.f;
+	FActorSpawnParameters P;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	if (AItemPickup* Pickup = World->SpawnActor<AItemPickup>(AItemPickup::StaticClass(), FTransform(Drop), P))
+	{
+		Pickup->Configure(InvSlot.ItemId, InvSlot.Count);
+		Inventory->RemoveAt(SlotIndex, InvSlot.Count);
+	}
 }

@@ -1,6 +1,7 @@
 #include "DungeonGameInstance.h"
 #include "StatsComponent.h"
 #include "InventoryComponent.h"
+#include "HotbarComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 void UDungeonGameInstance::Init()
@@ -47,6 +48,24 @@ void UDungeonGameInstance::ApplyInventory(UInventoryComponent* Inventory) const
 	if (Inventory && Profile.bInitialized && Profile.Inventory.Num() > 0)
 	{
 		Inventory->SetSlots(Profile.Inventory);
+	}
+}
+
+void UDungeonGameInstance::CaptureHotbar(const UHotbarComponent* Hotbar)
+{
+	if (Hotbar)
+	{
+		Profile.bInitialized = true;
+		Profile.Hotbar = Hotbar->GetSlots();
+		Profile.ActiveSlot = Hotbar->GetActiveIndex();
+	}
+}
+
+void UDungeonGameInstance::ApplyHotbar(UHotbarComponent* Hotbar) const
+{
+	if (Hotbar && Profile.bInitialized && Profile.Hotbar.Num() > 0)
+	{
+		Hotbar->LoadFrom(Profile.Hotbar, Profile.ActiveSlot);
 	}
 }
 

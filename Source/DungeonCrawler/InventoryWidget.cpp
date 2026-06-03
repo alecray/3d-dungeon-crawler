@@ -25,24 +25,23 @@ bool UInventoryWidget::Initialize()
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Root"));
 	WidgetTree->RootWidget = Root;
 
-	// Centered panel background.
-	UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
+	Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
 	Panel->SetBrushColor(FLinearColor(0.03f, 0.03f, 0.04f, 0.92f));
 	Panel->SetPadding(FMargin(16.f));
 	if (UCanvasPanelSlot* PS = Root->AddChildToCanvas(Panel))
 	{
 		PS->SetAnchors(FAnchors(0.5f, 0.5f));
 		PS->SetAlignment(FVector2D(0.5f, 0.5f));
-		PS->SetPosition(FVector2D::ZeroVector);
+		PS->SetPosition(PanelPosition);
 		PS->SetAutoSize(true);
 	}
 
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Column"));
 	Panel->AddChild(Column);
 
-	UTextBlock* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Title"));
-	Title->SetText(FText::FromString(TEXT("Inventory")));
-	Column->AddChild(Title);
+	TitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Title"));
+	TitleText->SetText(FText::FromString(TEXT("Inventory")));
+	Column->AddChild(TitleText);
 
 	Grid = WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass(), TEXT("Grid"));
 	Grid->SetSlotPadding(FMargin(3.f));
@@ -55,16 +54,13 @@ void UInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetOwningPlayerPawn()))
+	// If nobody assigned an inventory, default to the owning player's.
+	if (!bInventorySet)
 	{
-		Inventory = Player->GetInventoryComponent();
-	}
-	BuildSlots();
-
-	if (Inventory.IsValid())
-	{
-		Inventory->OnInventoryChanged.AddUObject(this, &UInventoryWidget::RefreshAll);
-		RefreshAll();
+		if (AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetOwningPlayerPawn()))
+		{
+			SetInventory(Player->GetInventoryComponent(), TEXT("Inventory"));
+		}
 	}
 }
 
@@ -77,9 +73,52 @@ void UInventoryWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-void UInventoryWidget::BuildSlots()
+void UInventoryWidget::SetInventory(UInventoryComponent* InInventory, const FString& Title)
 {
-	if (!Grid || SlotWidgets.Num() > 0 || !Inventory.IsValid())
+	if (Inventory.IsValid())
+	{
+		Inventory->OnInventoryChanged.RemoveAll(this);
+	}
+
+	Inventory = InInventory;
+	bInventorySet = true;
+
+	if (TitleText)
+	{
+		TitleText->SetText(FText::FromString(Title));
+	}
+
+	RebuildGrid();
+
+	if (Inventory.IsValid())
+	{
+		Inventory->OnInventoryChanged.AddUObject(this, &UInventoryWidget::RefreshAll);
+		RefreshAll();
+	}
+}
+
+void UInventoryWidget::SetPanelPosition(FVector2D Pos)
+{
+	PanelPosition = Pos;
+	if (Panel)
+	{
+		if (UCanvasPanelSlot* PS = Cast<UCanvasPanelSlot>(Panel->Slot))
+		{
+			PS->SetPosition(Pos);
+		}
+	}
+}
+
+void UInventoryWidget::RebuildGrid()
+{
+	if (!Grid)
+	{
+		return;
+	}
+	Grid->ClearChildren();
+	SlotWidgets.Reset();
+
+	if (!Inventory.IsValid())
 	{
 		return;
 	}

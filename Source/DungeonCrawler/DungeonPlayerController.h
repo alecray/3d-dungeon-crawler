@@ -6,12 +6,13 @@
 
 class UHUDWidget;
 class UUserWidget;
+class UInventoryWidget;
+class UInventoryComponent;
 class ALootChest;
-class ULootWidget;
 
 /**
- * Player controller that owns the on-screen UI. Phase 1 creates the HUD; later phases add the
- * inventory/skills/shop widgets and their toggle inputs.
+ * Player controller that owns the on-screen UI: HUD, inventory grid, collection log, and the chest
+ * loot view (the chest's grid shown beside the player's so items can be dragged across).
  */
 UCLASS()
 class DUNGEONCRAWLER_API ADungeonPlayerController : public APlayerController
@@ -21,13 +22,10 @@ class DUNGEONCRAWLER_API ADungeonPlayerController : public APlayerController
 public:
 	ADungeonPlayerController();
 
-	/** Show/hide the inventory panel (bound to I). */
-	void ToggleInventory();
+	void ToggleInventory();      // I
+	void ToggleCollectionLog();  // C
 
-	/** Show/hide the collection log (bound to C). */
-	void ToggleCollectionLog();
-
-	/** Open the loot pane for a chest (called when the player interacts with it). */
+	/** Open the chest + player inventory grids side by side; loot by dragging across. */
 	void OpenLootMenu(ALootChest* Chest);
 	void CloseLootMenu();
 	bool IsLootMenuOpen() const;
@@ -35,28 +33,21 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	/** HUD widget class to spawn (defaults to UHUDWidget). */
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<UUserWidget> InventoryWidgetClass;
+	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> CollectionWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<ULootWidget> LootWidgetClass;
-
 private:
-	/** Toggles a panel widget in/out of the viewport, (re)creating it as needed. */
-	void TogglePanel(TObjectPtr<UUserWidget>& Widget, TSubclassOf<UUserWidget> WidgetClass);
-
-	/** Sets mouse cursor + input mode based on whether any panel is open. */
 	void UpdateInputMode();
+	UInventoryComponent* GetPlayerInventory() const;
 
 	UPROPERTY() TObjectPtr<UUserWidget> HUDWidget;
-	UPROPERTY() TObjectPtr<UUserWidget> InventoryWidget;
+	UPROPERTY() TObjectPtr<UInventoryWidget> InventoryWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> CollectionWidget;
-	UPROPERTY() TObjectPtr<ULootWidget> LootWidget;
+	UPROPERTY() TObjectPtr<UInventoryWidget> ChestPane;
 };

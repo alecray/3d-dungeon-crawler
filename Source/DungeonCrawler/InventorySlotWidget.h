@@ -34,6 +34,10 @@ protected:
 	virtual void NativeOnDragDetected(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent, UDragDropOperation*& OutOperation) override;
 	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
+	/** Dropped on empty space → drop this slot's item into the world. */
+	UFUNCTION()
+	void HandleDragCancelled(UDragDropOperation* Operation);
+
 private:
 	UPROPERTY() TObjectPtr<UBorder> Box;
 	UPROPERTY() TObjectPtr<UTextBlock> CountText;

@@ -26,6 +26,9 @@ struct FPlayerProfile
 
 	UPROPERTY() TArray<FInventorySlot> Inventory;
 	UPROPERTY() TArray<FName> DiscoveredItems; // collection log
+
+	UPROPERTY() TArray<FName> Hotbar;     // action-bar slot item ids
+	UPROPERTY() int32 ActiveSlot = 0;     // selected hotbar slot
 };
 
 /** SaveGame wrapper around the profile, serialized via UGameplayStatics::SaveGameToSlot. */
