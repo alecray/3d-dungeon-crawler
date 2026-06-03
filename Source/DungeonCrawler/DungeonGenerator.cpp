@@ -710,11 +710,40 @@ void ADungeonGenerator::SpawnReturnPortals()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	// Always-on return portal in the start room, off to one side of the furniture/chest lineup.
 	TSubclassOf<APortal> PClass = PortalClass;
 	if (!PClass) { PClass = APortal::StaticClass(); }
-	const FVector Loc = GetRoomCenterWorld(0) + FVector(-CellSize * 1.2f, 0.f, 0.f);
-	if (APortal* Portal = World->SpawnActor<APortal>(PClass, FTransform(FRotator::ZeroRotator, Loc), Params))
+
+	// Place the return portal flush against a SOLID wall on the back (-X) side of the start room — the
+	// side opposite the furniture/chest lineup (+X). Scan that edge for a wall cell (a floor cell whose
+	// -X neighbour is non-floor) nearest the room's vertical center, skipping doorways.
+	const FDungeonRoom& Start = Rooms[0];
+	const int32 WallX = Start.X;            // leftmost interior column of the room
+	const int32 CenterY = Start.CenterY();
+	int32 BestY = INDEX_NONE;
+	int32 BestDist = MAX_int32;
+	for (int32 y = Start.Y; y < Start.Y + Start.H; ++y)
+	{
+		if (IsFloor(WallX, y) && !IsFloor(WallX - 1, y)) // solid wall to -X (not a doorway)
+		{
+			const int32 Dist = FMath::Abs(y - CenterY);
+			if (Dist < BestDist) { BestDist = Dist; BestY = y; }
+		}
+	}
+
+	FVector PortalLocal;
+	FRotator PortalRot = FRotator::ZeroRotator; // thin slab axis is X — sits flush on an X-facing wall
+	if (BestY != INDEX_NONE)
+	{
+		PortalLocal = CellToLocal(WallX, BestY);
+		PortalLocal.X -= CellSize * 0.5f - 40.f; // hug the wall, leaving a little clearance
+	}
+	else
+	{
+		PortalLocal = CellToLocal(Start.CenterX(), Start.CenterY()) + FVector(-CellSize * 1.2f, 0.f, 0.f);
+	}
+
+	const FVector Loc = GetActorTransform().TransformPosition(PortalLocal);
+	if (APortal* Portal = World->SpawnActor<APortal>(PClass, FTransform(PortalRot, Loc), Params))
 	{
 		Portal->SetTargetMapName(TownMapName);
 		Portal->SetActive(true);
