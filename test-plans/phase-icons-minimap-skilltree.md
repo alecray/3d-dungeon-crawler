@@ -52,7 +52,45 @@ E-to-interact (prompt + pickup), the fog-of-war minimap, and the Phase 4 skill t
 - [ ] **Ranged → Split Shot / Mage → Arcane Barrage:** attacks fire **multiple bolts in a spread**.
 - [ ] **Ranged → Rapid Reload / Mage → Efficiency:** shots cost **less stamina / mana**.
 
-## 8. Regression
+## 7b. Skill tree — active abilities (4d)
+- [ ] Allocate a branch capstone (**Whirlwind** / **Volley** / **Arcane Nova**, tier 4). With the
+      matching weapon equipped, press **Q**:
+  - [ ] **Melee → Whirlwind:** all nearby crabs take damage (AoE), costs stamina, ~6s cooldown.
+  - [ ] **Ranged → Volley:** a wide burst of bolts fires at once, costs stamina, ~5s cooldown.
+  - [ ] **Mage → Arcane Nova:** nearby crabs take damage (AoE burst), costs mana, ~7s cooldown.
+- [ ] Q does nothing if the ability for the current style isn't unlocked, on cooldown, or unaffordable.
+- [ ] A graybox poof plays at the player on Whirlwind/Nova.
+
+## 8. Paperdoll equipment
+- [ ] Open inventory (**I**): an **Equipment** panel sits beside the grid (head/amulet/body/gloves/
+      belt/legs/feet + 4 rings); empty slots show their label.
+- [ ] **Drag** an armor/accessory onto its matching slot to equip; a **mismatched** item won't equip.
+- [ ] Equipping a stat item **raises the matching HUD bar / damage** immediately; **click** a slot to
+      unequip it back to the bag.
+- [ ] Equipment (and its bonuses) **persists** across relaunch and the town↔dungeon trip.
+- [ ] The chest loot view (**E** on a chest) shows the grid only — no equipment panel.
+
+## 9. Enemy pathing
+- [ ] Crabs **path around walls/corners** to reach you instead of pushing straight into a wall
+      (stand behind a wall corner and watch them route around).
+- [ ] They still close in and attack at range; behavior is smooth (no stutter/freeze).
+- [ ] (Requires a full editor restart so the runtime-navmesh config takes effect.)
+
+## 10. Town, shop & portals
+- [ ] Game starts in **L_Town**; the **Portal** ([E] Enter) loads a fresh dungeon.
+- [ ] The **ShopNPC** ([E] Shop) opens buy/sell; buying/selling adjusts gold + inventory.
+- [ ] Dungeon **start-room return portal** is flush on a wall (not blocking a door) and returns to town;
+      the **boss-room portal** activates when the boss dies.
+- [ ] Gold / inventory / equipment / skills survive the town↔dungeon transitions.
+
+## 11. Art / feel pass
+- [ ] Chests are **SK_Chest** (closed at rest); opening plays the open anim, closing the menu plays close.
+- [ ] Wall **torches** use SM_Torch, face into the room, sit low, with a warm localized light.
+- [ ] Portals look like a spinning cyan **energy gate** facing the room.
+- [ ] Item icons show **true material colors** on a transparent background (sword/crossbow/potions).
+- [ ] Crab **death**: pops up, tumbles, shrinks away (no lingering corpse).
+
+## 12. Regression
 - [ ] HUD bars, level, inventory, hotbar, collection log still work and persist.
 - [ ] Combat styles still switch with the equipped weapon; chests still loot; dungeon still generates
       with the boss in its room.

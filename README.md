@@ -14,8 +14,8 @@ graybox so Blender assets can drop in later without code changes.
 
 **Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (melee swing
 / ranged bolt / spell depending on the equipped weapon), **I** for inventory, **K** for the skill tree,
-**1–8** to select the hotbar slot (swaps the held weapon), **E** to interact with chests / pickups /
-NPCs / portals, **Esc** for the pause menu.
+**1–8** to select the hotbar slot (swaps the held weapon), **Q** to use your unlocked active ability,
+**E** to interact with chests / pickups / NPCs / portals, **Esc** for the pause menu.
 
 ## Core Feature Plan
 
@@ -49,8 +49,8 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] Different enemy types (data-driven monsters; crab replaces the graybox humanoid)
 - [x] Ranged & mage combat styles (ranged spends stamina, mage spends mana)
 - [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses + combat
-      modifiers (attack speed, lifesteal, multishot, cost reduction); press **K**
-      (active abilities still to come)
+      modifiers (attack speed, lifesteal, multishot, cost reduction) + capstone active abilities
+      (Whirlwind / Volley / Arcane Nova on **Q**); open with **K**
 - [x] Home town scene (L_Town) with a shop NPC (buy/sell) + travel portals to/from the dungeon
       (start-room + boss-gated return portals)
 - [x] Pause menu & settings (Esc): Resume / Settings / Quit; mouse sensitivity + master volume,

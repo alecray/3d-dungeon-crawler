@@ -42,6 +42,9 @@ public:
 	/** Summed combat modifiers from all allocated nodes (read by the player's combat code). */
 	const FSkillModifiers& GetModifiers() const { return Modifiers; }
 
+	/** True if an allocated node grants the given active ability. */
+	bool HasAbility(EActiveAbility Ability) const;
+
 	FOnSkillsChanged OnSkillsChanged;
 
 private:

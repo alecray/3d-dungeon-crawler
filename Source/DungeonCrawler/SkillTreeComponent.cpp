@@ -82,6 +82,23 @@ void USkillTreeComponent::LoadFrom(const TArray<FName>& AllocatedNodes)
 	OnSkillsChanged.Broadcast();
 }
 
+bool USkillTreeComponent::HasAbility(EActiveAbility Ability) const
+{
+	if (Ability == EActiveAbility::None)
+	{
+		return false;
+	}
+	for (const TPair<FName, int32>& Pair : Ranks)
+	{
+		if (Pair.Value > 0 && SkillDatabase::Contains(Pair.Key)
+			&& SkillDatabase::Get(Pair.Key).GrantsAbility == Ability)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void USkillTreeComponent::RecomputeBonuses()
 {
 	UStatsComponent* Stats = GetStats();

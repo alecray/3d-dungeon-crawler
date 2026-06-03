@@ -91,6 +91,31 @@ namespace SkillDatabase
 		Nodes.Add(MakeMod(TEXT("mage_efficiency"), TEXT("Efficiency"), ESkillBranch::Mage, 2,
 			TEXT("-15% mana per cast, per rank."), { TEXT("mage_archmage") }, LessMana(0.15f)));
 
+		// ---- Capstone active abilities (tier 4) — press the ability key (Q) for your current style ----
+		auto MakeAbility = [](const TCHAR* Id, const TCHAR* Name, ESkillBranch Branch, const TCHAR* Desc,
+			std::initializer_list<const TCHAR*> Prereqs, EActiveAbility Ability)
+		{
+			FSkillNode N;
+			N.Id = FName(Id);
+			N.DisplayName = Name;
+			N.Description = Desc;
+			N.Branch = Branch;
+			N.Tier = 4;
+			N.MaxRank = 1;
+			N.GrantsAbility = Ability;
+			for (const TCHAR* P : Prereqs) { N.Prereqs.Add(FName(P)); }
+			return N;
+		};
+		Nodes.Add(MakeAbility(TEXT("melee_whirlwind"), TEXT("Whirlwind"), ESkillBranch::Melee,
+			TEXT("Active (Q): a spinning sweep that hits all nearby enemies. Costs stamina."),
+			{ TEXT("melee_frenzy") }, EActiveAbility::Whirlwind));
+		Nodes.Add(MakeAbility(TEXT("ranged_volley"), TEXT("Volley"), ESkillBranch::Ranged,
+			TEXT("Active (Q): fire a wide burst of bolts at once. Costs stamina."),
+			{ TEXT("ranged_splitshot") }, EActiveAbility::Volley));
+		Nodes.Add(MakeAbility(TEXT("mage_nova"), TEXT("Arcane Nova"), ESkillBranch::Mage,
+			TEXT("Active (Q): a burst of force that damages all nearby enemies. Costs mana."),
+			{ TEXT("mage_barrage") }, EActiveAbility::Nova));
+
 		return Nodes;
 	}
 

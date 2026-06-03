@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "SkillTypes.h" // EActiveAbility
 #include "FirstPersonCharacter.generated.h"
 
 class UCameraComponent;
@@ -172,6 +173,9 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UInputAction> SkillTreeToggleAction;
 
+	UPROPERTY()
+	TObjectPtr<UInputAction> AbilityAction;
+
 	/** Number keys 1-8 select hotbar slots. */
 	UPROPERTY()
 	TArray<TObjectPtr<UInputAction>> HotbarActions;
@@ -249,6 +253,14 @@ private:
 	void ToggleInventory(const FInputActionValue& Value);
 	void ToggleCollectionLog(const FInputActionValue& Value);
 	void ToggleSkillTree(const FInputActionValue& Value);
+
+	/** Q: use the active ability for the current combat style (if unlocked + off cooldown + affordable). */
+	void UseAbility(const FInputActionValue& Value);
+	/** Damages every monster within Radius of the player (Whirlwind / Nova). */
+	void PerformAreaBurst(float Radius, float Damage);
+
+	/** Per-ability "ready again at" world time (cooldowns). */
+	TMap<EActiveAbility, float> AbilityReadyTime;
 
 	void HandleDeath(UHealthComponent* DeadComponent);
 	void HandleStatsChanged(UStatsComponent* ChangedStats);

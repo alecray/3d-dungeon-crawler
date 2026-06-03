@@ -13,6 +13,8 @@
 #include "Portal.h"
 #include "ShopNPC.h"
 #include "Projectile.h"
+#include "DeathPoof.h"
+#include "EngineUtils.h" // TActorIterator
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
 #include "Engine/SkeletalMesh.h"
@@ -418,6 +420,99 @@ void AFirstPersonCharacter::ToggleSkillTree(const FInputActionValue& /*Value*/)
 	}
 }
 
+void AFirstPersonCharacter::UseAbility(const FInputActionValue& /*Value*/)
+{
+	UWorld* World = GetWorld();
+	if (bDead || !World || !SkillTree)
+	{
+		return;
+	}
+
+	// The ability available depends on the active combat style.
+	EActiveAbility Ability = EActiveAbility::None;
+	switch (CurrentStyle)
+	{
+	case ECombatStyle::Melee:  Ability = EActiveAbility::Whirlwind; break;
+	case ECombatStyle::Ranged: Ability = EActiveAbility::Volley;    break;
+	case ECombatStyle::Mage:   Ability = EActiveAbility::Nova;      break;
+	default: break;
+	}
+	if (!SkillTree->HasAbility(Ability))
+	{
+		return; // not unlocked for this style
+	}
+
+	const float Now = World->GetTimeSeconds();
+	if (const float* ReadyAt = AbilityReadyTime.Find(Ability))
+	{
+		if (Now < *ReadyAt)
+		{
+			return; // still on cooldown
+		}
+	}
+
+	switch (Ability)
+	{
+	case EActiveAbility::Whirlwind:
+		if (Stamina && Stamina->Spend(25.f))
+		{
+			if (SwordMesh && SwingAnim) { SwordMesh->PlayAnimation(SwingAnim, false); }
+			PerformAreaBurst(350.f, AttackDamage * 1.5f * (Stats ? Stats->GetMeleeDamageMult() : 1.f));
+			AbilityReadyTime.Add(Ability, Now + 6.f);
+		}
+		break;
+
+	case EActiveAbility::Volley:
+		if (Stamina && Stamina->Spend(22.f))
+		{
+			if (SwordMesh && CrossbowShootAnim) { SwordMesh->PlayAnimation(CrossbowShootAnim, false); }
+			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), /*ExtraProjectiles*/ 6);
+			AbilityReadyTime.Add(Ability, Now + 5.f);
+		}
+		break;
+
+	case EActiveAbility::Nova:
+		if (Mana && Mana->Spend(30.f))
+		{
+			PerformAreaBurst(400.f, ProjectileDamage * 2.f * (Stats ? Stats->GetSpellDamageMult() : 1.f));
+			AbilityReadyTime.Add(Ability, Now + 7.f);
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+void AFirstPersonCharacter::PerformAreaBurst(float Radius, float Damage)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	const FVector Center = GetActorLocation();
+	const float RadiusSq = Radius * Radius;
+
+	for (TActorIterator<AMonsterCharacter> It(World); It; ++It)
+	{
+		AMonsterCharacter* Monster = *It;
+		if (!Monster || FVector::DistSquared(Monster->GetActorLocation(), Center) > RadiusSq)
+		{
+			continue;
+		}
+		if (UHealthComponent* MonsterHealth = Monster->FindComponentByClass<UHealthComponent>())
+		{
+			MonsterHealth->ApplyDamage(Damage);
+		}
+	}
+
+	// Graybox VFX feedback at the player.
+	FActorSpawnParameters P;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	World->SpawnActor<ADeathPoof>(ADeathPoof::StaticClass(), FTransform(Center + FVector(0.f, 0.f, 40.f)), P);
+}
+
 void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -501,6 +596,9 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	SkillTreeToggleAction = NewObject<UInputAction>(this, TEXT("SkillTreeToggleAction"));
 	SkillTreeToggleAction->ValueType = EInputActionValueType::Boolean;
 
+	AbilityAction = NewObject<UInputAction>(this, TEXT("AbilityAction"));
+	AbilityAction->ValueType = EInputActionValueType::Boolean;
+
 	DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("DefaultMappingContext"));
 
 	// Move (Axis2D): X = right, Y = forward. Digital keys land on X, so swizzle to reach Y.
@@ -536,6 +634,7 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	DefaultMappingContext->MapKey(InventoryToggleAction, EKeys::I);
 	DefaultMappingContext->MapKey(CollectionToggleAction, EKeys::C);
 	DefaultMappingContext->MapKey(SkillTreeToggleAction, EKeys::K);
+	DefaultMappingContext->MapKey(AbilityAction, EKeys::Q);
 
 	// Hotbar select (number keys 1-8).
 	static const FKey HotbarKeys[8] = {
@@ -593,6 +692,7 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(InventoryToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleInventory);
 		EIC->BindAction(CollectionToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleCollectionLog);
 		EIC->BindAction(SkillTreeToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleSkillTree);
+		EIC->BindAction(AbilityAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::UseAbility);
 		for (UInputAction* HotbarAct : HotbarActions)
 		{
 			if (HotbarAct)

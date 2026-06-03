@@ -12,6 +12,16 @@ enum class ESkillBranch : uint8
 	Mage
 };
 
+/** Active abilities unlocked by capstone nodes (triggered with the ability key for the matching style). */
+UENUM(BlueprintType)
+enum class EActiveAbility : uint8
+{
+	None,
+	Whirlwind, // melee: AoE sweep around the player
+	Volley,    // ranged: a wide burst of bolts
+	Nova       // mage: AoE burst around the player
+};
+
 /** Passive stat bonuses granted by a node, applied per allocated rank to UStatsComponent. */
 USTRUCT(BlueprintType)
 struct FSkillBonuses
@@ -61,6 +71,7 @@ struct FSkillNode
 	UPROPERTY() TArray<FName> Prereqs; // node ids that must be allocated first
 	UPROPERTY() FSkillBonuses PerRank; // passive bonus added for each allocated rank
 	UPROPERTY() FSkillModifiers ModsPerRank; // combat modifiers added for each allocated rank
+	UPROPERTY() EActiveAbility GrantsAbility = EActiveAbility::None; // active ability unlocked by this node
 };
 
 /**
