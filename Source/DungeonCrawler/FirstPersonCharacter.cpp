@@ -5,6 +5,7 @@
 #include "InventoryComponent.h"
 #include "HotbarComponent.h"
 #include "SkillTreeComponent.h"
+#include "EquipmentComponent.h"
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
@@ -91,6 +92,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	Hotbar = CreateDefaultSubobject<UHotbarComponent>(TEXT("Hotbar"));
 	SkillTree = CreateDefaultSubobject<USkillTreeComponent>(TEXT("SkillTree"));
+	Equipment = CreateDefaultSubobject<UEquipmentComponent>(TEXT("Equipment"));
 
 	ProjectileClass = AProjectile::StaticClass();
 }
@@ -129,7 +131,8 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		bFreshProfile = !GI->HasProfile();
 		GI->ApplyToStats(Stats);
-		GI->ApplySkills(SkillTree); // layers skill bonuses onto stats before resources are sized
+		GI->ApplySkills(SkillTree);     // layers skill bonuses onto stats before resources are sized
+		GI->ApplyEquipment(Equipment);  // layers equipment bonuses too
 		GI->ApplyInventory(Inventory);
 		GI->ApplyHotbar(Hotbar);
 		if (GI->HasProfile())
@@ -218,6 +221,7 @@ void AFirstPersonCharacter::PersistProfile()
 		GI->CaptureInventory(Inventory);
 		GI->CaptureHotbar(Hotbar);
 		GI->CaptureSkills(SkillTree);
+		GI->CaptureEquipment(Equipment);
 		GI->SaveProfile();
 	}
 }

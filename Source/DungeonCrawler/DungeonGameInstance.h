@@ -9,6 +9,7 @@ class UStatsComponent;
 class UInventoryComponent;
 class UHotbarComponent;
 class USkillTreeComponent;
+class UEquipmentComponent;
 
 /**
  * Holds the player profile in memory across level transitions and brokers save/load to disk.
@@ -44,6 +45,10 @@ public:
 	/** Copy / apply the allocated skill-tree nodes. */
 	void CaptureSkills(const USkillTreeComponent* Skills);
 	void ApplySkills(USkillTreeComponent* Skills) const;
+
+	/** Copy / apply the equipped paperdoll items. */
+	void CaptureEquipment(const UEquipmentComponent* Equipment);
+	void ApplyEquipment(UEquipmentComponent* Equipment) const;
 
 	/** Record a first-time discovery for the collection log (no duplicates). */
 	void AddDiscovered(FName ItemId);

@@ -27,6 +27,22 @@ FString RarityName(EItemRarity Rarity)
 	}
 }
 
+FString EquipSlotLabel(EEquipSlot Slot)
+{
+	switch (Slot)
+	{
+	case EEquipSlot::Head:   return TEXT("head");
+	case EEquipSlot::Amulet: return TEXT("ammy");
+	case EEquipSlot::Body:   return TEXT("body");
+	case EEquipSlot::Gloves: return TEXT("gloves");
+	case EEquipSlot::Belt:   return TEXT("belt");
+	case EEquipSlot::Legs:   return TEXT("legs");
+	case EEquipSlot::Feet:   return TEXT("feet");
+	case EEquipSlot::Ring:   return TEXT("ring");
+	default:                 return TEXT("");
+	}
+}
+
 FString ItemTypeName(EItemType Type)
 {
 	switch (Type)
@@ -71,6 +87,36 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("RubyGem"),      TEXT("Ruby Gem"),      EItemType::Treasure,   EItemRarity::Rare,     5, 120));
 		Items.Add(MakeItem(TEXT("RunedBlade"),   TEXT("Runed Blade"),   EItemType::Weapon,     EItemRarity::Epic,     1, 400, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("AncientRelic"), TEXT("Ancient Relic"), EItemType::Treasure,   EItemRarity::Legendary, 1, 1000));
+		// Equippable armor & accessories (paperdoll slots).
+		Items.Add(MakeItem(TEXT("IronHelm"),      TEXT("Iron Helm"),      EItemType::Armor, EItemRarity::Uncommon, 1, 50));
+		Items.Add(MakeItem(TEXT("LeatherGloves"), TEXT("Leather Gloves"), EItemType::Armor, EItemRarity::Common,   1, 30));
+		Items.Add(MakeItem(TEXT("LeatherBelt"),   TEXT("Leather Belt"),   EItemType::Armor, EItemRarity::Common,   1, 30));
+		Items.Add(MakeItem(TEXT("LeatherLegs"),   TEXT("Leather Leggings"),EItemType::Armor,EItemRarity::Common,   1, 35));
+		Items.Add(MakeItem(TEXT("LeatherBoots"),  TEXT("Leather Boots"),  EItemType::Armor, EItemRarity::Common,   1, 30));
+		Items.Add(MakeItem(TEXT("GoldAmulet"),    TEXT("Gold Amulet"),    EItemType::Treasure, EItemRarity::Rare,  1, 90));
+		Items.Add(MakeItem(TEXT("RubyRing"),      TEXT("Ruby Ring"),      EItemType::Treasure, EItemRarity::Rare,  1, 80));
+		Items.Add(MakeItem(TEXT("IronRing"),      TEXT("Iron Ring"),      EItemType::Treasure, EItemRarity::Uncommon, 1, 45));
+
+		// Equipment slot + stat bonuses (applied while equipped).
+		auto SetEquip = [&Items](const TCHAR* Id, EEquipSlot Slot, const FItemBonuses& Bonuses)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items) { if (D.Id == Key) { D.EquipSlot = Slot; D.Bonuses = Bonuses; } }
+		};
+		auto Hp  = [](float V) { FItemBonuses B; B.MaxHealth = V;  return B; };
+		auto Mp  = [](float V) { FItemBonuses B; B.MaxMana = V;    return B; };
+		auto Sp  = [](float V) { FItemBonuses B; B.MaxStamina = V; return B; };
+		auto Spl = [](float V) { FItemBonuses B; B.SpellMult = V;  return B; };
+		auto Mel = [](float V) { FItemBonuses B; B.MeleeMult = V;  return B; };
+		SetEquip(TEXT("IronHelm"),      EEquipSlot::Head,   Hp(20.f));
+		SetEquip(TEXT("LeatherArmor"),  EEquipSlot::Body,   Hp(35.f));
+		SetEquip(TEXT("LeatherGloves"), EEquipSlot::Gloves, Sp(15.f));
+		SetEquip(TEXT("LeatherBelt"),   EEquipSlot::Belt,   Hp(15.f));
+		SetEquip(TEXT("LeatherLegs"),   EEquipSlot::Legs,   Hp(20.f));
+		SetEquip(TEXT("LeatherBoots"),  EEquipSlot::Feet,   Sp(15.f));
+		SetEquip(TEXT("GoldAmulet"),    EEquipSlot::Amulet, Mp(25.f));
+		SetEquip(TEXT("RubyRing"),      EEquipSlot::Ring,   Spl(0.06f));
+		SetEquip(TEXT("IronRing"),      EEquipSlot::Ring,   Mel(0.06f));
 
 		// Tooltip descriptions.
 		auto SetDesc = [&Items](const TCHAR* Id, const TCHAR* Desc)
@@ -90,6 +136,14 @@ namespace ItemDatabase
 		SetDesc(TEXT("RubyGem"),       TEXT("A precious gem, prized by merchants."));
 		SetDesc(TEXT("RunedBlade"),    TEXT("A sword etched with faintly glowing runes."));
 		SetDesc(TEXT("AncientRelic"),  TEXT("A mysterious relic of immense value."));
+		SetDesc(TEXT("IronHelm"),      TEXT("An iron helm. +20 max health."));
+		SetDesc(TEXT("LeatherGloves"), TEXT("Supple gloves. +15 max stamina."));
+		SetDesc(TEXT("LeatherBelt"),   TEXT("A sturdy belt. +15 max health."));
+		SetDesc(TEXT("LeatherLegs"),   TEXT("Leather leggings. +20 max health."));
+		SetDesc(TEXT("LeatherBoots"),  TEXT("Worn boots. +15 max stamina."));
+		SetDesc(TEXT("GoldAmulet"),    TEXT("A gilded amulet. +25 max mana."));
+		SetDesc(TEXT("RubyRing"),      TEXT("A ruby ring. +6% spell damage."));
+		SetDesc(TEXT("IronRing"),      TEXT("An iron band. +6% melee damage."));
 
 		// Icon meshes (rendered into UI thumbnails). Weapons reuse their skeletal meshes; items
 		// without a mesh fall back to the rarity color.

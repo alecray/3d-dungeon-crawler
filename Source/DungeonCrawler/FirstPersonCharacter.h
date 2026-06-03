@@ -16,6 +16,7 @@ class UStatsComponent;
 class UInventoryComponent;
 class UHotbarComponent;
 class USkillTreeComponent;
+class UEquipmentComponent;
 class USkeletalMesh;
 class UAnimSequence;
 class AProjectile;
@@ -56,6 +57,7 @@ public:
 	UInventoryComponent* GetInventoryComponent() const { return Inventory; }
 	UHotbarComponent* GetHotbarComponent() const { return Hotbar; }
 	USkillTreeComponent* GetSkillTreeComponent() const { return SkillTree; }
+	UEquipmentComponent* GetEquipmentComponent() const { return Equipment; }
 
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
@@ -135,6 +137,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
 	TObjectPtr<USkillTreeComponent> SkillTree;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UEquipmentComponent> Equipment;
 
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()

@@ -1,6 +1,8 @@
 #include "InventoryWidget.h"
 #include "InventorySlotWidget.h"
+#include "EquipmentSlotWidget.h"
 #include "InventoryComponent.h"
+#include "EquipmentComponent.h"
 #include "FirstPersonCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -8,6 +10,8 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Border.h"
 #include "Components/VerticalBox.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
 
@@ -36,8 +40,15 @@ bool UInventoryWidget::Initialize()
 		PS->SetAutoSize(true);
 	}
 
+	// Horizontal row: inventory column on the left, optional equipment paperdoll on the right.
+	Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Row"));
+	Panel->AddChild(Row);
+
 	UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Column"));
-	Panel->AddChild(Column);
+	if (UHorizontalBoxSlot* CS = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(Column)))
+	{
+		CS->SetPadding(FMargin(0.f, 0.f, 12.f, 0.f));
+	}
 
 	TitleText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Title"));
 	TitleText->SetText(FText::FromString(TEXT("Inventory")));
@@ -48,6 +59,93 @@ bool UInventoryWidget::Initialize()
 	Column->AddChild(Grid);
 
 	return true;
+}
+
+void UInventoryWidget::SetShowEquipment(bool bShow)
+{
+	bShowEquipment = bShow;
+	if (bShow && !EquipSection)
+	{
+		BuildEquipmentPanel();
+	}
+	if (EquipSection)
+	{
+		EquipSection->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+	RefreshEquipment();
+}
+
+void UInventoryWidget::BuildEquipmentPanel()
+{
+	if (!Row || EquipSection)
+	{
+		return;
+	}
+
+	UVerticalBox* EquipColumn = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("EquipColumn"));
+	EquipSection = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("EquipSection"));
+	EquipSection->SetBrushColor(FLinearColor(0.f, 0.f, 0.f, 0.f)); // transparent wrapper
+	EquipSection->SetContent(EquipColumn);
+	Row->AddChildToHorizontalBox(EquipSection);
+
+	UTextBlock* EquipTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("EquipTitle"));
+	EquipTitle->SetText(FText::FromString(TEXT("Equipment")));
+	EquipColumn->AddChild(EquipTitle);
+
+	EquipCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("EquipCanvas"));
+	EquipColumn->AddChild(EquipCanvas);
+
+	AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetOwningPlayerPawn());
+	UEquipmentComponent* Equip = Player ? Player->GetEquipmentComponent() : nullptr;
+	if (!Equip)
+	{
+		return;
+	}
+
+	// Paperdoll layout (canvas pixel positions, 58px slots) matching the mockup: a center column with
+	// amulet+gloves on the left and the four rings stacked on the right.
+	struct FSlotPos { int32 Slot; float X; float Y; };
+	static const FSlotPos Layout[] = {
+		{ UEquipmentComponent::Head,   130.f,   0.f },
+		{ UEquipmentComponent::Body,   130.f,  68.f },
+		{ UEquipmentComponent::Belt,   130.f, 136.f },
+		{ UEquipmentComponent::Legs,   130.f, 204.f },
+		{ UEquipmentComponent::Feet,   130.f, 272.f },
+		{ UEquipmentComponent::Amulet,  62.f,  34.f },
+		{ UEquipmentComponent::Gloves,  62.f, 136.f },
+		{ UEquipmentComponent::Ring1,  198.f,  68.f },
+		{ UEquipmentComponent::Ring2,  266.f,  68.f },
+		{ UEquipmentComponent::Ring3,  198.f, 136.f },
+		{ UEquipmentComponent::Ring4,  266.f, 136.f },
+	};
+
+	EquipSlotWidgets.Reset();
+	for (const FSlotPos& Entry : Layout)
+	{
+		UEquipmentSlotWidget* SlotW = CreateWidget<UEquipmentSlotWidget>(this, UEquipmentSlotWidget::StaticClass());
+		if (!SlotW)
+		{
+			continue;
+		}
+		SlotW->Setup(Equip, Entry.Slot);
+		if (UCanvasPanelSlot* CPS = EquipCanvas->AddChildToCanvas(SlotW))
+		{
+			CPS->SetAutoSize(true);
+			CPS->SetPosition(FVector2D(Entry.X, Entry.Y));
+		}
+		EquipSlotWidgets.Add(SlotW);
+	}
+
+	// Refresh the paperdoll whenever equipment changes (equip/unequip moves items to/from the bag).
+	Equip->OnEquipmentChanged.AddUObject(this, &UInventoryWidget::RefreshEquipment);
+}
+
+void UInventoryWidget::RefreshEquipment()
+{
+	for (UEquipmentSlotWidget* SlotW : EquipSlotWidgets)
+	{
+		if (SlotW) { SlotW->Refresh(); }
+	}
 }
 
 void UInventoryWidget::NativeConstruct()
@@ -69,6 +167,13 @@ void UInventoryWidget::NativeDestruct()
 	if (Inventory.IsValid())
 	{
 		Inventory->OnInventoryChanged.RemoveAll(this);
+	}
+	if (AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetOwningPlayerPawn()))
+	{
+		if (UEquipmentComponent* Equip = Player->GetEquipmentComponent())
+		{
+			Equip->OnEquipmentChanged.RemoveAll(this);
+		}
 	}
 	Super::NativeDestruct();
 }

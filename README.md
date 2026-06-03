@@ -44,6 +44,8 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] 3D item icons (item meshes rendered to cached textures; UI slots + world pickups share them,
       with per-item texture recolor — e.g. health/mana/stamina potions reuse one mesh)
 - [x] Equipment & action bar (8 slots, equip weapons, drop items to world)
+- [x] Paperdoll equipment (head/amulet/body/gloves/belt/legs/feet + 4 rings) on the inventory screen;
+      type-restricted slots, drag to equip / click to unequip, stat bonuses applied while worn
 - [x] Different enemy types (data-driven monsters; crab replaces the graybox humanoid)
 - [x] Ranged & mage combat styles (ranged spends stamina, mage spends mana)
 - [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses + combat

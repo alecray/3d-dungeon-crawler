@@ -3,6 +3,7 @@
 #include "InventoryComponent.h"
 #include "HotbarComponent.h"
 #include "SkillTreeComponent.h"
+#include "EquipmentComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 void UDungeonGameInstance::Init()
@@ -84,6 +85,23 @@ void UDungeonGameInstance::ApplySkills(USkillTreeComponent* Skills) const
 	if (Skills && Profile.bInitialized)
 	{
 		Skills->LoadFrom(Profile.SkillNodes);
+	}
+}
+
+void UDungeonGameInstance::CaptureEquipment(const UEquipmentComponent* Equipment)
+{
+	if (Equipment)
+	{
+		Profile.bInitialized = true;
+		Profile.Equipment = Equipment->GetSlots();
+	}
+}
+
+void UDungeonGameInstance::ApplyEquipment(UEquipmentComponent* Equipment) const
+{
+	if (Equipment && Profile.bInitialized && Profile.Equipment.Num() > 0)
+	{
+		Equipment->LoadFrom(Profile.Equipment);
 	}
 }
 

@@ -74,6 +74,7 @@ void ADungeonPlayerController::ToggleInventory()
 		{
 			InventoryWidget->SetInventory(GetPlayerInventory(), TEXT("Inventory"));
 			InventoryWidget->SetPanelPosition(FVector2D::ZeroVector); // centered
+			InventoryWidget->SetShowEquipment(true);                  // paperdoll beside the grid
 			InventoryWidget->AddToViewport(10);
 		}
 	}
@@ -230,6 +231,7 @@ void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
 	{
 		InventoryWidget->SetInventory(GetPlayerInventory(), TEXT("Inventory"));
 		InventoryWidget->SetPanelPosition(FVector2D(360.f, 0.f));
+		InventoryWidget->SetShowEquipment(false); // loot view: grid only, no paperdoll
 		if (!InventoryWidget->IsInViewport())
 		{
 			InventoryWidget->AddToViewport(10);

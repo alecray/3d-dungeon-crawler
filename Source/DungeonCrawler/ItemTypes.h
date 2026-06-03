@@ -33,6 +33,35 @@ enum class EEquipKind : uint8
 	Crossbow  // ranged
 };
 
+/** Paperdoll equipment slot an item fits into (armor/accessories). None = not equipment. */
+UENUM(BlueprintType)
+enum class EEquipSlot : uint8
+{
+	None,
+	Head,
+	Amulet,
+	Body,
+	Gloves,
+	Belt,
+	Legs,
+	Feet,
+	Ring
+};
+
+/** Stat bonuses an equipped item grants (added to UStatsComponent's equipment bonuses). */
+USTRUCT(BlueprintType)
+struct FItemBonuses
+{
+	GENERATED_BODY()
+
+	UPROPERTY() float MaxHealth = 0.f;
+	UPROPERTY() float MaxMana = 0.f;
+	UPROPERTY() float MaxStamina = 0.f;
+	UPROPERTY() float MeleeMult = 0.f;
+	UPROPERTY() float RangedMult = 0.f;
+	UPROPERTY() float SpellMult = 0.f;
+};
+
 /** Static definition of an item kind (no art — a rarity color stands in for the icon for now). */
 USTRUCT(BlueprintType)
 struct FItemDef
@@ -47,6 +76,8 @@ struct FItemDef
 	UPROPERTY() int32 MaxStack = 1;
 	UPROPERTY() int32 Value = 1; // gold value (used by the shop later)
 	UPROPERTY() EEquipKind EquipKind = EEquipKind::None; // equippable weapon kind, if any
+	UPROPERTY() EEquipSlot EquipSlot = EEquipSlot::None; // paperdoll slot (armor/accessory), if any
+	UPROPERTY() FItemBonuses Bonuses;                    // stat bonuses applied while equipped
 
 	// Mesh used to render this item's UI icon (one of these; leave empty to use the rarity color).
 	UPROPERTY() FString IconStaticMeshPath;
@@ -78,6 +109,9 @@ DUNGEONCRAWLER_API FLinearColor RarityColor(EItemRarity Rarity);
 /** Display names for rarity / type (used in tooltips). */
 DUNGEONCRAWLER_API FString RarityName(EItemRarity Rarity);
 DUNGEONCRAWLER_API FString ItemTypeName(EItemType Type);
+
+/** Lowercase label for an equipment slot (e.g. "head", "ammy"), used as the empty-slot placeholder. */
+DUNGEONCRAWLER_API FString EquipSlotLabel(EEquipSlot Slot);
 
 /**
  * Code-defined item registry (no DataTable asset). Look up definitions by id, enumerate all items,

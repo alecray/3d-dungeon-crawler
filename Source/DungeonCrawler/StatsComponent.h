@@ -59,17 +59,21 @@ public:
 	int32 GetAttributePoints() const { return AttributePoints; }
 	bool SpendSkillPoint();
 
-	// ---- Derived (attributes + flat bonuses from gear/skills) ----
-	float GetMaxHealth() const { return 80.f + Attributes.Vitality * 20.f + BonusMaxHealth; }
-	float GetMaxMana() const { return 40.f + Attributes.Intelligence * 15.f + BonusMaxMana; }
-	float GetMaxStamina() const { return 80.f + Attributes.Dexterity * 8.f + Attributes.Vitality * 4.f + BonusMaxStamina; }
-	float GetMeleeDamageMult() const { return 1.f + Attributes.Strength * 0.05f + BonusMeleeMult; }
-	float GetRangedDamageMult() const { return 1.f + Attributes.Dexterity * 0.05f + BonusRangedMult; }
-	float GetSpellDamageMult() const { return 1.f + Attributes.Intelligence * 0.05f + BonusSpellMult; }
+	// ---- Derived (attributes + flat bonuses from skills + equipment) ----
+	float GetMaxHealth() const { return 80.f + Attributes.Vitality * 20.f + BonusMaxHealth + EquipBonusMaxHealth; }
+	float GetMaxMana() const { return 40.f + Attributes.Intelligence * 15.f + BonusMaxMana + EquipBonusMaxMana; }
+	float GetMaxStamina() const { return 80.f + Attributes.Dexterity * 8.f + Attributes.Vitality * 4.f + BonusMaxStamina + EquipBonusMaxStamina; }
+	float GetMeleeDamageMult() const { return 1.f + Attributes.Strength * 0.05f + BonusMeleeMult + EquipBonusMeleeMult; }
+	float GetRangedDamageMult() const { return 1.f + Attributes.Dexterity * 0.05f + BonusRangedMult + EquipBonusRangedMult; }
+	float GetSpellDamageMult() const { return 1.f + Attributes.Intelligence * 0.05f + BonusSpellMult + EquipBonusSpellMult; }
 
-	// Flat bonuses layered on by gear/skill tree (set then NotifyChanged()).
+	// Flat bonuses layered on by the skill tree (set then NotifyChanged()).
 	float BonusMaxHealth = 0.f, BonusMaxMana = 0.f, BonusMaxStamina = 0.f;
 	float BonusMeleeMult = 0.f, BonusRangedMult = 0.f, BonusSpellMult = 0.f;
+
+	// Flat bonuses layered on by equipped gear (separate source so it doesn't clobber skill bonuses).
+	float EquipBonusMaxHealth = 0.f, EquipBonusMaxMana = 0.f, EquipBonusMaxStamina = 0.f;
+	float EquipBonusMeleeMult = 0.f, EquipBonusRangedMult = 0.f, EquipBonusSpellMult = 0.f;
 
 	void NotifyChanged() { OnStatsChanged.Broadcast(this); }
 	FOnStatsChanged OnStatsChanged;

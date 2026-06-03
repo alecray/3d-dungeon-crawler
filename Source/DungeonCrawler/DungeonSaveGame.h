@@ -31,6 +31,7 @@ struct FPlayerProfile
 	UPROPERTY() int32 ActiveSlot = 0;     // selected hotbar slot
 
 	UPROPERTY() TArray<FName> SkillNodes; // allocated skill-tree nodes (one entry per rank)
+	UPROPERTY() TArray<FName> Equipment;  // equipped item per paperdoll slot (NAME_None = empty)
 
 	// Settings (pause menu).
 	UPROPERTY() float MouseSensitivity = 1.f;
