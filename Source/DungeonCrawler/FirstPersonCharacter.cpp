@@ -26,8 +26,8 @@
 #include "TimerManager.h"
 
 // Skeletal sword + its swing animation are loaded from these paths if not assigned in the editor.
-static const TCHAR* SwordSkeletalPath = TEXT("/Game/Weapons/SK_Sword.SK_Sword");
-static const TCHAR* SwordSwingAnimPath = TEXT("/Game/Weapons/A_Sword_Swing.A_Sword_Swing");
+static const TCHAR* SwordSkeletalPath = TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword");
+static const TCHAR* SwordSwingAnimPath = TEXT("/Game/Weapons/Sword/A_Sword_Swing.A_Sword_Swing");
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -177,6 +177,15 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 		return;
 	}
 
+	ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController());
+
+	// If a loot pane is already open, E closes it.
+	if (PC && PC->IsLootMenuOpen())
+	{
+		PC->CloseLootMenu();
+		return;
+	}
+
 	const FVector Start = FirstPersonCamera->GetComponentLocation();
 	const FVector End = Start + FirstPersonCamera->GetForwardVector() * InteractRange;
 
@@ -188,7 +197,10 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 	{
 		if (ALootChest* Chest = Cast<ALootChest>(Hit.GetActor()))
 		{
-			Chest->Interact(this);
+			if (PC)
+			{
+				PC->OpenLootMenu(Chest);
+			}
 		}
 	}
 }

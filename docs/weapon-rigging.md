@@ -7,10 +7,8 @@ across all weapons.
 1. Origin at the grip; blade pointing +X. Then `Object → Apply → All Transforms` (Ctrl+A).
 2. `Add → Armature`. In Edit Mode, place the bone running down the blade (root at grip, tip at blade
    tip). Rename it e.g. `Weapon`.
-3. Bind the mesh: select **mesh** first, then **shift-select armature**, `Ctrl+P → With Empty Groups`.
-4. Weight the mesh to the bone: select the mesh, Weight Paint (or Edit Mode → select all → in the
-   Object Data "Vertex Groups", assign all verts to the bone with weight **1.0**).
-5. Verify in Pose Mode: rotating the bone moves the whole weapon.
+3. Bind the mesh: select **mesh** first, then **shift-select armature**, `Ctrl+P → With Automatic Weights`.
+4. Verify in Pose Mode: rotating the bone moves the whole weapon.
 
 ## B. Author the swing animation
 1. Animation workspace, Pose Mode on the armature.

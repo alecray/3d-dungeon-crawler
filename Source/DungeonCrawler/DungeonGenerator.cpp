@@ -18,7 +18,7 @@ static const TCHAR* FloorMeshPath = TEXT("/Game/Furniture/SM_Floor.SM_Floor");
 static const TCHAR* WallMeshPath = TEXT("/Game/Furniture/SM_Wall.SM_Wall");
 
 // The engine cube is a 100cm cube centered on its origin, so an instance scale of 1.0 == 100cm.
-static constexpr float CubeUnitCm = 100.f;
+static constexpr float GenUnitCm = 100.f;
 
 ADungeonGenerator::ADungeonGenerator()
 {
@@ -308,7 +308,7 @@ void ADungeonGenerator::AddTile(UInstancedStaticMeshComponent* ISM, const FVecto
 	{
 		return;
 	}
-	const FTransform Xf(FRotator::ZeroRotator, Center, SizeCm / CubeUnitCm);
+	const FTransform Xf(FRotator::ZeroRotator, Center, SizeCm / GenUnitCm);
 	ISM->AddInstance(Xf, /*bWorldSpace*/ false);
 }
 

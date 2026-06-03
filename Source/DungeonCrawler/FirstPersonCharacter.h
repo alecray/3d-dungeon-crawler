@@ -48,7 +48,7 @@ protected:
 	TObjectPtr<UCameraComponent> FirstPersonCamera;
 
 	/** Skeletal-mesh sword held in view (parented to the camera). A skeletal mesh is used so it can
-	 *  play Blender-authored swing animations. Defaults to /Game/Weapons/SK_Sword. */
+	 *  play Blender-authored swing animations. Defaults to /Game/Weapons/Sword/SK_Sword. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<USkeletalMeshComponent> SwordMesh;
 
@@ -56,7 +56,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<USkeletalMesh> SwordSkeletalAsset;
 
-	/** Swing animation played on attack. Defaults to /Game/Weapons/A_Sword_Swing. */
+	/** Swing animation played on attack. Defaults to /Game/Weapons/Sword/A_Sword_Swing. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<UAnimSequence> SwingAnim;
 

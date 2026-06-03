@@ -77,14 +77,9 @@ void ALootChest::ResolveMeshes()
 	}
 }
 
-void ALootChest::Interact(AActor* Interactor)
+void ALootChest::Open()
 {
-	if (bOpened || !Interactor)
-	{
-		return;
-	}
-	UInventoryComponent* Inventory = Interactor->FindComponentByClass<UInventoryComponent>();
-	if (!Inventory)
+	if (bOpened)
 	{
 		return;
 	}
@@ -96,10 +91,15 @@ void ALootChest::Interact(AActor* Interactor)
 		LidPivot->SetRelativeRotation(FRotator(-105.f, 0.f, 0.f));
 	}
 
-	// Roll loot into the inventory.
+	RollLoot();
+}
+
+void ALootChest::RollLoot()
+{
+	Contents.Reset();
+
 	FRandomStream Rng(FMath::Rand());
 	const int32 Drops = Rng.RandRange(FMath::Min(MinDrops, MaxDrops), FMath::Max(MinDrops, MaxDrops));
-	FString Summary;
 	for (int32 i = 0; i < Drops; ++i)
 	{
 		const FName ItemId = ItemDatabase::RollRandomItem(Rng);
@@ -107,13 +107,59 @@ void ALootChest::Interact(AActor* Interactor)
 		{
 			continue;
 		}
-		const int32 Count = (ItemDatabase::Get(ItemId).MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
-		Inventory->AddItem(ItemId, Count);
-		Summary += FString::Printf(TEXT("%s x%d  "), *ItemDatabase::Get(ItemId).DisplayName, Count);
+		FInventorySlot Slot;
+		Slot.ItemId = ItemId;
+		Slot.Count = (ItemDatabase::Get(ItemId).MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
+		Contents.Add(Slot);
 	}
+	OnContentsChanged.Broadcast(this);
+}
 
-	if (GEngine)
+bool ALootChest::IsEmpty() const
+{
+	for (const FInventorySlot& Slot : Contents)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Yellow, FString::Printf(TEXT("Looted: %s"), *Summary));
+		if (!Slot.IsEmpty())
+		{
+			return false;
+		}
 	}
+	return true;
+}
+
+void ALootChest::TakeItem(int32 Index, UInventoryComponent* Into)
+{
+	if (!Into || !Contents.IsValidIndex(Index) || Contents[Index].IsEmpty())
+	{
+		return;
+	}
+	const int32 Leftover = Into->AddItem(Contents[Index].ItemId, Contents[Index].Count);
+	if (Leftover <= 0)
+	{
+		Contents[Index].Clear();
+	}
+	else
+	{
+		Contents[Index].Count = Leftover; // inventory full: leave the remainder in the chest
+	}
+	OnContentsChanged.Broadcast(this);
+}
+
+void ALootChest::TakeAll(UInventoryComponent* Into)
+{
+	if (!Into)
+	{
+		return;
+	}
+	for (FInventorySlot& Slot : Contents)
+	{
+		if (Slot.IsEmpty())
+		{
+			continue;
+		}
+		const int32 Leftover = Into->AddItem(Slot.ItemId, Slot.Count);
+		if (Leftover <= 0) { Slot.Clear(); }
+		else { Slot.Count = Leftover; }
+	}
+	OnContentsChanged.Broadcast(this);
 }

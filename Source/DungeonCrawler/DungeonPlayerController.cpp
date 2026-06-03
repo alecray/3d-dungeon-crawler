@@ -2,6 +2,8 @@
 #include "HUDWidget.h"
 #include "InventoryWidget.h"
 #include "CollectionLogWidget.h"
+#include "LootWidget.h"
+#include "LootChest.h"
 #include "Blueprint/UserWidget.h"
 
 ADungeonPlayerController::ADungeonPlayerController()
@@ -9,6 +11,7 @@ ADungeonPlayerController::ADungeonPlayerController()
 	HUDWidgetClass = UHUDWidget::StaticClass();
 	InventoryWidgetClass = UInventoryWidget::StaticClass();
 	CollectionWidgetClass = UCollectionLogWidget::StaticClass();
+	LootWidgetClass = ULootWidget::StaticClass();
 }
 
 void ADungeonPlayerController::BeginPlay()
@@ -73,11 +76,49 @@ void ADungeonPlayerController::TogglePanel(TObjectPtr<UUserWidget>& Widget, TSub
 	UpdateInputMode();
 }
 
+void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
+{
+	if (!Chest || !LootWidgetClass)
+	{
+		return;
+	}
+	Chest->Open(); // roll loot + flip lid (no-op if already opened)
+
+	if (!LootWidget)
+	{
+		LootWidget = CreateWidget<ULootWidget>(this, LootWidgetClass);
+	}
+	if (LootWidget)
+	{
+		LootWidget->SetChest(Chest);
+		if (!LootWidget->IsInViewport())
+		{
+			LootWidget->AddToViewport(10);
+		}
+	}
+	UpdateInputMode();
+}
+
+void ADungeonPlayerController::CloseLootMenu()
+{
+	if (LootWidget && LootWidget->IsInViewport())
+	{
+		LootWidget->RemoveFromParent();
+	}
+	UpdateInputMode();
+}
+
+bool ADungeonPlayerController::IsLootMenuOpen() const
+{
+	return LootWidget && LootWidget->IsInViewport();
+}
+
 void ADungeonPlayerController::UpdateInputMode()
 {
 	const bool bUIOpen =
 		(InventoryWidget && InventoryWidget->IsInViewport()) ||
-		(CollectionWidget && CollectionWidget->IsInViewport());
+		(CollectionWidget && CollectionWidget->IsInViewport()) ||
+		(LootWidget && LootWidget->IsInViewport());
 
 	bShowMouseCursor = bUIOpen;
 	if (bUIOpen)
