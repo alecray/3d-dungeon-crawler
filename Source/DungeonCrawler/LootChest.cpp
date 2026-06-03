@@ -92,14 +92,15 @@ void ALootChest::Open()
 
 bool ALootChest::IsViewerInFront(const FVector& ViewerLocation) const
 {
-	// SK_Chest's opening faces its -X, so "front" is -forward. Allow only within a ~60-degree arc of it.
+	// SK_Chest's opening faces its +Y (the actor's right), so that's the "front" to open from. Allow
+	// only within a ~60-degree arc of it.
 	FVector ToViewer = ViewerLocation - GetActorLocation();
 	ToViewer.Z = 0.f;
 	if (!ToViewer.Normalize())
 	{
 		return true; // viewer right on top of it: don't block
 	}
-	return FVector::DotProduct(-GetActorForwardVector(), ToViewer) >= 0.5f;
+	return FVector::DotProduct(GetActorRightVector(), ToViewer) >= 0.5f;
 }
 
 void ALootChest::CloseLid()

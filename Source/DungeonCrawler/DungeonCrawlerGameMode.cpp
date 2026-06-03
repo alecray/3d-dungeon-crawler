@@ -75,8 +75,8 @@ void ADungeonCrawlerGameMode::EnsureLighting()
 			if (USkyLightComponent* SC = Sky->GetLightComponent())
 			{
 				SC->SetMobility(EComponentMobility::Movable);
-				SC->SetIntensity(3.0f);                              // strong, even ambient fill
-				SC->SetLightColor(FLinearColor(0.7f, 0.72f, 0.82f)); // soft, near-neutral
+				SC->SetIntensity(1.6f);                              // dim ambient fill (torches do the lighting)
+				SC->SetLightColor(FLinearColor(0.6f, 0.64f, 0.78f)); // cool, soft
 				SC->bLowerHemisphereIsBlack = false;                 // fill the floor/shadows too
 				SC->LowerHemisphereColor = FLinearColor(0.4f, 0.4f, 0.45f);
 				SC->RecaptureSky();
@@ -114,9 +114,9 @@ void ADungeonCrawlerGameMode::EnsurePostProcess()
 	// Lock exposure (no harsh auto-adjust) and bias it BRIGHT — low-poly games read as well-lit and
 	// flat, not moody. A lower locked brightness target makes the rendered image brighter.
 	S.bOverride_AutoExposureMinBrightness = true;
-	S.AutoExposureMinBrightness = 0.3f;
+	S.AutoExposureMinBrightness = 0.6f;
 	S.bOverride_AutoExposureMaxBrightness = true;
-	S.AutoExposureMaxBrightness = 0.3f;
+	S.AutoExposureMaxBrightness = 0.6f;
 
 	// Ease ambient occlusion so contact shadows aren't a hard black line.
 	S.bOverride_AmbientOcclusionIntensity = true;
@@ -124,9 +124,9 @@ void ADungeonCrawlerGameMode::EnsurePostProcess()
 	S.bOverride_AmbientOcclusionRadius = true;
 	S.AmbientOcclusionRadius = 80.f;
 
-	// Strong indirect bounce so shadowed areas fill with soft colored light, never black.
+	// Moderate indirect bounce: enough to keep shadows from going pure black, but darker/moodier.
 	S.bOverride_IndirectLightingIntensity = true;
-	S.IndirectLightingIntensity = 2.2f;
+	S.IndirectLightingIntensity = 1.1f;
 
 	// Stylized grade: warm white balance, lower contrast, lifted (warm) shadows, a touch more
 	// saturation, gentle bloom + vignette — the flat, cozy low-poly look.
@@ -179,16 +179,16 @@ void ADungeonCrawlerGameMode::EnsureFog()
 
 	if (C)
 	{
-		// TEMP debug values: very thick + bright so the fog is unmistakable. Dial back once confirmed.
-		C->SetFogDensity(1.0f);
-		C->SetFogHeightFalloff(0.05f);                                 // barely falls off with height
-		C->SetFogInscatteringColor(FLinearColor(0.45f, 0.5f, 0.6f));   // bright cool grey
-		C->SetFogMaxOpacity(1.0f);
+		// Plenty of haze, but dark + cool so it reads as a moody dungeon rather than a bright grey room.
+		C->SetFogDensity(0.6f);
+		C->SetFogHeightFalloff(0.08f);
+		C->SetFogInscatteringColor(FLinearColor(0.025f, 0.03f, 0.05f)); // dark, cool
+		C->SetFogMaxOpacity(0.9f);
 		C->SetStartDistance(0.f);
 
 		C->SetVolumetricFog(true);
 		C->SetVolumetricFogScatteringDistribution(0.2f);
-		C->SetVolumetricFogAlbedo(FColor(200, 195, 185));
+		C->SetVolumetricFogAlbedo(FColor(180, 170, 150)); // warm scatter so the torches still glow
 		C->SetVolumetricFogExtinctionScale(1.0f);
 		C->SetVolumetricFogDistance(2500.f);
 	}
