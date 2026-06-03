@@ -13,6 +13,7 @@ class UInputMappingContext;
 class UHealthComponent;
 class UResourceComponent;
 class UStatsComponent;
+class UInventoryComponent;
 struct FInputActionValue;
 
 /**
@@ -37,6 +38,7 @@ public:
 	UResourceComponent* GetManaComponent() const { return Mana; }
 	UResourceComponent* GetStaminaComponent() const { return Stamina; }
 	UStatsComponent* GetStatsComponent() const { return Stats; }
+	UInventoryComponent* GetInventoryComponent() const { return Inventory; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -71,6 +73,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Resources")
 	TObjectPtr<UResourceComponent> Stamina;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	TObjectPtr<UInventoryComponent> Inventory;
+
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
@@ -89,6 +94,19 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> SprintAction;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> InteractAction;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> InventoryToggleAction;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> CollectionToggleAction;
+
+	/** Reach of the interact line-trace (cm). */
+	UPROPERTY(EditAnywhere, Category = "Interaction")
+	float InteractRange = 280.f;
 
 	// ---- Tunables ----
 	/** Mouse look sensitivity multiplier. */
@@ -155,9 +173,14 @@ private:
 	void Attack(const FInputActionValue& Value);
 	void StartSprint(const FInputActionValue& Value);
 	void StopSprint(const FInputActionValue& Value);
+	void Interact(const FInputActionValue& Value);
+	void ToggleInventory(const FInputActionValue& Value);
+	void ToggleCollectionLog(const FInputActionValue& Value);
 
 	void HandleDeath(UHealthComponent* DeadComponent);
 	void HandleStatsChanged(UStatsComponent* ChangedStats);
+	void HandleInventoryChanged(UInventoryComponent* ChangedInventory);
+	void HandleItemDiscovered(FName ItemId);
 
 	/** Push current stats into the GameInstance profile and write it to disk. */
 	void PersistProfile();

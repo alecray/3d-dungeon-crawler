@@ -2,6 +2,7 @@
 #include "DungeonProp.h"
 #include "MonsterCharacter.h"
 #include "BossMonster.h"
+#include "LootChest.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SceneComponent.h"
@@ -60,6 +61,7 @@ ADungeonGenerator::ADungeonGenerator()
 
 	MonsterClass = AMonsterCharacter::StaticClass();
 	BossClass = ABossMonster::StaticClass();
+	ChestClass = ALootChest::StaticClass();
 }
 
 void ADungeonGenerator::BeginPlay()
@@ -104,6 +106,7 @@ void ADungeonGenerator::Generate()
 	BuildGeometry();
 	ScatterProps();
 	ScatterMonsters();
+	ScatterChests();
 	SpawnBoss();
 	if (bSpawnTorches)
 	{
@@ -551,6 +554,51 @@ void ADungeonGenerator::ScatterMonsters()
 			{
 				SpawnedActors.Add(Monster);
 			}
+		}
+	}
+}
+
+void ADungeonGenerator::ScatterChests()
+{
+	UWorld* World = GetWorld();
+	if (!World || !ChestClass)
+	{
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	// Always drop one chest in the start room (room 0), off to the side of the furniture lineup, so
+	// it's testable the instant the game starts.
+	if (Rooms.Num() > 0)
+	{
+		const FVector Loc = GetRoomCenterWorld(0) + FVector(CellSize * 1.3f, CellSize * 0.8f, 0.f);
+		if (ALootChest* Chest = World->SpawnActor<ALootChest>(ChestClass, FTransform(FRotator::ZeroRotator, Loc), Params))
+		{
+			SpawnedActors.Add(Chest);
+		}
+	}
+
+	// Skip the player's start room; the boss room always gets one as a reward.
+	for (int32 i = 1; i < Rooms.Num(); ++i)
+	{
+		const bool bBossRoom = (i == BossRoomIndex);
+		if (!bBossRoom && Rng.FRand() > ChestChancePerRoom)
+		{
+			continue;
+		}
+
+		const FDungeonRoom& Room = Rooms[i];
+		const float SpreadX = FMath::Max(0.f, (Room.W - 2) * 0.4f) * CellSize;
+		const float SpreadY = FMath::Max(0.f, (Room.H - 2) * 0.4f) * CellSize;
+		const FVector Offset(Rng.FRandRange(-SpreadX, SpreadX), Rng.FRandRange(-SpreadY, SpreadY), 0.f);
+		const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
+
+		if (ALootChest* Chest = World->SpawnActor<ALootChest>(ChestClass, FTransform(Rot, GetRoomCenterWorld(i) + Offset), Params))
+		{
+			SpawnedActors.Add(Chest);
 		}
 	}
 }

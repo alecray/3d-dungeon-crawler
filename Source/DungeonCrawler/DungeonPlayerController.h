@@ -19,6 +19,12 @@ class DUNGEONCRAWLER_API ADungeonPlayerController : public APlayerController
 public:
 	ADungeonPlayerController();
 
+	/** Show/hide the inventory panel (bound to I). */
+	void ToggleInventory();
+
+	/** Show/hide the collection log (bound to C). */
+	void ToggleCollectionLog();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -26,7 +32,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UUserWidget> HUDWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> InventoryWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> CollectionWidgetClass;
+
 private:
-	UPROPERTY()
-	TObjectPtr<UUserWidget> HUDWidget;
+	/** Toggles a panel widget in/out of the viewport, (re)creating it as needed. */
+	void TogglePanel(TObjectPtr<UUserWidget>& Widget, TSubclassOf<UUserWidget> WidgetClass);
+
+	/** Sets mouse cursor + input mode based on whether any panel is open. */
+	void UpdateInputMode();
+
+	UPROPERTY() TObjectPtr<UUserWidget> HUDWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> InventoryWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> CollectionWidget;
 };

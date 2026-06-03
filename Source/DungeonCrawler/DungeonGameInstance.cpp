@@ -1,5 +1,6 @@
 #include "DungeonGameInstance.h"
 #include "StatsComponent.h"
+#include "InventoryComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 void UDungeonGameInstance::Init()
@@ -30,6 +31,32 @@ void UDungeonGameInstance::ApplyToStats(UStatsComponent* Stats) const
 		return; // fresh game: leave the component's default attributes
 	}
 	Stats->LoadFrom(Profile.Attributes, Profile.Level, Profile.XP, Profile.SkillPoints, Profile.AttributePoints);
+}
+
+void UDungeonGameInstance::CaptureInventory(const UInventoryComponent* Inventory)
+{
+	if (Inventory)
+	{
+		Profile.bInitialized = true;
+		Profile.Inventory = Inventory->GetSlots();
+	}
+}
+
+void UDungeonGameInstance::ApplyInventory(UInventoryComponent* Inventory) const
+{
+	if (Inventory && Profile.bInitialized && Profile.Inventory.Num() > 0)
+	{
+		Inventory->SetSlots(Profile.Inventory);
+	}
+}
+
+void UDungeonGameInstance::AddDiscovered(FName ItemId)
+{
+	if (!ItemId.IsNone() && !Profile.DiscoveredItems.Contains(ItemId))
+	{
+		Profile.bInitialized = true;
+		Profile.DiscoveredItems.Add(ItemId);
+	}
 }
 
 bool UDungeonGameInstance::SaveProfile()

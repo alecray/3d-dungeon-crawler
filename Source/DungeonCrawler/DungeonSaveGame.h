@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "StatsComponent.h" // FCoreAttributes
+#include "ItemTypes.h"      // FInventorySlot
 #include "DungeonSaveGame.generated.h"
 
 /**
@@ -22,6 +23,9 @@ struct FPlayerProfile
 	UPROPERTY() int32 SkillPoints = 0;
 	UPROPERTY() int32 AttributePoints = 0;
 	UPROPERTY() int32 Gold = 0;
+
+	UPROPERTY() TArray<FInventorySlot> Inventory;
+	UPROPERTY() TArray<FName> DiscoveredItems; // collection log
 };
 
 /** SaveGame wrapper around the profile, serialized via UGameplayStatics::SaveGameToSlot. */

@@ -6,6 +6,7 @@
 #include "DungeonGameInstance.generated.h"
 
 class UStatsComponent;
+class UInventoryComponent;
 
 /**
  * Holds the player profile in memory across level transitions and brokers save/load to disk.
@@ -27,6 +28,18 @@ public:
 
 	/** Apply the in-memory profile onto a stats component (e.g. on player spawn). */
 	void ApplyToStats(UStatsComponent* Stats) const;
+
+	/** Copy an inventory component's slots into the profile. */
+	void CaptureInventory(const UInventoryComponent* Inventory);
+
+	/** Apply the profile's saved inventory onto a component (e.g. on player spawn). */
+	void ApplyInventory(UInventoryComponent* Inventory) const;
+
+	/** Record a first-time discovery for the collection log (no duplicates). */
+	void AddDiscovered(FName ItemId);
+
+	const TArray<FName>& GetDiscovered() const { return Profile.DiscoveredItems; }
+	bool IsDiscovered(FName ItemId) const { return Profile.DiscoveredItems.Contains(ItemId); }
 
 	/** Write the in-memory profile to the save slot. */
 	UFUNCTION(BlueprintCallable, Category = "Save")

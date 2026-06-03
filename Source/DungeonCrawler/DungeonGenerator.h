@@ -8,6 +8,7 @@ class UInstancedStaticMeshComponent;
 class UStaticMesh;
 class AMonsterCharacter;
 class ABossMonster;
+class ALootChest;
 
 /** A placed room as a rectangle of grid cells. */
 USTRUCT()
@@ -114,6 +115,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Boss", meta = (ClampMin = "6"))
 	int32 BossRoomCells = 13;
 
+	// ---- Loot ----
+	/** Loot chest class (defaults to ALootChest). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Loot")
+	TSubclassOf<ALootChest> ChestClass;
+
+	/** Chance [0..1] that a (non-start) room contains a loot chest. The boss room always gets one. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Loot", meta = (ClampMin = "0", ClampMax = "1"))
+	float ChestChancePerRoom = 0.45f;
+
 	// ---- Lighting (wall torches) ----
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting")
 	bool bSpawnTorches = true;
@@ -181,6 +191,7 @@ private:
 	void AddTile(UInstancedStaticMeshComponent* ISM, const FVector& Center, const FVector& SizeCm);
 	void ScatterProps();
 	void ScatterMonsters();
+	void ScatterChests();
 	void SpawnBoss();
 	void SpawnWallTorches();
 	/** Places one wall torch (bracket mesh + warm light) on the wall in the given outward direction. */

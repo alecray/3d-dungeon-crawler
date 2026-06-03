@@ -10,7 +10,7 @@
 #include "UObject/ConstructorHelpers.h"
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
-static constexpr float CubeUnitCm = 100.f;
+static constexpr float MonsterUnitCm = 100.f;
 
 AMonsterCharacter::AMonsterCharacter()
 {
@@ -54,7 +54,7 @@ UStaticMeshComponent* AMonsterCharacter::AddBox(const TCHAR* Name, const FVector
 	Box->SetupAttachment(BodyRoot);
 	Box->SetCollisionEnabled(ECollisionEnabled::NoCollision); // the capsule handles collision
 	Box->SetRelativeLocation(Center);
-	Box->SetRelativeScale3D(SizeCm / CubeUnitCm);
+	Box->SetRelativeScale3D(SizeCm / MonsterUnitCm);
 	if (CubeMesh)
 	{
 		Box->SetStaticMesh(CubeMesh);

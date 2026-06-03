@@ -2,8 +2,11 @@
 #include "HealthComponent.h"
 #include "ResourceComponent.h"
 #include "StatsComponent.h"
+#include "InventoryComponent.h"
 #include "MonsterCharacter.h"
+#include "LootChest.h"
 #include "DungeonGameInstance.h"
+#include "DungeonPlayerController.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
@@ -75,6 +78,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Health = CreateDefaultSubobject<UHealthComponent>(TEXT("Health"));
 	Mana = CreateDefaultSubobject<UResourceComponent>(TEXT("Mana"));
 	Stamina = CreateDefaultSubobject<UResourceComponent>(TEXT("Stamina"));
+	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 }
 
 void AFirstPersonCharacter::BeginPlay()
@@ -106,6 +110,7 @@ void AFirstPersonCharacter::BeginPlay()
 	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
 	{
 		GI->ApplyToStats(Stats);
+		GI->ApplyInventory(Inventory);
 		if (GI->HasProfile())
 		{
 			Gold = GI->GetProfile().Gold;
@@ -114,6 +119,11 @@ void AFirstPersonCharacter::BeginPlay()
 	if (Stats)
 	{
 		Stats->OnStatsChanged.AddUObject(this, &AFirstPersonCharacter::HandleStatsChanged);
+	}
+	if (Inventory)
+	{
+		Inventory->OnInventoryChanged.AddUObject(this, &AFirstPersonCharacter::HandleInventoryChanged);
+		Inventory->OnItemDiscovered.AddUObject(this, &AFirstPersonCharacter::HandleItemDiscovered);
 	}
 	RefreshResourceMaxes(/*bRefill*/ true);
 }
@@ -140,7 +150,62 @@ void AFirstPersonCharacter::PersistProfile()
 	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
 	{
 		GI->CaptureFromStats(Stats, Gold);
+		GI->CaptureInventory(Inventory);
 		GI->SaveProfile();
+	}
+}
+
+void AFirstPersonCharacter::HandleInventoryChanged(UInventoryComponent* /*ChangedInventory*/)
+{
+	PersistProfile();
+}
+
+void AFirstPersonCharacter::HandleItemDiscovered(FName ItemId)
+{
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		GI->AddDiscovered(ItemId);
+		GI->SaveProfile();
+	}
+}
+
+void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
+{
+	UWorld* World = GetWorld();
+	if (!World || !FirstPersonCamera)
+	{
+		return;
+	}
+
+	const FVector Start = FirstPersonCamera->GetComponentLocation();
+	const FVector End = Start + FirstPersonCamera->GetForwardVector() * InteractRange;
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	FHitResult Hit;
+	if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		if (ALootChest* Chest = Cast<ALootChest>(Hit.GetActor()))
+		{
+			Chest->Interact(this);
+		}
+	}
+}
+
+void AFirstPersonCharacter::ToggleInventory(const FInputActionValue& /*Value*/)
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
+	{
+		PC->ToggleInventory();
+	}
+}
+
+void AFirstPersonCharacter::ToggleCollectionLog(const FInputActionValue& /*Value*/)
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
+	{
+		PC->ToggleCollectionLog();
 	}
 }
 
@@ -215,6 +280,15 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	SprintAction = NewObject<UInputAction>(this, TEXT("SprintAction"));
 	SprintAction->ValueType = EInputActionValueType::Boolean;
 
+	InteractAction = NewObject<UInputAction>(this, TEXT("InteractAction"));
+	InteractAction->ValueType = EInputActionValueType::Boolean;
+
+	InventoryToggleAction = NewObject<UInputAction>(this, TEXT("InventoryToggleAction"));
+	InventoryToggleAction->ValueType = EInputActionValueType::Boolean;
+
+	CollectionToggleAction = NewObject<UInputAction>(this, TEXT("CollectionToggleAction"));
+	CollectionToggleAction->ValueType = EInputActionValueType::Boolean;
+
 	DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("DefaultMappingContext"));
 
 	// Move (Axis2D): X = right, Y = forward. Digital keys land on X, so swizzle to reach Y.
@@ -244,6 +318,11 @@ void AFirstPersonCharacter::EnsureInputAssets()
 
 	// Sprint (Left Shift).
 	DefaultMappingContext->MapKey(SprintAction, EKeys::LeftShift);
+
+	// Interact (E), Inventory (I), Collection log (C).
+	DefaultMappingContext->MapKey(InteractAction, EKeys::E);
+	DefaultMappingContext->MapKey(InventoryToggleAction, EKeys::I);
+	DefaultMappingContext->MapKey(CollectionToggleAction, EKeys::C);
 }
 
 void AFirstPersonCharacter::PawnClientRestart()
@@ -285,6 +364,9 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Attack);
 		EIC->BindAction(SprintAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::StartSprint);
 		EIC->BindAction(SprintAction, ETriggerEvent::Completed, this, &AFirstPersonCharacter::StopSprint);
+		EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Interact);
+		EIC->BindAction(InventoryToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleInventory);
+		EIC->BindAction(CollectionToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleCollectionLog);
 	}
 }
 

@@ -35,13 +35,16 @@ Built so far:
 Planned RPG systems (art-independent, in dependency order):
 
 - [ ] Stats screen to spend attribute points
-- [ ] Inventory system with draggable items (Diablo-style)
-- [ ] Lootable chests
-- [ ] Collection log (rare items)
+- [x] Inventory system with draggable items (Diablo-style)
+- [x] Lootable chests
+- [x] Collection log (rare items)
+- [ ] Equipment & action bar (8 slots, equip weapons, drop items to world)
 - [ ] Different enemy types
 - [ ] Ranged & mage combat styles (mage spends mana)
 - [ ] Skill tree (Borderlands-style)
 - [ ] Home town scene with a shop (buy/sell)
+- [ ] Pause menu & settings (mouse sensitivity, volume)
+- [ ] Minimap (fog-of-war)
 
 ## How it works
 
