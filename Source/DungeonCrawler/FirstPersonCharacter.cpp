@@ -323,7 +323,7 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 	{
 		if (ALootChest* Chest = Cast<ALootChest>(Hit.GetActor()))
 		{
-			if (PC)
+			if (PC && Chest->IsViewerInFront(GetActorLocation()))
 			{
 				PC->OpenLootMenu(Chest);
 			}
@@ -376,9 +376,10 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 	FHitResult Hit;
 	if (World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
 	{
-		if (Cast<ALootChest>(Hit.GetActor()))
+		if (const ALootChest* Chest = Cast<ALootChest>(Hit.GetActor()))
 		{
-			return TEXT("Open");
+			// Only prompt (and allow opening) when standing in front of the chest.
+			return Chest->IsViewerInFront(GetActorLocation()) ? TEXT("Open") : FString();
 		}
 		if (Cast<AItemPickup>(Hit.GetActor()))
 		{

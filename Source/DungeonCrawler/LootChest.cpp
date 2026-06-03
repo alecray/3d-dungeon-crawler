@@ -90,6 +90,18 @@ void ALootChest::Open()
 	}
 }
 
+bool ALootChest::IsViewerInFront(const FVector& ViewerLocation) const
+{
+	// "Front" is the chest's forward (+X). Allow opening within a ~75-degree arc of dead-ahead.
+	FVector ToViewer = ViewerLocation - GetActorLocation();
+	ToViewer.Z = 0.f;
+	if (!ToViewer.Normalize())
+	{
+		return true; // viewer right on top of it: don't block
+	}
+	return FVector::DotProduct(GetActorForwardVector(), ToViewer) >= 0.25f;
+}
+
 void ALootChest::CloseLid()
 {
 	if (ChestMesh && CloseAnim)

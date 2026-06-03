@@ -30,6 +30,9 @@ public:
 
 	bool IsOpened() const { return bOpened; }
 
+	/** True if the viewer is within the chest's front-facing arc (so it can only be opened from the front). */
+	bool IsViewerInFront(const FVector& ViewerLocation) const;
+
 	UInventoryComponent* GetInventory() const { return ChestInventory; }
 
 protected:
