@@ -8,6 +8,7 @@
 class UStatsComponent;
 class UInventoryComponent;
 class UHotbarComponent;
+class USkillTreeComponent;
 
 /**
  * Holds the player profile in memory across level transitions and brokers save/load to disk.
@@ -39,6 +40,10 @@ public:
 	/** Copy / apply the action-bar slots. */
 	void CaptureHotbar(const UHotbarComponent* Hotbar);
 	void ApplyHotbar(UHotbarComponent* Hotbar) const;
+
+	/** Copy / apply the allocated skill-tree nodes. */
+	void CaptureSkills(const USkillTreeComponent* Skills);
+	void ApplySkills(USkillTreeComponent* Skills) const;
 
 	/** Record a first-time discovery for the collection log (no duplicates). */
 	void AddDiscovered(FName ItemId);

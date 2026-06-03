@@ -29,6 +29,8 @@ struct FPlayerProfile
 
 	UPROPERTY() TArray<FName> Hotbar;     // action-bar slot item ids
 	UPROPERTY() int32 ActiveSlot = 0;     // selected hotbar slot
+
+	UPROPERTY() TArray<FName> SkillNodes; // allocated skill-tree nodes (one entry per rank)
 };
 
 /** SaveGame wrapper around the profile, serialized via UGameplayStatics::SaveGameToSlot. */

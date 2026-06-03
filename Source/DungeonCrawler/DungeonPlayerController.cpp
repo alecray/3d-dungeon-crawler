@@ -3,6 +3,7 @@
 #include "HotbarWidget.h"
 #include "InventoryWidget.h"
 #include "MinimapWidget.h"
+#include "SkillTreeWidget.h"
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
@@ -92,6 +93,24 @@ void ADungeonPlayerController::ToggleCollectionLog()
 	UpdateInputMode();
 }
 
+void ADungeonPlayerController::ToggleSkillTree()
+{
+	if (SkillWidget && SkillWidget->IsInViewport())
+	{
+		SkillWidget->RemoveFromParent();
+		SkillWidget = nullptr;
+	}
+	else
+	{
+		SkillWidget = CreateWidget<UUserWidget>(this, USkillTreeWidget::StaticClass());
+		if (SkillWidget)
+		{
+			SkillWidget->AddToViewport(10);
+		}
+	}
+	UpdateInputMode();
+}
+
 void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
 {
 	if (!Chest || !InventoryWidgetClass)
@@ -156,7 +175,8 @@ void ADungeonPlayerController::UpdateInputMode()
 	const bool bUIOpen =
 		(InventoryWidget && InventoryWidget->IsInViewport()) ||
 		(CollectionWidget && CollectionWidget->IsInViewport()) ||
-		(ChestPane && ChestPane->IsInViewport());
+		(ChestPane && ChestPane->IsInViewport()) ||
+		(SkillWidget && SkillWidget->IsInViewport());
 
 	bShowMouseCursor = bUIOpen;
 	if (bUIOpen)

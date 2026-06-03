@@ -24,6 +24,7 @@ public:
 
 	void ToggleInventory();      // I
 	void ToggleCollectionLog();  // C
+	void ToggleSkillTree();      // K
 
 	/** Open the chest + player inventory grids side by side; loot by dragging across. */
 	void OpenLootMenu(ALootChest* Chest);
@@ -50,4 +51,5 @@ private:
 	UPROPERTY() TObjectPtr<UInventoryWidget> InventoryWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> CollectionWidget;
 	UPROPERTY() TObjectPtr<UInventoryWidget> ChestPane;
+	UPROPERTY() TObjectPtr<UUserWidget> SkillWidget;
 };

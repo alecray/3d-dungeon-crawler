@@ -4,6 +4,7 @@
 #include "StatsComponent.h"
 #include "InventoryComponent.h"
 #include "HotbarComponent.h"
+#include "SkillTreeComponent.h"
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
@@ -86,6 +87,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Stamina = CreateDefaultSubobject<UResourceComponent>(TEXT("Stamina"));
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	Hotbar = CreateDefaultSubobject<UHotbarComponent>(TEXT("Hotbar"));
+	SkillTree = CreateDefaultSubobject<USkillTreeComponent>(TEXT("SkillTree"));
 
 	ProjectileClass = AProjectile::StaticClass();
 }
@@ -124,6 +126,7 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		bFreshProfile = !GI->HasProfile();
 		GI->ApplyToStats(Stats);
+		GI->ApplySkills(SkillTree); // layers skill bonuses onto stats before resources are sized
 		GI->ApplyInventory(Inventory);
 		GI->ApplyHotbar(Hotbar);
 		if (GI->HasProfile())
@@ -185,6 +188,7 @@ void AFirstPersonCharacter::PersistProfile()
 		GI->CaptureFromStats(Stats, Gold);
 		GI->CaptureInventory(Inventory);
 		GI->CaptureHotbar(Hotbar);
+		GI->CaptureSkills(SkillTree);
 		GI->SaveProfile();
 	}
 }
@@ -345,6 +349,14 @@ void AFirstPersonCharacter::ToggleCollectionLog(const FInputActionValue& /*Value
 	}
 }
 
+void AFirstPersonCharacter::ToggleSkillTree(const FInputActionValue& /*Value*/)
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
+	{
+		PC->ToggleSkillTree();
+	}
+}
+
 void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -425,6 +437,9 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	CollectionToggleAction = NewObject<UInputAction>(this, TEXT("CollectionToggleAction"));
 	CollectionToggleAction->ValueType = EInputActionValueType::Boolean;
 
+	SkillTreeToggleAction = NewObject<UInputAction>(this, TEXT("SkillTreeToggleAction"));
+	SkillTreeToggleAction->ValueType = EInputActionValueType::Boolean;
+
 	DefaultMappingContext = NewObject<UInputMappingContext>(this, TEXT("DefaultMappingContext"));
 
 	// Move (Axis2D): X = right, Y = forward. Digital keys land on X, so swizzle to reach Y.
@@ -459,6 +474,7 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	DefaultMappingContext->MapKey(InteractAction, EKeys::E);
 	DefaultMappingContext->MapKey(InventoryToggleAction, EKeys::I);
 	DefaultMappingContext->MapKey(CollectionToggleAction, EKeys::C);
+	DefaultMappingContext->MapKey(SkillTreeToggleAction, EKeys::K);
 
 	// Hotbar select (number keys 1-8).
 	static const FKey HotbarKeys[8] = {
@@ -515,6 +531,7 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Interact);
 		EIC->BindAction(InventoryToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleInventory);
 		EIC->BindAction(CollectionToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleCollectionLog);
+		EIC->BindAction(SkillTreeToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleSkillTree);
 		for (UInputAction* HotbarAct : HotbarActions)
 		{
 			if (HotbarAct)

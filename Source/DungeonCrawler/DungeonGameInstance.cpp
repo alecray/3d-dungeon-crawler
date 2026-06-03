@@ -2,6 +2,7 @@
 #include "StatsComponent.h"
 #include "InventoryComponent.h"
 #include "HotbarComponent.h"
+#include "SkillTreeComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 void UDungeonGameInstance::Init()
@@ -66,6 +67,23 @@ void UDungeonGameInstance::ApplyHotbar(UHotbarComponent* Hotbar) const
 	if (Hotbar && Profile.bInitialized && Profile.Hotbar.Num() > 0)
 	{
 		Hotbar->LoadFrom(Profile.Hotbar, Profile.ActiveSlot);
+	}
+}
+
+void UDungeonGameInstance::CaptureSkills(const USkillTreeComponent* Skills)
+{
+	if (Skills)
+	{
+		Profile.bInitialized = true;
+		Profile.SkillNodes = Skills->GetAllocationList();
+	}
+}
+
+void UDungeonGameInstance::ApplySkills(USkillTreeComponent* Skills) const
+{
+	if (Skills && Profile.bInitialized)
+	{
+		Skills->LoadFrom(Profile.SkillNodes);
 	}
 }
 

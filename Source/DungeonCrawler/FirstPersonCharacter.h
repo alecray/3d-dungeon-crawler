@@ -15,6 +15,7 @@ class UResourceComponent;
 class UStatsComponent;
 class UInventoryComponent;
 class UHotbarComponent;
+class USkillTreeComponent;
 class USkeletalMesh;
 class UAnimSequence;
 class AProjectile;
@@ -54,6 +55,7 @@ public:
 	UStatsComponent* GetStatsComponent() const { return Stats; }
 	UInventoryComponent* GetInventoryComponent() const { return Inventory; }
 	UHotbarComponent* GetHotbarComponent() const { return Hotbar; }
+	USkillTreeComponent* GetSkillTreeComponent() const { return SkillTree; }
 
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
@@ -119,6 +121,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UHotbarComponent> Hotbar;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Progression")
+	TObjectPtr<USkillTreeComponent> SkillTree;
+
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
@@ -146,6 +151,9 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> CollectionToggleAction;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> SkillTreeToggleAction;
 
 	/** Number keys 1-8 select hotbar slots. */
 	UPROPERTY()
@@ -223,6 +231,7 @@ private:
 	void Interact(const FInputActionValue& Value);
 	void ToggleInventory(const FInputActionValue& Value);
 	void ToggleCollectionLog(const FInputActionValue& Value);
+	void ToggleSkillTree(const FInputActionValue& Value);
 
 	void HandleDeath(UHealthComponent* DeadComponent);
 	void HandleStatsChanged(UStatsComponent* ChangedStats);

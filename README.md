@@ -13,8 +13,8 @@ graybox so Blender assets can drop in later without code changes.
    world at runtime — any empty level works; no map asset is needed.
 
 **Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (melee swing
-/ ranged bolt / spell depending on the equipped weapon), **I** for inventory, **1–8** to select the
-hotbar slot (swaps the held weapon), **E** to interact with chests / pickups.
+/ ranged bolt / spell depending on the equipped weapon), **I** for inventory, **K** for the skill tree,
+**1–8** to select the hotbar slot (swaps the held weapon), **E** to interact with chests / pickups.
 
 ## Core Feature Plan
 
@@ -45,7 +45,8 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] Equipment & action bar (8 slots, equip weapons, drop items to world)
 - [x] Different enemy types (data-driven monsters; crab replaces the graybox humanoid)
 - [x] Ranged & mage combat styles (ranged spends stamina, mage spends mana)
-- [ ] Skill tree (Borderlands-style) — **next: Phase 4**
+- [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses; press **K**
+      (combat modifiers + active abilities still to come)
 - [ ] Home town scene with a shop (buy/sell)
 - [ ] Pause menu & settings (mouse sensitivity, volume)
 - [ ] Minimap (fog-of-war)
