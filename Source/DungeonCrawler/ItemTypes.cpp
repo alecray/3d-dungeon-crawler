@@ -66,7 +66,7 @@ namespace ItemDatabase
 			{
 				if (D.Id == Key)
 				{
-					D.IconStaticMeshPath = TEXT("/Game/Consumable/SK_Potion.SK_Potion"); // SK_ prefix but actually a StaticMesh
+					D.IconStaticMeshPath = TEXT("/Game/Consumable/SM_Potion.SM_Potion");
 					D.IconMaterialParam = TEXT("BaseColorTex"); // texture param exposed on MI_Potion's parent material
 					D.IconTexturePath = TexturePath;
 				}
