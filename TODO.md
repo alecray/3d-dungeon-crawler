@@ -2,6 +2,9 @@
 
 ## Gameplay
 
+- [ ] Phase 4d — skill-tree active abilities: nodes that unlock usable skills (dash, AoE nova, multishot
+      volley, etc.) on a cooldown system bound to a key; workshop the ability list + graybox VFX
+
 - [ ] Change boss to spawn when you walk into the boss room (instead of at dungeon generation)
 - [ ] Improve enemy pathing (runtime navmesh + MoveTo so enemies path around walls instead of steering straight)
 - [ ] Dungeon traps (e.g. spike floors, dart shooters, pressure plates)
