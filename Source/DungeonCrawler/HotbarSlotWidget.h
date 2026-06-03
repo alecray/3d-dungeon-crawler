@@ -30,6 +30,7 @@ protected:
 private:
 	UPROPERTY() TObjectPtr<UBorder> Highlight;
 	UPROPERTY() TObjectPtr<UBorder> Inner;
+	UPROPERTY() TObjectPtr<class UImage> IconImage;
 	UPROPERTY() TObjectPtr<UTextBlock> KeyLabel;
 	TWeakObjectPtr<UHotbarComponent> Hotbar;
 	int32 Index = INDEX_NONE;

@@ -46,6 +46,10 @@ struct FItemDef
 	UPROPERTY() int32 MaxStack = 1;
 	UPROPERTY() int32 Value = 1; // gold value (used by the shop later)
 	UPROPERTY() EEquipKind EquipKind = EEquipKind::None; // equippable weapon kind, if any
+
+	// Mesh used to render this item's UI icon (one of these; leave empty to use the rarity color).
+	UPROPERTY() FString IconStaticMeshPath;
+	UPROPERTY() FString IconSkeletalMeshPath;
 };
 
 /** One stack in an inventory: an item id + count. Empty when Id is None / Count <= 0. */

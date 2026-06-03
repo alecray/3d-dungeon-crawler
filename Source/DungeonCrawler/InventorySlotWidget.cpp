@@ -3,13 +3,19 @@
 #include "ItemTypes.h"
 #include "ItemPickup.h"
 
+#include "ItemIconSubsystem.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/World.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "Input/Reply.h"
 
 bool UInventorySlotWidget::Initialize()
@@ -32,8 +38,24 @@ bool UInventorySlotWidget::Initialize()
 	Box->SetPadding(FMargin(2.f));
 	Root->AddChild(Box);
 
+	// Overlay so the rendered icon and the stack count can stack inside the border.
+	UOverlay* Stack = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("Stack"));
+	Box->AddChild(Stack);
+
+	IconImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Icon"));
+	IconImage->SetVisibility(ESlateVisibility::Collapsed);
+	if (UOverlaySlot* IconSlot = Stack->AddChildToOverlay(IconImage))
+	{
+		IconSlot->SetHorizontalAlignment(HAlign_Fill); // icon fills the slot
+		IconSlot->SetVerticalAlignment(VAlign_Fill);
+	}
+
 	CountText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Count"));
-	Box->AddChild(CountText);
+	if (UOverlaySlot* CountSlot = Stack->AddChildToOverlay(CountText))
+	{
+		CountSlot->SetHorizontalAlignment(HAlign_Right); // count sits bottom-right
+		CountSlot->SetVerticalAlignment(VAlign_Bottom);
+	}
 
 	return true;
 }
@@ -57,12 +79,35 @@ void UInventorySlotWidget::Refresh()
 	{
 		Box->SetBrushColor(FLinearColor(0.08f, 0.08f, 0.09f, 0.85f)); // empty cell
 		CountText->SetText(FText::GetEmpty());
+		if (IconImage) { IconImage->SetVisibility(ESlateVisibility::Collapsed); }
 	}
 	else
 	{
 		const FItemDef& Def = ItemDatabase::Get(InvSlot.ItemId);
 		Box->SetBrushColor(RarityColor(Def.Rarity));
 		CountText->SetText(InvSlot.Count > 1 ? FText::AsNumber(InvSlot.Count) : FText::GetEmpty());
+
+		// Rendered 3D icon (cached); falls back to just the rarity color when the item has no mesh.
+		UTextureRenderTarget2D* Icon = nullptr;
+		if (UWorld* World = GetWorld())
+		{
+			if (UItemIconSubsystem* Icons = World->GetSubsystem<UItemIconSubsystem>())
+			{
+				Icon = Icons->GetIcon(InvSlot.ItemId);
+			}
+		}
+		if (IconImage)
+		{
+			if (Icon)
+			{
+				IconImage->SetBrushResourceObject(Icon);
+				IconImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+			}
+			else
+			{
+				IconImage->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}
 	}
 }
 

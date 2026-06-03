@@ -44,6 +44,19 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("RubyGem"),      TEXT("Ruby Gem"),      EItemType::Treasure,   EItemRarity::Rare,     5, 120));
 		Items.Add(MakeItem(TEXT("RunedBlade"),   TEXT("Runed Blade"),   EItemType::Weapon,     EItemRarity::Epic,     1, 400, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("AncientRelic"), TEXT("Ancient Relic"), EItemType::Treasure,   EItemRarity::Legendary, 1, 1000));
+
+		// Icon meshes (rendered into UI thumbnails). Weapons reuse their skeletal meshes; items
+		// without a mesh fall back to the rarity color.
+		auto SetSkelIcon = [&Items](const TCHAR* Id, const TCHAR* Path)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items) { if (D.Id == Key) { D.IconSkeletalMeshPath = Path; } }
+		};
+		SetSkelIcon(TEXT("Sword"),      TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
+		SetSkelIcon(TEXT("IronSword"),  TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
+		SetSkelIcon(TEXT("RunedBlade"), TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
+		SetSkelIcon(TEXT("Crossbow"),   TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow"));
+
 		return Items;
 	}
 

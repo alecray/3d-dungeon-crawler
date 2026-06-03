@@ -355,31 +355,35 @@ void ADungeonGenerator::BuildGeometry()
 	bool bWallLenAlongX = true;
 	FVector WallScale = FVector::OneVector;
 	FBox WallBox(ForceInit);
+	// Extend the wall past the floor and ceiling by this much so its top/bottom faces are never
+	// coplanar with the slabs — that seam is what lets Lumen leak a bright band along the wall tops.
+	const float WallEmbed = 30.f;
 	if (bCustomWall)
 	{
 		WallISM->SetStaticMesh(WallMesh);
 		WallBox = WallMesh->GetBoundingBox();
 		const FVector Sz = WallBox.GetSize();
 		bWallLenAlongX = (Sz.X >= Sz.Y); // longer horizontal axis is the wall's length
+		const float ZScale = (WallHeight + 2.f * WallEmbed) / Sz.Z; // embed into both slabs
 		if (bWallLenAlongX)
 		{
-			WallScale = FVector(CellSize / Sz.X, WallThickness / Sz.Y, WallHeight / Sz.Z);
+			WallScale = FVector(CellSize / Sz.X, WallThickness / Sz.Y, ZScale);
 		}
 		else
 		{
-			WallScale = FVector(WallThickness / Sz.X, CellSize / Sz.Y, WallHeight / Sz.Z);
+			WallScale = FVector(WallThickness / Sz.X, CellSize / Sz.Y, ZScale);
 		}
 	}
 
-	// Places one custom wall instance centered on an edge midpoint, bottom at Z = 0, length running
-	// along X or Y as requested. bFlip adds a 180° yaw so the wall's other face shows, for variety.
+	// Places one custom wall instance centered on an edge midpoint, bottom embedded at -WallEmbed (so
+	// it overlaps floor and ceiling), length running along X or Y. bFlip adds 180° yaw for variety.
 	auto AddWall = [&](const FVector& EdgeMid, bool bRunAlongX, bool bFlip)
 	{
 		float Yaw = bRunAlongX ? (bWallLenAlongX ? 0.f : 90.f) : (bWallLenAlongX ? 90.f : 0.f);
 		if (bFlip) { Yaw += 180.f; }
 		const FRotator Rot(0.f, Yaw, 0.f);
 		const FVector CRot = Rot.RotateVector(WallBox.GetCenter() * WallScale);
-		const FVector Loc(EdgeMid.X - CRot.X, EdgeMid.Y - CRot.Y, -WallBox.Min.Z * WallScale.Z);
+		const FVector Loc(EdgeMid.X - CRot.X, EdgeMid.Y - CRot.Y, -WallBox.Min.Z * WallScale.Z - WallEmbed);
 		WallISM->AddInstance(FTransform(Rot, Loc, WallScale), /*bWorldSpace*/ false);
 	};
 

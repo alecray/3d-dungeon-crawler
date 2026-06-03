@@ -40,6 +40,7 @@ protected:
 
 private:
 	UPROPERTY() TObjectPtr<UBorder> Box;
+	UPROPERTY() TObjectPtr<class UImage> IconImage;
 	UPROPERTY() TObjectPtr<UTextBlock> CountText;
 	TWeakObjectPtr<UInventoryComponent> Inventory;
 	int32 SlotIndex = INDEX_NONE;

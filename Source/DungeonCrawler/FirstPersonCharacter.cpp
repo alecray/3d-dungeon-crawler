@@ -118,8 +118,10 @@ void AFirstPersonCharacter::BeginPlay()
 
 	// Load the persistent profile (attributes/level/gold) into the stats component, then size the
 	// resources off the resulting stats. Auto-save whenever stats subsequently change.
+	bool bFreshProfile = true;
 	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
 	{
+		bFreshProfile = !GI->HasProfile();
 		GI->ApplyToStats(Stats);
 		GI->ApplyInventory(Inventory);
 		GI->ApplyHotbar(Hotbar);
@@ -127,6 +129,13 @@ void AFirstPersonCharacter::BeginPlay()
 		{
 			Gold = GI->GetProfile().Gold;
 		}
+	}
+
+	// Testing convenience: a fresh game starts with a crossbow in inventory slot 2 (index 1).
+	if (bFreshProfile && Inventory)
+	{
+		Inventory->AddItem(FName(TEXT("Crossbow")), 1); // lands in slot 0
+		Inventory->MoveItem(0, 1);                      // shift to slot 2
 	}
 	if (Stats)
 	{

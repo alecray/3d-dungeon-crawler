@@ -4,11 +4,18 @@
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
 
+#include "ItemIconSubsystem.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Blueprint/DragDropOperation.h"
 #include "Components/SizeBox.h"
 #include "Components/Border.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Engine/World.h"
+#include "Engine/TextureRenderTarget2D.h"
 #include "Input/Reply.h"
 
 bool UHotbarSlotWidget::Initialize()
@@ -34,8 +41,23 @@ bool UHotbarSlotWidget::Initialize()
 	Inner = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Inner"));
 	Highlight->AddChild(Inner);
 
+	UOverlay* Stack = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("Stack"));
+	Inner->AddChild(Stack);
+
+	IconImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Icon"));
+	IconImage->SetVisibility(ESlateVisibility::Collapsed);
+	if (UOverlaySlot* IconSlot = Stack->AddChildToOverlay(IconImage))
+	{
+		IconSlot->SetHorizontalAlignment(HAlign_Fill);
+		IconSlot->SetVerticalAlignment(VAlign_Fill);
+	}
+
 	KeyLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Key"));
-	Inner->AddChild(KeyLabel);
+	if (UOverlaySlot* KeySlot = Stack->AddChildToOverlay(KeyLabel))
+	{
+		KeySlot->SetHorizontalAlignment(HAlign_Left); // key number top-left
+		KeySlot->SetVerticalAlignment(VAlign_Top);
+	}
 
 	return true;
 }
@@ -62,13 +84,32 @@ void UHotbarSlotWidget::Refresh()
 	Highlight->SetBrushColor(bActive ? FLinearColor(1.f, 0.85f, 0.2f) : FLinearColor(0.f, 0.f, 0.f, 0.6f));
 
 	const FName ItemId = Hotbar->GetSlotItem(Index);
-	if (ItemDatabase::Contains(ItemId))
+	const bool bHasItem = ItemDatabase::Contains(ItemId);
+	Inner->SetBrushColor(bHasItem ? RarityColor(ItemDatabase::Get(ItemId).Rarity)
+		: FLinearColor(0.1f, 0.1f, 0.11f, 0.9f));
+
+	UTextureRenderTarget2D* Icon = nullptr;
+	if (bHasItem)
 	{
-		Inner->SetBrushColor(RarityColor(ItemDatabase::Get(ItemId).Rarity));
+		if (UWorld* World = GetWorld())
+		{
+			if (UItemIconSubsystem* Icons = World->GetSubsystem<UItemIconSubsystem>())
+			{
+				Icon = Icons->GetIcon(ItemId);
+			}
+		}
 	}
-	else
+	if (IconImage)
 	{
-		Inner->SetBrushColor(FLinearColor(0.1f, 0.1f, 0.11f, 0.9f));
+		if (Icon)
+		{
+			IconImage->SetBrushResourceObject(Icon);
+			IconImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+		else
+		{
+			IconImage->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 }
 
