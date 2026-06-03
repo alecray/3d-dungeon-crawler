@@ -21,6 +21,13 @@
     books/scrolls, quill + inkpot, food (bread, cheese, apple), coin stacks, gems,
     potion vials, maps/parchment, dice, knives, small pouches
 
+## UI
+
+- [ ] Better item icons — current render-to-texture silhouettes are recognizable but rough
+  (flat shading, no fill/depth, weapons-only). Options: tune the icon studio lighting/material for
+  nicer 3D thumbnails, add proper icon meshes for all items (potions, gems, etc.), or hand-authored
+  2D icon textures per item.
+
 ## Audio
 
 - [ ] Ambient music (dungeon background track; later boss-fight / town variants)
