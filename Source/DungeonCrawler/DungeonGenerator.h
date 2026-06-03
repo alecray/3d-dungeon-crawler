@@ -182,6 +182,10 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;
 
+	/** Imported wall-torch mesh (falls back to graybox cubes if absent). */
+	UPROPERTY()
+	TObjectPtr<UStaticMesh> TorchMesh;
+
 	UPROPERTY()
 	TArray<FDungeonRoom> Rooms;
 

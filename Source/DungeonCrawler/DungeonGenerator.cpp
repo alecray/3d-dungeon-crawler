@@ -20,6 +20,7 @@
 // these meshes themselves in the editor so they block the player.)
 static const TCHAR* FloorMeshPath = TEXT("/Game/Furniture/SM_Floor.SM_Floor");
 static const TCHAR* WallMeshPath = TEXT("/Game/Furniture/SM_Wall.SM_Wall");
+static const TCHAR* TorchMeshPath = TEXT("/Game/Furniture/SM_Torch.SM_Torch");
 
 // The engine cube is a 100cm cube centered on its origin, so an instance scale of 1.0 == 100cm.
 static constexpr float GenUnitCm = 100.f;
@@ -35,6 +36,12 @@ ADungeonGenerator::ADungeonGenerator()
 	if (CubeFinder.Succeeded())
 	{
 		CubeMesh = CubeFinder.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> TorchFinder(TorchMeshPath);
+	if (TorchFinder.Succeeded())
+	{
+		TorchMesh = TorchFinder.Object;
 	}
 
 	auto MakeISM = [&](const TCHAR* Name, bool bCollide) -> UInstancedStaticMeshComponent*
@@ -62,6 +69,10 @@ ADungeonGenerator::ADungeonGenerator()
 	WallISM = MakeISM(TEXT("WallISM"), /*bCollide*/ true);
 	CeilingISM = MakeISM(TEXT("CeilingISM"), /*bCollide*/ false);
 	TorchISM = MakeISM(TEXT("TorchISM"), /*bCollide*/ false);
+	if (TorchISM && TorchMesh)
+	{
+		TorchISM->SetStaticMesh(TorchMesh); // imported torch instead of the graybox cubes
+	}
 
 	MonsterClass = AMonsterCharacter::StaticClass();
 	BossClass = ABossMonster::StaticClass();
@@ -801,14 +812,27 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 	}
 
 	const float HalfCell = CellSize * 0.5f;
-	const float TorchZ = WallHeight * 0.55f;
+	const float TorchZ = WallHeight * 0.5f;
 
-	// Bracket sits flush on the inner wall face; the flame nub sits just in front of and above it.
-	const FVector BracketLocal = CellLocal + OutwardDir * (HalfCell - 8.f) + FVector(0.f, 0.f, TorchZ);
-	const FVector FlameLocal = BracketLocal - OutwardDir * 12.f + FVector(0.f, 0.f, 18.f);
+	// Mount point flush on the inner wall face, at mid wall height.
+	const FVector MountLocal = CellLocal + OutwardDir * (HalfCell - 4.f) + FVector(0.f, 0.f, TorchZ);
+	// The torch's flame is just in front of (into the room) and above the mount; light sits there.
+	const FVector FlameLocal = MountLocal - OutwardDir * 14.f + FVector(0.f, 0.f, 22.f);
 
-	AddTile(TorchISM, BracketLocal, FVector(14.f, 14.f, 10.f)); // bracket
-	AddTile(TorchISM, FlameLocal, FVector(9.f, 9.f, 14.f));     // flame nub
+	if (TorchMesh && TorchISM)
+	{
+		// SM_Torch faces +Y (in Blender); align that to point into the room (away from the wall).
+		const FVector IntoRoom = -OutwardDir;
+		const FRotator TorchRot(0.f, FMath::RadiansToDegrees(FMath::Atan2(IntoRoom.Y, IntoRoom.X)) - 90.f, 0.f);
+		const FTransform Xf(TorchRot, MountLocal, FVector::OneVector);
+		TorchISM->AddInstance(Xf, /*bWorldSpace*/ false);
+	}
+	else
+	{
+		// Graybox fallback: bracket cube on the wall + a flame nub in front of it.
+		AddTile(TorchISM, MountLocal, FVector(14.f, 14.f, 10.f));
+		AddTile(TorchISM, FlameLocal, FVector(9.f, 9.f, 14.f));
+	}
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;
