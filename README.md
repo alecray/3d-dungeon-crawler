@@ -12,7 +12,9 @@ graybox so Blender assets can drop in later without code changes.
 2. Open `DungeonCrawler.uproject` in Unreal Editor, then **Play**. The game mode builds the whole
    world at runtime — any empty level works; no map asset is needed.
 
-**Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (sword swing).
+**Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (melee swing
+/ ranged bolt / spell depending on the equipped weapon), **I** for inventory, **1–8** to select the
+hotbar slot (swaps the held weapon), **E** to interact with chests / pickups.
 
 ## Core Feature Plan
 
@@ -38,10 +40,12 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] Inventory system with draggable items (Diablo-style)
 - [x] Lootable chests
 - [x] Collection log (rare items)
-- [ ] Equipment & action bar (8 slots, equip weapons, drop items to world)
-- [ ] Different enemy types
-- [ ] Ranged & mage combat styles (mage spends mana)
-- [ ] Skill tree (Borderlands-style)
+- [x] 3D item icons (item meshes rendered to cached textures; UI slots + world pickups share them,
+      with per-item texture recolor — e.g. health/mana/stamina potions reuse one mesh)
+- [x] Equipment & action bar (8 slots, equip weapons, drop items to world)
+- [x] Different enemy types (data-driven monsters; crab replaces the graybox humanoid)
+- [x] Ranged & mage combat styles (ranged spends stamina, mage spends mana)
+- [ ] Skill tree (Borderlands-style) — **next: Phase 4**
 - [ ] Home town scene with a shop (buy/sell)
 - [ ] Pause menu & settings (mouse sensitivity, volume)
 - [ ] Minimap (fog-of-war)
@@ -64,8 +68,21 @@ Planned RPG systems (art-independent, in dependency order):
   stats (max health/mana/stamina, damage multipliers).
 - `UHealthComponent` / `UResourceComponent` — health+damage (player & monsters) and the regenerating
   mana/stamina pools.
-- `ADungeonPlayerController` + `UHUDWidget` — pure-C++ UMG HUD (HP/mana/stamina bars + level).
-- `UDungeonGameInstance` + `UDungeonSaveGame` — persistent player profile across levels and to disk.
+- `ADungeonPlayerController` + `UHUDWidget` — pure-C++ UMG HUD (HP/mana/stamina bars + level), and
+  owns the inventory/hotbar widgets and UI-toggle input.
+- `UInventoryComponent` + `UInventoryWidget` / `InventorySlotWidget` — stack-based inventory with
+  drag-and-drop (move/stack, cross-container, drop-to-world). `ItemDatabase` (`FItemDef` in C++, no
+  DataTable) defines items, rarity, value, equip kind, and icon mesh/texture.
+- `UHotbarComponent` + `UHotbarWidget` / `HotbarSlotWidget` — 8-slot action bar; selecting a weapon
+  slot swaps the held mesh and sets the combat style.
+- `ALootChest` + `AItemPickup` — chests roll a loot table into the inventory; pickups display the
+  item's real mesh (recolored per item) and auto-collect on overlap.
+- `UItemIconSubsystem` — renders each item's mesh to a cached render target once, so UI slots show a
+  cheap 3D thumbnail (transparent background; rarity color behind).
+- `AMonsterCharacter` + `MonsterDatabase` (`FMonsterDef`) — data-driven enemies (health/speed/damage/
+  scale/anim); `AProjectile` for ranged/mage attacks; `ADeathPoof` on death.
+- `UDungeonGameInstance` + `UDungeonSaveGame` — persistent player profile across levels and to disk
+  (attributes, level/XP, gold, inventory, hotbar, collection log).
 
 The dungeon geometry and props start as code-driven graybox primitives and swap in imported meshes
 where available, so the project stays diff-friendly and mesh-agnostic.
