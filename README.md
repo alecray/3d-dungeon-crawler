@@ -48,7 +48,8 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses + combat
       modifiers (attack speed, lifesteal, multishot, cost reduction); press **K**
       (active abilities still to come)
-- [ ] Home town scene with a shop (buy/sell)
+- [x] Home town scene (L_Town) with a shop NPC (buy/sell) + travel portals to/from the dungeon
+      (start-room + boss-gated return portals)
 - [ ] Pause menu & settings (mouse sensitivity, volume)
 - [ ] Minimap (fog-of-war)
 
