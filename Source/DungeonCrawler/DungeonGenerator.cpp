@@ -1,6 +1,7 @@
 #include "DungeonGenerator.h"
 #include "DungeonProp.h"
 #include "MonsterCharacter.h"
+#include "MonsterTypes.h"
 #include "BossMonster.h"
 #include "LootChest.h"
 
@@ -552,6 +553,7 @@ void ADungeonGenerator::ScatterMonsters()
 			if (AMonsterCharacter* Monster = World->SpawnActor<AMonsterCharacter>(
 				MonsterClass, FTransform(Rot, Center + Offset), Params))
 			{
+				Monster->ApplyType(MonsterDatabase::RollRandomType(Rng));
 				SpawnedActors.Add(Monster);
 			}
 		}

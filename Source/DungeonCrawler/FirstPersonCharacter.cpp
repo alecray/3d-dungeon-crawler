@@ -7,9 +7,11 @@
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
+#include "Projectile.h"
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/AnimSequence.h"
 
 #include "Camera/CameraComponent.h"
 #include "Camera/PlayerCameraManager.h"
@@ -83,6 +85,8 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Stamina = CreateDefaultSubobject<UResourceComponent>(TEXT("Stamina"));
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	Hotbar = CreateDefaultSubobject<UHotbarComponent>(TEXT("Hotbar"));
+
+	ProjectileClass = AProjectile::StaticClass();
 }
 
 void AFirstPersonCharacter::BeginPlay()
@@ -101,6 +105,10 @@ void AFirstPersonCharacter::BeginPlay()
 	if (!CrossbowSkeletalAsset)
 	{
 		CrossbowSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow")).TryLoad());
+	}
+	if (!CrossbowShootAnim)
+	{
+		CrossbowShootAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/A_Crossbow_Shoot.A_Crossbow_Shoot")).TryLoad());
 	}
 
 	if (Health)
@@ -515,9 +523,44 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 	{
 		return;
 	}
-	LastAttackTime = Now;
 
-	// Play the Blender-authored swing animation on the sword.
+	switch (CurrentStyle)
+	{
+	case ECombatStyle::Ranged:
+		// Crossbow bolt: costs stamina, scales with Dexterity.
+		if (Stamina && Stamina->Spend(RangedStaminaCost))
+		{
+			LastAttackTime = Now;
+			if (SwordMesh && CrossbowShootAnim) { SwordMesh->PlayAnimation(CrossbowShootAnim, false); }
+			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f));
+		}
+		break;
+
+	case ECombatStyle::Mage:
+		// Spell bolt: costs mana, scales with Intelligence.
+		if (Mana && Mana->Spend(SpellManaCost))
+		{
+			LastAttackTime = Now;
+			FireProjectile(ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f));
+		}
+		break;
+
+	case ECombatStyle::Melee:
+	default:
+		LastAttackTime = Now;
+		MeleeAttack();
+		break;
+	}
+}
+
+void AFirstPersonCharacter::MeleeAttack()
+{
+	UWorld* World = GetWorld();
+	if (!World || !FirstPersonCamera)
+	{
+		return;
+	}
+
 	if (SwordMesh && SwingAnim)
 	{
 		SwordMesh->PlayAnimation(SwingAnim, /*bLooping*/ false);
@@ -535,7 +578,6 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		FCollisionShape::MakeSphere(AttackRadius), Params);
 
 	TSet<AActor*> AlreadyHit;
-	bool bHitSomething = false;
 	for (const FHitResult& Hit : Hits)
 	{
 		AActor* HitActor = Hit.GetActor();
@@ -547,15 +589,30 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 
 		if (UHealthComponent* MonsterHealth = HitActor->FindComponentByClass<UHealthComponent>())
 		{
-			const float Damage = AttackDamage * (Stats ? Stats->GetMeleeDamageMult() : 1.f);
-			MonsterHealth->ApplyDamage(Damage);
-			bHitSomething = true;
+			MonsterHealth->ApplyDamage(AttackDamage * (Stats ? Stats->GetMeleeDamageMult() : 1.f));
 		}
 	}
+}
 
-	if (bHitSomething && GEngine)
+void AFirstPersonCharacter::FireProjectile(float Damage)
+{
+	UWorld* World = GetWorld();
+	if (!World || !FirstPersonCamera || !ProjectileClass)
 	{
-		GEngine->AddOnScreenDebugMessage(/*Key*/ 2, 0.6f, FColor::Yellow, TEXT("Hit!"));
+		return;
+	}
+
+	const FVector Dir = FirstPersonCamera->GetForwardVector();
+	const FVector SpawnLoc = FirstPersonCamera->GetComponentLocation() + Dir * 60.f;
+
+	FActorSpawnParameters P;
+	P.Owner = this;
+	P.Instigator = this;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), SpawnLoc), P))
+	{
+		Proj->Launch(Dir, Damage, this);
 	}
 }
 

@@ -16,6 +16,8 @@ class UStatsComponent;
 class UInventoryComponent;
 class UHotbarComponent;
 class USkeletalMesh;
+class UAnimSequence;
+class AProjectile;
 struct FInputActionValue;
 struct FInputActionInstance;
 
@@ -76,6 +78,24 @@ protected:
 	/** Optional crossbow skeletal mesh (equipping the Crossbow item swaps to it). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<USkeletalMesh> CrossbowSkeletalAsset;
+
+	/** Crossbow fire animation. Defaults to /Game/Weapons/Crossbow/A_Crossbow_Shoot. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<UAnimSequence> CrossbowShootAnim;
+
+	// ---- Ranged / mage ----
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TSubclassOf<AProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float RangedStaminaCost = 12.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float SpellManaCost = 18.f;
+
+	/** Base projectile damage (scaled by Dexterity for ranged / Intelligence for mage). */
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	float ProjectileDamage = 18.f;
 
 	// ---- Stats & resources ----
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -210,6 +230,9 @@ private:
 
 	/** Swap the held weapon mesh + combat style to match the active hotbar slot. */
 	void EquipActiveHotbarItem();
+
+	void MeleeAttack();
+	void FireProjectile(float Damage);
 
 	/** Push current stats into the GameInstance profile and write it to disk. */
 	void PersistProfile();

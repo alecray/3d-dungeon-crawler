@@ -22,6 +22,9 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** Apply a monster type from the database (stats, scale, and optional skeletal mesh + run anim). */
+	void ApplyType(FName TypeId);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -97,6 +100,21 @@ private:
 	void HandleDeath(UHealthComponent* DeadComponent);
 	void HandleDamaged(UHealthComponent* DamagedComponent, float Amount);
 
+	// Skeletal-mesh animations for monster types like the crab (loaded in ApplyType).
+	UPROPERTY() TObjectPtr<class UAnimSequence> RunAnim;
+	UPROPERTY() TObjectPtr<class UAnimSequence> IdleAnim;
+	UPROPERTY() TObjectPtr<class UAnimSequence> AttackAnim;
+
+	enum class ESkelAnim : uint8 { None, Idle, Run, Attack };
+	ESkelAnim AnimState = ESkelAnim::None;
+
+	/** Plays a looping locomotion anim (run/idle) only when the state actually changes. */
+	void SetLocomotion(bool bMoving);
+	/** Plays the one-shot attack anim and returns to locomotion when it ends. */
+	void PlayAttackAnim();
+
+	bool bUsingSkeletalBody = false;
+	float AttackAnimEndTime = 0.f;
 	float LastAttackTime = -1000.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
