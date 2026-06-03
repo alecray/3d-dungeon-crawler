@@ -154,9 +154,20 @@ void UMinimapWidget::Repaint(int32 PlayerX, int32 PlayerY)
 		Pixels[PlayerY * GridW + PlayerX] = C_Player;
 	}
 
-	FUpdateTextureRegion2D Region(0, 0, 0, 0, GridW, GridH);
-	MapTexture->UpdateTextureRegions(0, 1, &Region, GridW * sizeof(FColor), sizeof(FColor),
-		reinterpret_cast<uint8*>(Pixels.GetData()));
+	// UpdateTextureRegions keeps the region + data pointers for an async render-thread copy, so both
+	// must outlive this scope: heap-allocate them and free in the cleanup callback (also avoids a race
+	// with the next tick rewriting Pixels).
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(0, 0, 0, 0, GridW, GridH);
+	const int32 DataBytes = Pixels.Num() * sizeof(FColor);
+	uint8* DataCopy = new uint8[DataBytes];
+	FMemory::Memcpy(DataCopy, Pixels.GetData(), DataBytes);
+
+	MapTexture->UpdateTextureRegions(0, 1, Region, GridW * sizeof(FColor), sizeof(FColor), DataCopy,
+		[](uint8* Src, const FUpdateTextureRegion2D* Regions)
+		{
+			delete[] Src;
+			delete Regions;
+		});
 }
 
 void UMinimapWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
