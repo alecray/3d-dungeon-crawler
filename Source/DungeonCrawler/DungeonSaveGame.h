@@ -31,6 +31,10 @@ struct FPlayerProfile
 	UPROPERTY() int32 ActiveSlot = 0;     // selected hotbar slot
 
 	UPROPERTY() TArray<FName> SkillNodes; // allocated skill-tree nodes (one entry per rank)
+
+	// Settings (pause menu).
+	UPROPERTY() float MouseSensitivity = 1.f;
+	UPROPERTY() float MasterVolume = 1.f;
 };
 
 /** SaveGame wrapper around the profile, serialized via UGameplayStatics::SaveGameToSlot. */

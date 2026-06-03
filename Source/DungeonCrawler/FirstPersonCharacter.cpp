@@ -11,7 +11,6 @@
 #include "ItemPickup.h"
 #include "Portal.h"
 #include "ShopNPC.h"
-#include "Kismet/GameplayStatics.h"
 #include "Projectile.h"
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
@@ -32,6 +31,7 @@
 #include "Animation/AnimSequence.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "AudioDevice.h"
 #include "CollisionShape.h"
 #include "TimerManager.h"
 
@@ -135,6 +135,15 @@ void AFirstPersonCharacter::BeginPlay()
 		if (GI->HasProfile())
 		{
 			Gold = GI->GetProfile().Gold;
+			// Apply saved settings (mouse sensitivity + master volume).
+			SetLookSensitivity(GI->GetProfile().MouseSensitivity);
+			if (UWorld* W = GetWorld())
+			{
+				if (FAudioDevice* Audio = W->GetAudioDeviceRaw())
+				{
+					Audio->SetTransientPrimaryVolume(GI->GetProfile().MasterVolume);
+				}
+			}
 		}
 	}
 

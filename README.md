@@ -14,7 +14,8 @@ graybox so Blender assets can drop in later without code changes.
 
 **Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (melee swing
 / ranged bolt / spell depending on the equipped weapon), **I** for inventory, **K** for the skill tree,
-**1–8** to select the hotbar slot (swaps the held weapon), **E** to interact with chests / pickups.
+**1–8** to select the hotbar slot (swaps the held weapon), **E** to interact with chests / pickups /
+NPCs / portals, **Esc** for the pause menu.
 
 ## Core Feature Plan
 
@@ -50,7 +51,8 @@ Planned RPG systems (art-independent, in dependency order):
       (active abilities still to come)
 - [x] Home town scene (L_Town) with a shop NPC (buy/sell) + travel portals to/from the dungeon
       (start-room + boss-gated return portals)
-- [ ] Pause menu & settings (mouse sensitivity, volume)
+- [x] Pause menu & settings (Esc): Resume / Settings / Quit; mouse sensitivity + master volume,
+      persisted in the profile
 - [ ] Minimap (fog-of-war)
 
 ## How it works

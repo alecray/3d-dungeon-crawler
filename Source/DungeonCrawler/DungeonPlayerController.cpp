@@ -6,6 +6,9 @@
 #include "SkillTreeWidget.h"
 #include "ShopWidget.h"
 #include "ShopNPC.h"
+#include "PauseMenuWidget.h"
+#include "Components/InputComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
@@ -93,6 +96,51 @@ void ADungeonPlayerController::ToggleCollectionLog()
 		}
 	}
 	UpdateInputMode();
+}
+
+void ADungeonPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+	if (InputComponent)
+	{
+		// Esc must work while the game is paused, so bind it as a raw key with bExecuteWhenPaused.
+		FInputKeyBinding& Binding = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this,
+			&ADungeonPlayerController::TogglePauseMenu);
+		Binding.bExecuteWhenPaused = true;
+	}
+}
+
+void ADungeonPlayerController::TogglePauseMenu()
+{
+	if (IsPauseMenuOpen())
+	{
+		ClosePauseMenu();
+		return;
+	}
+	PauseWidget = CreateWidget<UUserWidget>(this, UPauseMenuWidget::StaticClass());
+	if (PauseWidget)
+	{
+		PauseWidget->AddToViewport(50); // above all other UI
+	}
+	UGameplayStatics::SetGamePaused(this, true);
+	bShowMouseCursor = true;
+	SetInputMode(FInputModeGameAndUI());
+}
+
+void ADungeonPlayerController::ClosePauseMenu()
+{
+	if (PauseWidget && PauseWidget->IsInViewport())
+	{
+		PauseWidget->RemoveFromParent();
+	}
+	PauseWidget = nullptr;
+	UGameplayStatics::SetGamePaused(this, false);
+	UpdateInputMode(); // restore cursor/input based on any remaining open UI
+}
+
+bool ADungeonPlayerController::IsPauseMenuOpen() const
+{
+	return PauseWidget && PauseWidget->IsInViewport();
 }
 
 void ADungeonPlayerController::ToggleSkillTree()

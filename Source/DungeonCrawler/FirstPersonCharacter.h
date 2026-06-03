@@ -68,6 +68,10 @@ public:
 	/** Captures and writes the player profile to disk (e.g. before traveling between levels). */
 	void SaveNow() { PersistProfile(); }
 
+	// ---- Settings (pause menu) ----
+	float GetLookSensitivity() const { return LookSensitivity; }
+	void SetLookSensitivity(float V) { LookSensitivity = FMath::Clamp(V, 0.1f, 4.f); }
+
 protected:
 	virtual void BeginPlay() override;
 

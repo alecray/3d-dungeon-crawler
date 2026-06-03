@@ -11,6 +11,11 @@
 - [ ] Weapon usage should cost stamina (melee swing + ranged already partial; unify stamina cost across all weapons)
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 
+## Engine / Settings
+
+- [ ] Resolve the "Missing Project Settings" editor warning — enable Shader Model 6 (SM6) and/or set
+      up Nanite in Project Settings (editor shows a toast about Nanite assets needing SM6)
+
 ## Art / VFX
 
 - [ ] Chest model and opening animation

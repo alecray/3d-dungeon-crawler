@@ -5,6 +5,7 @@
 #include "LootChest.generated.h"
 
 class USkeletalMeshComponent;
+class UBoxComponent;
 class UInventoryComponent;
 class UAnimSequence;
 
@@ -32,6 +33,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void OnConstruction(const FTransform& Transform) override;
 	void ResolveMeshes();
+
+	/** Box collider (root) sized to the mesh — gives the skeletal chest collision + an interact target. */
+	UPROPERTY(VisibleAnywhere, Category = "Chest")
+	TObjectPtr<UBoxComponent> Collision;
 
 	/** Skeletal chest mesh; plays the open/close animations. */
 	UPROPERTY(VisibleAnywhere, Category = "Chest")
