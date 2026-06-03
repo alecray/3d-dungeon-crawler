@@ -34,6 +34,7 @@ namespace ItemDatabase
 		TArray<FItemDef> Items;
 		Items.Add(MakeItem(TEXT("HealthPotion"), TEXT("Health Potion"), EItemType::Consumable, EItemRarity::Common, 10, 15));
 		Items.Add(MakeItem(TEXT("ManaPotion"),   TEXT("Mana Potion"),   EItemType::Consumable, EItemRarity::Common, 10, 15));
+		Items.Add(MakeItem(TEXT("StaminaPotion"),TEXT("Stamina Potion"),EItemType::Consumable, EItemRarity::Common, 10, 12));
 		Items.Add(MakeItem(TEXT("Bone"),         TEXT("Old Bone"),      EItemType::Material,   EItemRarity::Common, 20, 2));
 		Items.Add(MakeItem(TEXT("IronShard"),    TEXT("Iron Shard"),    EItemType::Material,   EItemRarity::Common, 20, 5));
 		// Equippable weapons (action-bar / equip system).
@@ -72,7 +73,8 @@ namespace ItemDatabase
 			}
 		};
 		SetPotionIcon(TEXT("HealthPotion"), TEXT("/Game/Consumable/T_Health_BC.T_Health_BC"));
-		SetPotionIcon(TEXT("ManaPotion"),   TEXT("/Game/Consumable/T_Mana_BC.T_Mana_BC"));
+		SetPotionIcon(TEXT("ManaPotion"),    TEXT("/Game/Consumable/T_Mana_BC.T_Mana_BC"));
+		SetPotionIcon(TEXT("StaminaPotion"), TEXT("/Game/Consumable/T_Stamina_BC.T_Stamina_BC"));
 
 		return Items;
 	}
