@@ -91,13 +91,16 @@ void USkillTreeComponent::RecomputeBonuses()
 	}
 
 	FSkillBonuses Total;
+	FSkillModifiers Mods;
 	for (const TPair<FName, int32>& Pair : Ranks)
 	{
 		if (Pair.Value <= 0 || !SkillDatabase::Contains(Pair.Key))
 		{
 			continue;
 		}
-		const FSkillBonuses& B = SkillDatabase::Get(Pair.Key).PerRank;
+		const FSkillNode& Node = SkillDatabase::Get(Pair.Key);
+		const FSkillBonuses& B = Node.PerRank;
+		const FSkillModifiers& M = Node.ModsPerRank;
 		const float Rank = static_cast<float>(Pair.Value);
 		Total.MaxHealth  += B.MaxHealth  * Rank;
 		Total.MaxMana    += B.MaxMana    * Rank;
@@ -105,7 +108,14 @@ void USkillTreeComponent::RecomputeBonuses()
 		Total.MeleeMult  += B.MeleeMult  * Rank;
 		Total.RangedMult += B.RangedMult * Rank;
 		Total.SpellMult  += B.SpellMult  * Rank;
+
+		Mods.ExtraProjectiles += M.ExtraProjectiles * Pair.Value;
+		Mods.AttackSpeedPct   += M.AttackSpeedPct   * Rank;
+		Mods.StaminaCostPct   += M.StaminaCostPct   * Rank;
+		Mods.ManaCostPct      += M.ManaCostPct      * Rank;
+		Mods.LifestealPct     += M.LifestealPct     * Rank;
 	}
+	Modifiers = Mods;
 
 	Stats->BonusMaxHealth  = Total.MaxHealth;
 	Stats->BonusMaxMana    = Total.MaxMana;

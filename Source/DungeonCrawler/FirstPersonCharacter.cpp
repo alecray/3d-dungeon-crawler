@@ -587,8 +587,12 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		return;
 	}
 
+	// Skill-tree combat modifiers (attack speed, multishot, cost reduction, lifesteal).
+	const FSkillModifiers Mods = SkillTree ? SkillTree->GetModifiers() : FSkillModifiers();
+
 	const float Now = World->GetTimeSeconds();
-	if (Now - LastAttackTime < AttackCooldown)
+	const float EffectiveCooldown = AttackCooldown / (1.f + FMath::Max(0.f, Mods.AttackSpeedPct));
+	if (Now - LastAttackTime < EffectiveCooldown)
 	{
 		return;
 	}
@@ -596,21 +600,21 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 	switch (CurrentStyle)
 	{
 	case ECombatStyle::Ranged:
-		// Crossbow bolt: costs stamina, scales with Dexterity.
-		if (Stamina && Stamina->Spend(RangedStaminaCost))
+		// Crossbow bolt: costs stamina (reducible), scales with Dexterity, may fire extra bolts.
+		if (Stamina && Stamina->Spend(RangedStaminaCost * (1.f - FMath::Clamp(Mods.StaminaCostPct, 0.f, 0.8f))))
 		{
 			LastAttackTime = Now;
 			if (SwordMesh && CrossbowShootAnim) { SwordMesh->PlayAnimation(CrossbowShootAnim, false); }
-			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f));
+			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), Mods.ExtraProjectiles);
 		}
 		break;
 
 	case ECombatStyle::Mage:
-		// Spell bolt: costs mana, scales with Intelligence.
-		if (Mana && Mana->Spend(SpellManaCost))
+		// Spell bolt: costs mana (reducible), scales with Intelligence, may fire extra bolts.
+		if (Mana && Mana->Spend(SpellManaCost * (1.f - FMath::Clamp(Mods.ManaCostPct, 0.f, 0.8f))))
 		{
 			LastAttackTime = Now;
-			FireProjectile(ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f));
+			FireProjectile(ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f), Mods.ExtraProjectiles);
 		}
 		break;
 
@@ -646,6 +650,9 @@ void AFirstPersonCharacter::MeleeAttack()
 	World->SweepMultiByChannel(Hits, Start, End, FQuat::Identity, ECC_Pawn,
 		FCollisionShape::MakeSphere(AttackRadius), Params);
 
+	const float DamagePerHit = AttackDamage * (Stats ? Stats->GetMeleeDamageMult() : 1.f);
+	float TotalDealt = 0.f;
+
 	TSet<AActor*> AlreadyHit;
 	for (const FHitResult& Hit : Hits)
 	{
@@ -658,12 +665,20 @@ void AFirstPersonCharacter::MeleeAttack()
 
 		if (UHealthComponent* MonsterHealth = HitActor->FindComponentByClass<UHealthComponent>())
 		{
-			MonsterHealth->ApplyDamage(AttackDamage * (Stats ? Stats->GetMeleeDamageMult() : 1.f));
+			MonsterHealth->ApplyDamage(DamagePerHit);
+			TotalDealt += DamagePerHit;
 		}
+	}
+
+	// Lifesteal: heal a fraction of the melee damage dealt this swing.
+	const float Lifesteal = SkillTree ? SkillTree->GetModifiers().LifestealPct : 0.f;
+	if (Lifesteal > 0.f && TotalDealt > 0.f && Health)
+	{
+		Health->Heal(TotalDealt * Lifesteal);
 	}
 }
 
-void AFirstPersonCharacter::FireProjectile(float Damage)
+void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
 {
 	UWorld* World = GetWorld();
 	if (!World || !FirstPersonCamera || !ProjectileClass)
@@ -671,17 +686,27 @@ void AFirstPersonCharacter::FireProjectile(float Damage)
 		return;
 	}
 
-	const FVector Dir = FirstPersonCamera->GetForwardVector();
-	const FVector SpawnLoc = FirstPersonCamera->GetComponentLocation() + Dir * 60.f;
+	const FVector Forward = FirstPersonCamera->GetForwardVector();
+	const FVector SpawnOrigin = FirstPersonCamera->GetComponentLocation();
 
 	FActorSpawnParameters P;
 	P.Owner = this;
 	P.Instigator = this;
 	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), SpawnLoc), P))
+	// Spread the total bolts evenly across a small horizontal arc, centered on the aim direction.
+	const int32 Count = 1 + FMath::Max(0, ExtraProjectiles);
+	const float SpreadDegrees = 8.f; // per-step yaw between bolts
+	const float StartYaw = -SpreadDegrees * (Count - 1) * 0.5f;
+
+	for (int32 i = 0; i < Count; ++i)
 	{
-		Proj->Launch(Dir, Damage, this);
+		const FVector Dir = FRotator(0.f, StartYaw + SpreadDegrees * i, 0.f).RotateVector(Forward);
+		const FVector SpawnLoc = SpawnOrigin + Dir * 60.f;
+		if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), SpawnLoc), P))
+		{
+			Proj->Launch(Dir, Damage, this);
+		}
 	}
 }
 

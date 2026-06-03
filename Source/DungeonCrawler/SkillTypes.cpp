@@ -54,6 +54,43 @@ namespace SkillDatabase
 		Nodes.Add(Make(TEXT("mage_archmage"), TEXT("Archmage"), ESkillBranch::Mage, 2, 1,
 			TEXT("+25% spell damage."), { TEXT("mage_reservoir") }, Spell(0.25f)));
 
+		// ---- Combat-modifier nodes (tier 3, gated behind each branch's capstone) ----
+		auto MakeMod = [](const TCHAR* Id, const TCHAR* Name, ESkillBranch Branch, int32 MaxRank,
+			const TCHAR* Desc, std::initializer_list<const TCHAR*> Prereqs, const FSkillModifiers& Mods)
+		{
+			FSkillNode N;
+			N.Id = FName(Id);
+			N.DisplayName = Name;
+			N.Description = Desc;
+			N.Branch = Branch;
+			N.Tier = 3;
+			N.MaxRank = MaxRank;
+			N.ModsPerRank = Mods;
+			for (const TCHAR* P : Prereqs) { N.Prereqs.Add(FName(P)); }
+			return N;
+		};
+
+		auto AtkSpeed  = [](float V) { FSkillModifiers M; M.AttackSpeedPct = V; return M; };
+		auto Lifesteal = [](float V) { FSkillModifiers M; M.LifestealPct = V;   return M; };
+		auto Multishot = [](int32 V) { FSkillModifiers M; M.ExtraProjectiles = V; return M; };
+		auto LessStam  = [](float V) { FSkillModifiers M; M.StaminaCostPct = V;  return M; };
+		auto LessMana  = [](float V) { FSkillModifiers M; M.ManaCostPct = V;     return M; };
+
+		Nodes.Add(MakeMod(TEXT("melee_frenzy"), TEXT("Frenzy"), ESkillBranch::Melee, 2,
+			TEXT("+15% attack speed per rank."), { TEXT("melee_brutality") }, AtkSpeed(0.15f)));
+		Nodes.Add(MakeMod(TEXT("melee_bloodthirst"), TEXT("Bloodthirst"), ESkillBranch::Melee, 2,
+			TEXT("Heal for 10% of melee damage dealt, per rank."), { TEXT("melee_brutality") }, Lifesteal(0.10f)));
+
+		Nodes.Add(MakeMod(TEXT("ranged_splitshot"), TEXT("Split Shot"), ESkillBranch::Ranged, 2,
+			TEXT("+1 bolt per shot, per rank (fired in a spread)."), { TEXT("ranged_deadeye") }, Multishot(1)));
+		Nodes.Add(MakeMod(TEXT("ranged_reload"), TEXT("Rapid Reload"), ESkillBranch::Ranged, 2,
+			TEXT("-15% stamina per shot, per rank."), { TEXT("ranged_deadeye") }, LessStam(0.15f)));
+
+		Nodes.Add(MakeMod(TEXT("mage_barrage"), TEXT("Arcane Barrage"), ESkillBranch::Mage, 2,
+			TEXT("+1 bolt per cast, per rank (fired in a spread)."), { TEXT("mage_archmage") }, Multishot(1)));
+		Nodes.Add(MakeMod(TEXT("mage_efficiency"), TEXT("Efficiency"), ESkillBranch::Mage, 2,
+			TEXT("-15% mana per cast, per rank."), { TEXT("mage_archmage") }, LessMana(0.15f)));
+
 		return Nodes;
 	}
 

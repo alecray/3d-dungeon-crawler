@@ -45,8 +45,9 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] Equipment & action bar (8 slots, equip weapons, drop items to world)
 - [x] Different enemy types (data-driven monsters; crab replaces the graybox humanoid)
 - [x] Ranged & mage combat styles (ranged spends stamina, mage spends mana)
-- [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses; press **K**
-      (combat modifiers + active abilities still to come)
+- [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses + combat
+      modifiers (attack speed, lifesteal, multishot, cost reduction); press **K**
+      (active abilities still to come)
 - [ ] Home town scene with a shop (buy/sell)
 - [ ] Pause menu & settings (mouse sensitivity, volume)
 - [ ] Minimap (fog-of-war)

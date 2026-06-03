@@ -39,12 +39,16 @@ public:
 	/** Rebuilds ranks from a saved allocation list and re-applies bonuses (does not spend points). */
 	void LoadFrom(const TArray<FName>& AllocatedNodes);
 
+	/** Summed combat modifiers from all allocated nodes (read by the player's combat code). */
+	const FSkillModifiers& GetModifiers() const { return Modifiers; }
+
 	FOnSkillsChanged OnSkillsChanged;
 
 private:
-	/** Sums every allocated node's per-rank bonuses into the stats component's Bonus* fields. */
+	/** Sums allocated nodes' per-rank passive bonuses (to stats) and combat modifiers (cached here). */
 	void RecomputeBonuses();
 	UStatsComponent* GetStats() const;
 
 	TMap<FName, int32> Ranks;
+	FSkillModifiers Modifiers;
 };

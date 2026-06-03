@@ -26,6 +26,19 @@ struct FSkillBonuses
 	UPROPERTY() float SpellMult = 0.f;
 };
 
+/** Combat modifiers granted by a node (per rank, additive); read by the player's combat code. */
+USTRUCT(BlueprintType)
+struct FSkillModifiers
+{
+	GENERATED_BODY()
+
+	UPROPERTY() int32 ExtraProjectiles = 0; // extra bolts per shot (ranged/mage), fired in a spread
+	UPROPERTY() float AttackSpeedPct = 0.f; // shortens attack cooldown: cooldown /= (1 + total)
+	UPROPERTY() float StaminaCostPct = 0.f; // fraction off ranged stamina cost (capped)
+	UPROPERTY() float ManaCostPct = 0.f;    // fraction off mage mana cost (capped)
+	UPROPERTY() float LifestealPct = 0.f;   // melee heal as a fraction of damage dealt
+};
+
 /**
  * Static definition of one skill-tree node. Nodes live in three branches (Melee/Ranged/Mage); a node
  * can be allocated once its direct prerequisites are allocated (no per-tier point gating). For now
@@ -47,6 +60,7 @@ struct FSkillNode
 
 	UPROPERTY() TArray<FName> Prereqs; // node ids that must be allocated first
 	UPROPERTY() FSkillBonuses PerRank; // passive bonus added for each allocated rank
+	UPROPERTY() FSkillModifiers ModsPerRank; // combat modifiers added for each allocated rank
 };
 
 /**

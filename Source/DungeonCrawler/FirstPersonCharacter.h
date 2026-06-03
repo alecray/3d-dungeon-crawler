@@ -244,7 +244,8 @@ private:
 	void EquipActiveHotbarItem();
 
 	void MeleeAttack();
-	void FireProjectile(float Damage);
+	/** Fires the center bolt plus ExtraProjectiles additional bolts in a horizontal spread. */
+	void FireProjectile(float Damage, int32 ExtraProjectiles = 0);
 
 	/** Push current stats into the GameInstance profile and write it to disk. */
 	void PersistProfile();
