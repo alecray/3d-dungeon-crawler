@@ -41,6 +41,7 @@ struct FItemDef
 
 	UPROPERTY() FName Id;
 	UPROPERTY() FString DisplayName;
+	UPROPERTY() FString Description; // flavor / usage text shown in tooltips
 	UPROPERTY() EItemType Type = EItemType::Misc;
 	UPROPERTY() EItemRarity Rarity = EItemRarity::Common;
 	UPROPERTY() int32 MaxStack = 1;
@@ -73,6 +74,10 @@ struct FInventorySlot
 
 /** Placeholder-icon color for a rarity (until real icons exist). */
 DUNGEONCRAWLER_API FLinearColor RarityColor(EItemRarity Rarity);
+
+/** Display names for rarity / type (used in tooltips). */
+DUNGEONCRAWLER_API FString RarityName(EItemRarity Rarity);
+DUNGEONCRAWLER_API FString ItemTypeName(EItemType Type);
 
 /**
  * Code-defined item registry (no DataTable asset). Look up definitions by id, enumerate all items,

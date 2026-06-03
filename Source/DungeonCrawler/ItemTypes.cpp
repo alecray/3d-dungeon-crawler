@@ -14,6 +14,32 @@ FLinearColor RarityColor(EItemRarity Rarity)
 	}
 }
 
+FString RarityName(EItemRarity Rarity)
+{
+	switch (Rarity)
+	{
+	case EItemRarity::Common:    return TEXT("Common");
+	case EItemRarity::Uncommon:  return TEXT("Uncommon");
+	case EItemRarity::Rare:      return TEXT("Rare");
+	case EItemRarity::Epic:      return TEXT("Epic");
+	case EItemRarity::Legendary: return TEXT("Legendary");
+	default:                     return TEXT("");
+	}
+}
+
+FString ItemTypeName(EItemType Type)
+{
+	switch (Type)
+	{
+	case EItemType::Consumable: return TEXT("Consumable");
+	case EItemType::Weapon:     return TEXT("Weapon");
+	case EItemType::Armor:      return TEXT("Armor");
+	case EItemType::Material:   return TEXT("Material");
+	case EItemType::Treasure:   return TEXT("Treasure");
+	default:                    return TEXT("Misc");
+	}
+}
+
 namespace ItemDatabase
 {
 	static TArray<FItemDef> BuildItems()
@@ -45,6 +71,25 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("RubyGem"),      TEXT("Ruby Gem"),      EItemType::Treasure,   EItemRarity::Rare,     5, 120));
 		Items.Add(MakeItem(TEXT("RunedBlade"),   TEXT("Runed Blade"),   EItemType::Weapon,     EItemRarity::Epic,     1, 400, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("AncientRelic"), TEXT("Ancient Relic"), EItemType::Treasure,   EItemRarity::Legendary, 1, 1000));
+
+		// Tooltip descriptions.
+		auto SetDesc = [&Items](const TCHAR* Id, const TCHAR* Desc)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items) { if (D.Id == Key) { D.Description = Desc; } }
+		};
+		SetDesc(TEXT("HealthPotion"),  TEXT("Restores health when consumed."));
+		SetDesc(TEXT("ManaPotion"),    TEXT("Restores mana when consumed."));
+		SetDesc(TEXT("StaminaPotion"), TEXT("Restores stamina when consumed."));
+		SetDesc(TEXT("Bone"),          TEXT("A weathered old bone. Worth little."));
+		SetDesc(TEXT("IronShard"),     TEXT("A shard of raw iron. A crafting material."));
+		SetDesc(TEXT("Sword"),         TEXT("A basic iron sword. Reliable in melee."));
+		SetDesc(TEXT("Crossbow"),      TEXT("Fires bolts at range. Costs stamina."));
+		SetDesc(TEXT("IronSword"),     TEXT("A sturdier blade than the common sword."));
+		SetDesc(TEXT("LeatherArmor"),  TEXT("Light armor offering modest protection."));
+		SetDesc(TEXT("RubyGem"),       TEXT("A precious gem, prized by merchants."));
+		SetDesc(TEXT("RunedBlade"),    TEXT("A sword etched with faintly glowing runes."));
+		SetDesc(TEXT("AncientRelic"),  TEXT("A mysterious relic of immense value."));
 
 		// Icon meshes (rendered into UI thumbnails). Weapons reuse their skeletal meshes; items
 		// without a mesh fall back to the rarity color.

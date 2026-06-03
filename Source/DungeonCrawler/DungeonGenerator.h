@@ -154,10 +154,15 @@ protected:
 	int32 TorchSpacingCells = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
-	float TorchLightIntensity = 3600.f;
+	float TorchLightIntensity = 1600.f;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
-	float TorchLightRadius = 1300.f;
+	float TorchLightRadius = 900.f;
+
+	/** Target height (cm) the torch mesh is scaled to, so it reads at a sensible size regardless of
+	 *  the imported mesh's native scale. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "1"))
+	float TorchMeshHeight = 70.f;
 
 	// ---- Determinism ----
 	/** Seed for layout. < 0 picks a fresh random seed every Generate(). */
