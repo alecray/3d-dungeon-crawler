@@ -10,6 +10,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Texture.h"
+#include "Engine/Scene.h" // EAutoExposureMethod
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -61,14 +62,23 @@ void UItemIconSubsystem::EnsureStage()
 	SkeletalIcon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SkeletalIcon->RegisterComponent();
 
-	// Light for shading the icon (local point light, won't reach the dungeon far above).
-	UPointLightComponent* Light = NewObject<UPointLightComponent>(Stage, TEXT("Light"));
-	Light->SetupAttachment(Root);
-	Light->SetRelativeLocation(FVector(160.f, 140.f, 220.f));
-	Light->SetIntensityUnits(ELightUnits::Unitless);
-	Light->SetIntensity(8.f);
-	Light->SetAttenuationRadius(1200.f);
-	Light->RegisterComponent();
+	// Key + fill lights so the icon has 3D shading without one harsh blown-out side (local lights,
+	// won't reach the dungeon far above).
+	UPointLightComponent* Key = NewObject<UPointLightComponent>(Stage, TEXT("KeyLight"));
+	Key->SetupAttachment(Root);
+	Key->SetRelativeLocation(FVector(160.f, 140.f, 220.f));
+	Key->SetIntensityUnits(ELightUnits::Unitless);
+	Key->SetIntensity(5.f);
+	Key->SetAttenuationRadius(1500.f);
+	Key->RegisterComponent();
+
+	UPointLightComponent* Fill = NewObject<UPointLightComponent>(Stage, TEXT("FillLight"));
+	Fill->SetupAttachment(Root);
+	Fill->SetRelativeLocation(FVector(160.f, -150.f, -40.f)); // opposite side + below to lift shadows
+	Fill->SetIntensityUnits(ELightUnits::Unitless);
+	Fill->SetIntensity(2.f);
+	Fill->SetAttenuationRadius(1500.f);
+	Fill->RegisterComponent();
 
 	Capture = NewObject<USceneCaptureComponent2D>(Stage, TEXT("Capture"));
 	Capture->SetupAttachment(Root);
@@ -80,16 +90,19 @@ void UItemIconSubsystem::EnsureStage()
 	Capture->FOVAngle = 30.f;
 	Capture->ShowOnlyActors.Add(Stage);
 
-	// Lock exposure, kill bloom, and drop the noisy GI/temporal features so the single-frame capture
-	// is clean (not dark & grainy).
+	// Manual exposure (no auto/eye-adaptation) so the icon brightness is fixed and predictable — the
+	// auto-exposure was over-brightening the dark studio and blowing the colors out to flat white.
 	FPostProcessSettings& PP = Capture->PostProcessSettings;
-	PP.bOverride_AutoExposureMinBrightness = true;
-	PP.AutoExposureMinBrightness = 1.f;
-	PP.bOverride_AutoExposureMaxBrightness = true;
-	PP.AutoExposureMaxBrightness = 1.f;
+	PP.bOverride_AutoExposureMethod = true;
+	PP.AutoExposureMethod = AEM_Manual;
+	PP.bOverride_AutoExposureApplyPhysicalCameraExposure = true;
+	PP.AutoExposureApplyPhysicalCameraExposure = false;
+	PP.bOverride_AutoExposureBias = true;
+	PP.AutoExposureBias = 9.f; // EV compensation: tune brightness here (higher = brighter)
 	PP.bOverride_BloomIntensity = true;
 	PP.BloomIntensity = 0.f;
 
+	Capture->ShowFlags.SetEyeAdaptation(false);   // no adaptation -> stable exposure
 	Capture->ShowFlags.SetTemporalAA(false);
 	Capture->ShowFlags.SetMotionBlur(false);
 	Capture->ShowFlags.SetGlobalIllumination(false); // direct light only — avoids Lumen grain
