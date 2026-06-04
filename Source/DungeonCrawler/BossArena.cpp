@@ -3,6 +3,7 @@
 #include "BossDoor.h"
 #include "Portal.h"
 #include "BossIntroCameraShake.h"
+#include "BossHealthBarWidget.h"
 #include "HealthComponent.h"
 #include "DungeonGameInstance.h"
 
@@ -10,6 +11,7 @@
 #include "Camera/CameraActor.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
+#include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
@@ -95,6 +97,17 @@ void ABossArena::StartEncounter(APawn* Player)
 	if (UHealthComponent* BossHealth = Boss->FindComponentByClass<UHealthComponent>())
 	{
 		BossHealth->OnDepleted.AddUObject(this, &ABossArena::OnBossDefeated);
+	}
+
+	// Boss health bar pinned to the top of the screen for the fight.
+	if (APlayerController* PC = Cast<APlayerController>(Player->GetController()))
+	{
+		HealthBar = CreateWidget<UBossHealthBarWidget>(PC, UBossHealthBarWidget::StaticClass());
+		if (HealthBar)
+		{
+			HealthBar->SetBoss(Boss);
+			HealthBar->AddToViewport(5);
+		}
 	}
 
 	// --- Seal the entrance doors. ---
@@ -216,5 +229,10 @@ void ABossArena::OnBossDefeated(UHealthComponent* /*DeadComponent*/)
 	if (ReturnPortal)
 	{
 		ReturnPortal->SetActive(true);
+	}
+	if (HealthBar)
+	{
+		HealthBar->RemoveFromParent();
+		HealthBar = nullptr;
 	}
 }

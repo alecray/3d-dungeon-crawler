@@ -10,6 +10,7 @@ class ABossDoor;
 class APortal;
 class ACameraActor;
 class UHealthComponent;
+class UBossHealthBarWidget;
 
 /**
  * Drives a boss-room encounter. Spawned and configured by ADungeonGenerator over the boss room. When
@@ -57,6 +58,7 @@ private:
 	UPROPERTY() TObjectPtr<ABossMonster> Boss;
 	UPROPERTY() TObjectPtr<APortal> ReturnPortal;
 	UPROPERTY() TObjectPtr<ACameraActor> IntroCamera;
+	UPROPERTY() TObjectPtr<UBossHealthBarWidget> HealthBar;
 
 	TSubclassOf<ABossMonster> BossClass;
 	TSubclassOf<APortal> PortalClass;

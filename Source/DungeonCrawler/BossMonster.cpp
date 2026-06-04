@@ -2,6 +2,7 @@
 #include "HealthComponent.h"
 #include "Projectile.h"
 #include "BubbleHazard.h"
+#include "MonsterTypes.h"
 
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
@@ -72,6 +73,13 @@ void ABossMonster::Tick(float DeltaSeconds)
 	if (bIntroPlaying)
 	{
 		UpdateIntro(DeltaSeconds);
+		return;
+	}
+
+	// Tucked into its shell: immobile + invulnerable until it re-emerges.
+	if (bShellRetreat)
+	{
+		UpdateShellRetreat(DeltaSeconds);
 		return;
 	}
 
@@ -196,12 +204,13 @@ void ABossMonster::ScheduleNextSpecial()
 void ABossMonster::DoRandomSpecial()
 {
 	// Pool of mechanics widens with phase.
-	TArray<int32, TInlineAllocator<5>> Pool;
+	TArray<int32, TInlineAllocator<6>> Pool;
 	Pool.Add(0); // slam (always)
 	Pool.Add(3); // projectile volley (always)
 	if (CurrentPhase >= 2) { Pool.Add(1); } // summon
 	if (CurrentPhase >= 2) { Pool.Add(4); } // bubble burst
 	if (CurrentPhase >= 3) { Pool.Add(2); } // enrage
+	if (CurrentPhase >= 3) { Pool.Add(5); } // shell retreat
 
 	switch (Pool[FMath::RandRange(0, Pool.Num() - 1)])
 	{
@@ -210,6 +219,7 @@ void ABossMonster::DoRandomSpecial()
 	case 2: EnrageBurst(); break;
 	case 3: SpitProjectiles(); break;
 	case 4: BubbleBurst(); break;
+	case 5: EnterShellRetreat(); break;
 	default: break;
 	}
 }
@@ -248,11 +258,15 @@ void ABossMonster::SummonAdds()
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
+	FRandomStream Rng(FMath::Rand());
 	for (int32 i = 0; i < SummonCount; ++i)
 	{
 		const FVector Offset(FMath::FRandRange(-300.f, 300.f), FMath::FRandRange(-300.f, 300.f), 100.f);
-		World->SpawnActor<AMonsterCharacter>(AMonsterCharacter::StaticClass(),
-			FTransform(GetActorLocation() + Offset), Params);
+		if (AMonsterCharacter* Add = World->SpawnActor<AMonsterCharacter>(AMonsterCharacter::StaticClass(),
+			FTransform(GetActorLocation() + Offset), Params))
+		{
+			Add->ApplyType(MonsterDatabase::RollRandomType(Rng)); // proper themed minion, not a blank base monster
+		}
 	}
 
 	if (GEngine)
@@ -302,7 +316,7 @@ void ABossMonster::SpitProjectiles()
 		const FVector Dir = ToPlayer.RotateAngleAxis(Yaw, FVector::UpVector);
 		if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), Muzzle), P))
 		{
-			Proj->Launch(Dir, ProjectileDamage, this, /*bTargetPlayer*/ true, /*GravityScale*/ 0.f);
+			Proj->Launch(Dir, ProjectileDamage, this, /*bTargetPlayer*/ true, /*GravityScale*/ 0.f, ProjectileSpeed);
 		}
 	}
 
@@ -347,8 +361,48 @@ void ABossMonster::BubbleBurst()
 	}
 }
 
+void ABossMonster::EnterShellRetreat()
+{
+	bShellRetreat = true;
+	ShellTimeLeft = FMath::Max(0.5f, ShellRetreatDuration);
+	GetCharacterMovement()->StopMovementImmediately();
+	TriggerHitReact();
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(/*Key*/ 16, 1.5f, FColor::White, TEXT("Boss: RETREATS INTO ITS SHELL!"));
+	}
+}
+
+void ABossMonster::UpdateShellRetreat(float DeltaSeconds)
+{
+	ShellTimeLeft = FMath::Max(0.f, ShellTimeLeft - DeltaSeconds);
+
+	// Pull the body in (squashed + low) while shelled, easing back out as it re-emerges.
+	if (BodyRoot)
+	{
+		const float A = (ShellRetreatDuration > 0.f) ? ShellTimeLeft / ShellRetreatDuration : 0.f; // 1 -> 0
+		const float Squash = 0.7f + 0.3f * (1.f - A); // 0.7 while tucked, back to 1.0 as it opens
+		BodyRoot->SetRelativeScale3D(FVector(BodyScale * Squash));
+	}
+
+	if (ShellTimeLeft <= 0.f)
+	{
+		bShellRetreat = false;
+		if (BodyRoot) { BodyRoot->SetRelativeScale3D(FVector(BodyScale)); }
+	}
+}
+
 float ABossMonster::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)
 {
+	// Invulnerable while shelled: hits clang off (visual react, no damage, no number).
+	if (bShellRetreat)
+	{
+		TriggerHitReact();
+		bLastHitWeak = false;
+		return 0.f;
+	}
+
 	float Dmg = BaseDamage;
 	bool bWeak = false;
 

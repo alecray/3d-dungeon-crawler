@@ -15,7 +15,8 @@
 - [x] Dungeon traps — graybox spike floors (periodic), pressure plates (step-triggered spikes), and
       wall-mounted dart shooters. Scattered in corridors + occasional room cells via ADungeonTrap;
       mesh swap-in points (BaseMeshOverride/SpikeMeshOverride/DartMeshOverride + /Game/Traps paths).
-- [ ] Weapon usage should cost stamina (melee swing + ranged already partial; unify stamina cost across all weapons)
+- [x] Weapon usage costs stamina — melee now spends stamina (reducible by skills) like ranged/mage;
+      the swing is gated when out of stamina. MeleeStaminaCost on the character.
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 
@@ -48,10 +49,12 @@ Done (graybox, all in C++, swaps to the hermit-crab model later):
 Next / not yet done:
 - [ ] VERIFY IN PIE: intro camera framing, ~1.8s hold length, doors line up + actually block, input
       hands back cleanly, boss scuttles/lunges without jitter at the LoS hand-off.
-- [ ] Shell-retreat mechanic (phase 3): tuck in = temporary invuln, must wait it out / hit weak spot.
+- [x] Shell-retreat mechanic (phase 3): tucks in = immobile + invulnerable (hits clang off) for
+      ShellRetreatDuration, then re-emerges. In the phase-3 special pool.
 - [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam); burrow & resurface.
-- [ ] Boss health bar UI (dedicated boss bar, distinct from the player HUD).
-- [ ] Tune projectile speed (currently 2600 — fast); theme the summoned adds.
+- [x] Boss health bar UI — dedicated top-center red bar (UBossHealthBarWidget) shown for the fight,
+      removed on death; labelled from the boss id.
+- [x] Tuned projectile speed (boss bolts now 1500, dodgeable) + summoned adds get a real monster type.
 - [ ] Swap graybox: hermit-crab model, real gate/portcullis door mesh, portal mesh.
 - [ ] Support multiple boss types (only one boss id today).
 

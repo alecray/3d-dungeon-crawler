@@ -31,7 +31,7 @@ AProjectile::AProjectile()
 	Movement->ProjectileGravityScale = 0.f; // straight flight
 }
 
-void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shooter, bool bTargetPlayer, float GravityScale)
+void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shooter, bool bTargetPlayer, float GravityScale, float InSpeed)
 {
 	Damage = InDamage;
 	bDamagesPlayer = bTargetPlayer;
@@ -42,8 +42,9 @@ void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shoot
 	}
 	Collision->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 
+	const float UseSpeed = (InSpeed >= 0.f) ? InSpeed : Speed;
 	Movement->ProjectileGravityScale = GravityScale;
-	Movement->Velocity = Direction.GetSafeNormal() * Speed;
+	Movement->Velocity = Direction.GetSafeNormal() * UseSpeed;
 	SetLifeSpan(LifeSeconds);
 }
 

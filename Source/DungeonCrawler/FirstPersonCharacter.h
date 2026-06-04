@@ -108,6 +108,9 @@ protected:
 	TSubclassOf<AProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")
+	float MeleeStaminaCost = 10.f;
+
+	UPROPERTY(EditAnywhere, Category = "Combat")
 	float RangedStaminaCost = 12.f;
 
 	UPROPERTY(EditAnywhere, Category = "Combat")

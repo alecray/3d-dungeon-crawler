@@ -25,8 +25,9 @@ public:
 	 * @param bTargetPlayer  when true the bolt damages the player (and ignores monsters) — used by the
 	 *                       boss; when false it damages monsters — used by the player's weapons.
 	 * @param GravityScale   0 = straight flight; >0 makes it arc (lobbed shots).
+	 * @param InSpeed        flight speed in cm/s; <0 uses the class default Speed.
 	 */
-	void Launch(const FVector& Direction, float InDamage, AActor* Shooter, bool bTargetPlayer = false, float GravityScale = 0.f);
+	void Launch(const FVector& Direction, float InDamage, AActor* Shooter, bool bTargetPlayer = false, float GravityScale = 0.f, float InSpeed = -1.f);
 
 protected:
 	UFUNCTION()

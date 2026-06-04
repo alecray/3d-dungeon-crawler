@@ -91,6 +91,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Boss|Projectiles")
 	float ProjectileSpread = 14.f;
 
+	/** Bolt flight speed (cm/s) — slower than the player's bolts so they're dodgeable. */
+	UPROPERTY(EditAnywhere, Category = "Boss|Projectiles")
+	float ProjectileSpeed = 1500.f;
+
+	// ---- Shell retreat (phase 3) ----
+	/** How long the boss tucks into its shell (invulnerable, immobile) before re-emerging. */
+	UPROPERTY(EditAnywhere, Category = "Boss|Shell")
+	float ShellRetreatDuration = 3.f;
+
 	// ---- Bubble hazards (phases 2-3) ----
 	UPROPERTY(EditAnywhere, Category = "Boss|Bubbles")
 	TSubclassOf<ABubbleHazard> BubbleClass;
@@ -130,6 +139,8 @@ private:
 	void EnrageBurst();
 	void SpitProjectiles();
 	void BubbleBurst();
+	void EnterShellRetreat();
+	void UpdateShellRetreat(float DeltaSeconds);
 
 	/** True when nothing solid blocks the straight line from the boss to the player. */
 	bool HasLineOfSightToPlayer(AActor* Player) const;
@@ -154,6 +165,10 @@ private:
 	void UpdateIntro(float DeltaSeconds);
 	bool bIntroPlaying = false;
 	float IntroTimeLeft = 0.f;
+
+	// Shell-retreat state (boss is frozen + invulnerable while this is active).
+	bool bShellRetreat = false;
+	float ShellTimeLeft = 0.f;
 
 	// Scuttle/lunge movement state machine (see TickCustomChase).
 	enum class EMoveState : uint8 { Scuttle, Telegraph, Lunge };

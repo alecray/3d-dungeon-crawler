@@ -786,6 +786,11 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 
 	case ECombatStyle::Melee:
 	default:
+		// Melee swing: costs stamina (reducible), gating the swing when too tired — same as ranged/mage.
+		if (Stamina && !Stamina->Spend(MeleeStaminaCost * (1.f - FMath::Clamp(Mods.StaminaCostPct, 0.f, 0.8f))))
+		{
+			break; // out of stamina: no swing this press
+		}
 		LastAttackTime = Now;
 		MeleeAttack();
 		break;
