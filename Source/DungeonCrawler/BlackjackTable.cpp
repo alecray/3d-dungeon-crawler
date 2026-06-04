@@ -38,10 +38,10 @@ ABlackjackTable::ABlackjackTable()
 
 	StatusText3D = CreateDefaultSubobject<UTextRenderComponent>(TEXT("StatusText3D"));
 	StatusText3D->SetupAttachment(Root);
-	// Sit the readout flat-ish just above the felt, centered between the card rows, so it's easy to read
-	// while you're looking down at the table (was floating too high overhead).
-	StatusText3D->SetRelativeLocation(FVector(0.f, 0.f, TableTopZ + 16.f));
-	StatusText3D->SetRelativeRotation(FRotator(0.f, 90.f, 0.f)); // face +Y (the approach side)
+	// Lay the readout just above the felt as an angled "overlay" tilted toward the player (~55° back from
+	// vertical), instead of a vertical billboard floating overhead.
+	StatusText3D->SetRelativeLocation(FVector(0.f, 0.f, TableTopZ + 10.f));
+	StatusText3D->SetRelativeRotation(FRotator(55.f, 90.f, 0.f)); // pitch up + face the approach side
 	StatusText3D->SetHorizontalAlignment(EHTA_Center);
 	StatusText3D->SetWorldSize(16.f);
 	StatusText3D->SetTextRenderColor(FColor(255, 240, 180));
