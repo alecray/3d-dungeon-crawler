@@ -23,7 +23,7 @@ ABossMonster::ABossMonster()
 
 	BodyScale = 2.2f;          // applied to BodyRoot in AMonsterCharacter::BeginPlay
 	MonsterMaxHealth = 320.f;
-	AttackDamage = 18.f;
+	AttackDamage = 135.f;       // a brutal hit (~75% of the 180 starting HP) — Dark-Souls punishing
 	AttackRange = 260.f;
 	AggroRange = 6000.f;       // notices the player anywhere in the big boss room
 	AttackCooldown = 1.6f;
