@@ -55,6 +55,24 @@
 - [ ] Dungeon-select menu on the town portal — lists dungeons/bosses you've cleared; replay at the same
       or harder difficulty tiers for greater reward potential, with the risk of losing everything in the
       run (high-stakes mode). Pairs with run-stakes / meta-progression.
+- [ ] Destructible props — smash barrels/crates/pots for coins/loot + a debris burst (classic crawler feel).
+- [ ] Mimics — a chest variant that's secretly a monster; snaps at you when opened.
+- [ ] Shrines / altars — interact for a random blessing (or a gamble: buff vs. curse). Pairs with run-stakes.
+- [ ] Rest / campfire at Rest rooms — interact to heal / brief buff / checkpoint.
+- [ ] Aggro + stealth backstab — enemies notice by line-of-sight/noise; unaware/behind hits deal bonus damage.
+- [ ] Summon / companion — a temporary graybox ally (skill or item) that fights alongside you.
+- [ ] Bestiary — monster compendium that fills in as you kill each type (sibling to the collection log).
+- [ ] Item durability + repair (gold sink), and/or gem socketing / runes for gear customization.
+- [ ] Loot beams + rarity feedback + auto-loot — drops emit a colored light beam; juicy pickups.
+
+## Aesthetics / VFX (code-driven, no imported art needed)
+
+- [ ] Impact VFX pass — sparks/ichor puffs on every hit, footstep dust, richer ability bursts
+      (today it's just damage numbers + a death poof).
+- [ ] Ambient dungeon atmosphere — drifting dust motes, embers off torches, fog wisps, occasional ceiling drips.
+- [ ] Event bursts — pickup / level-up / boss phase-transition particle pops + a brief screen flash.
+- [ ] Trap telegraph glow before spikes pop; enemy spawn/death dissolve effects.
+- [ ] Post-process feel — subtle FOV kick when sprinting, chromatic aberration + desaturation at low HP.
 
 ## Engine / Settings
 
