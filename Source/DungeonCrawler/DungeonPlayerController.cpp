@@ -12,6 +12,7 @@
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
+#include "CharacterClass.h"
 #include "MainMenuWidget.h"
 #include "LowHealthVignetteWidget.h"
 #include "FpsCounterWidget.h"
@@ -130,6 +131,24 @@ void ADungeonPlayerController::StartGameFromMenu()
 		P->EnableInput(this);
 	}
 	FadeFromBlack(0.6f);
+}
+
+void ADungeonPlayerController::StartGameAsClass(ECharacterClass Class)
+{
+	// Only apply the archetype to a brand-new character; a returning save keeps its existing build.
+	bool bFresh = true;
+	if (UDungeonGameInstance* GI = GetGameInstance<UDungeonGameInstance>())
+	{
+		bFresh = !GI->HasProfile();
+	}
+	if (bFresh)
+	{
+		if (AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetPawn()))
+		{
+			Player->ApplyClassLoadout(Class);
+		}
+	}
+	StartGameFromMenu();
 }
 
 void ADungeonPlayerController::FadeFromBlack(float Duration)

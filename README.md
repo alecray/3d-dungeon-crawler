@@ -39,6 +39,8 @@ Built so far:
 Planned RPG systems (art-independent, in dependency order):
 
 - [ ] Stats screen to spend attribute points
+- [x] Starting class select (Dark-Souls-style template) — Warrior / Ranger / Mage seed starting
+      attributes + weapon at the main menu; no lock-in (level/equip/skill freely afterward)
 - [x] Inventory system with draggable items (Diablo-style)
 - [x] Lootable chests
 - [x] Collection log (rare items)

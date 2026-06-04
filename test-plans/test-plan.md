@@ -59,6 +59,7 @@ note: skill tree still needs more padding, you have plenty of screen real-estate
 - [ ] **Bonfire** in Rest rooms (green-lit rooms): a flickering flame on a stone base; `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
 - [ ] **Mage weapon** — buy the **Apprentice Wand** from the shop (or find a Wand/Staff in loot), put it on the hotbar, select it: LMB now casts **spell bolts** that cost **mana** (Mage style).
 - [ ] **Backstab** — hitting a regular enemy **from behind** deals extra damage (orange crit number). Facing it = normal damage.
+- [ ] **Starting class** (fresh save — delete `DungeonProfile.sav` first) — the main menu shows **Choose your class: Warrior / Ranger / Mage**. Picking one starts you with that stat spread + weapon (sword/crossbow/wand) already equipped. A returning save instead shows **Continue** (no class pick). Nothing's locked — you can still level any stat / use any weapon / take any skill.
 
 ## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
 - [x] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.

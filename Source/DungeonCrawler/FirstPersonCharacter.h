@@ -84,6 +84,9 @@ public:
 	/** Captures and writes the player profile to disk (e.g. before traveling between levels). */
 	void SaveNow() { PersistProfile(); }
 
+	/** Applies a starting class's attribute spread + weapon to a fresh character (from the class-select menu). */
+	void ApplyClassLoadout(enum class ECharacterClass Class);
+
 	// ---- Settings (pause menu) ----
 	float GetLookSensitivity() const { return LookSensitivity; }
 	void SetLookSensitivity(float V) { LookSensitivity = FMath::Clamp(V, 0.1f, 4.f); }

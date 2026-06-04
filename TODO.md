@@ -73,7 +73,10 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 ## RPG depth (genre features not yet implemented)
 
 - [ ] Equipment set bonuses (wearing matching pieces grants extra effects)
-- [ ] Character classes / starting archetypes
+- [x] Character classes / starting archetypes — Dark-Souls-style **starting templates** only (no lock-in):
+      the fresh-character menu offers Warrior / Ranger / Mage, each just seeding starting attributes +
+      a starting weapon (sword/crossbow/wand). All skill branches + weapons stay open; you level freely.
+      (`CharacterClass.h` loadouts; `ApplyClassLoadout`; menu class buttons; returning saves just continue.)
 - [ ] Elemental damage types + resistances/weaknesses
 - [ ] Dodge / block / parry defensive options
 - [ ] Biomes / themed floors (visual + enemy-set variety per depth)

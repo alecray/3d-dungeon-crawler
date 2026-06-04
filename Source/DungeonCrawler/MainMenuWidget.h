@@ -19,7 +19,14 @@ public:
 
 protected:
 	UFUNCTION()
-	void OnStartClicked();
+	void OnStartClicked(); // returning save: continue
+
+	UFUNCTION()
+	void OnWarriorClicked();
+	UFUNCTION()
+	void OnRangerClicked();
+	UFUNCTION()
+	void OnMageClicked();
 
 	UFUNCTION()
 	void OnQuitClicked();

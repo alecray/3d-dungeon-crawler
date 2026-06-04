@@ -1,5 +1,7 @@
 #include "MainMenuWidget.h"
 #include "DungeonPlayerController.h"
+#include "DungeonGameInstance.h"
+#include "CharacterClass.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -68,7 +70,33 @@ bool UMainMenuWidget::Initialize()
 		return Btn;
 	};
 
-	AddButton(TEXT("  Start Game  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStartClicked);
+	// A fresh character picks a class; a returning save just continues.
+	bool bFresh = true;
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		bFresh = !GI->HasProfile();
+	}
+
+	if (bFresh)
+	{
+		UTextBlock* Prompt = WidgetTree->ConstructWidget<UTextBlock>();
+		Prompt->SetText(FText::FromString(TEXT("Choose your class")));
+		Prompt->SetJustification(ETextJustify::Center);
+		if (FSlateFontInfo F = Prompt->GetFont(); true) { F.Size = 18; Prompt->SetFont(F); }
+		if (UVerticalBoxSlot* PS2 = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(Prompt)))
+		{
+			PS2->SetHorizontalAlignment(HAlign_Center);
+			PS2->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+		}
+
+		AddButton(TEXT("  Warrior  (sword / strength)  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnWarriorClicked);
+		AddButton(TEXT("  Ranger  (crossbow / dexterity)  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnRangerClicked);
+		AddButton(TEXT("  Mage  (wand / intelligence)  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnMageClicked);
+	}
+	else
+	{
+		AddButton(TEXT("  Continue  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStartClicked);
+	}
 	AddButton(TEXT("  Quit  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnQuitClicked);
 
 	return true;
@@ -80,6 +108,21 @@ void UMainMenuWidget::OnStartClicked()
 	{
 		PC->StartGameFromMenu();
 	}
+}
+
+void UMainMenuWidget::OnWarriorClicked()
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer())) { PC->StartGameAsClass(ECharacterClass::Warrior); }
+}
+
+void UMainMenuWidget::OnRangerClicked()
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer())) { PC->StartGameAsClass(ECharacterClass::Ranger); }
+}
+
+void UMainMenuWidget::OnMageClicked()
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer())) { PC->StartGameAsClass(ECharacterClass::Mage); }
 }
 
 void UMainMenuWidget::OnQuitClicked()

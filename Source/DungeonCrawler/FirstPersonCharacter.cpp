@@ -10,6 +10,11 @@
 #include "MonsterCharacter.h"
 #include "LootChest.h"
 #include "Bonfire.h"
+#include "CharacterClass.h"
+#include "HealthComponent.h"
+#include "ResourceComponent.h"
+#include "InventoryComponent.h"
+#include "HotbarComponent.h"
 #include "ItemPickup.h"
 #include "Portal.h"
 #include "ShopNPC.h"
@@ -319,6 +324,30 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 		CurrentStyle = ECombatStyle::Melee;
 		break;
 	}
+}
+
+void AFirstPersonCharacter::ApplyClassLoadout(ECharacterClass Class)
+{
+	const FClassLoadout L = GetClassLoadout(Class);
+
+	if (Stats)
+	{
+		Stats->SetAttributes(L.Attributes); // fires OnStatsChanged -> resizes the resource maxes
+	}
+	// Start the run topped off at the new maxes.
+	if (Health) { Health->Heal(Health->GetMaxHealth()); }
+	if (Mana) { Mana->Restore(Mana->GetMax()); }
+	if (Stamina) { Stamina->Restore(Stamina->GetMax()); }
+
+	// Equip the class weapon in the first hotbar slot (sets the combat style via EquipActiveHotbarItem).
+	if (!L.WeaponId.IsNone() && Hotbar)
+	{
+		Hotbar->SetSlot(0, L.WeaponId);
+		Hotbar->SelectSlot(0);
+		EquipActiveHotbarItem();
+	}
+
+	SaveNow();
 }
 
 void AFirstPersonCharacter::HandleItemDiscovered(FName ItemId)
