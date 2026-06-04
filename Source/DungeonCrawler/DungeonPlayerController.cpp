@@ -17,6 +17,7 @@
 #include "FpsCounterWidget.h"
 #include "DungeonGameInstance.h"
 #include "DungeonGenerator.h"
+#include "AmbientDust.h"
 #include "EngineUtils.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCameraManager.h"
@@ -56,6 +57,13 @@ void ADungeonPlayerController::BeginPlay()
 		if (ULowHealthVignetteWidget* Vignette = CreateWidget<ULowHealthVignetteWidget>(this, ULowHealthVignetteWidget::StaticClass()))
 		{
 			Vignette->AddToViewport(2);
+		}
+		// Ambient dust motes drifting around the player (pooled; constant cost).
+		if (UWorld* W = GetWorld())
+		{
+			FActorSpawnParameters DustParams;
+			DustParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			W->SpawnActor<AAmbientDust>(AAmbientDust::StaticClass(), FTransform::Identity, DustParams);
 		}
 		// FPS counter, top-right under the minimap.
 		if (UFpsCounterWidget* Fps = CreateWidget<UFpsCounterWidget>(this, UFpsCounterWidget::StaticClass()))

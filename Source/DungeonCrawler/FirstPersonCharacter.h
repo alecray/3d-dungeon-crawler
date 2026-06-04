@@ -321,6 +321,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpFringe = 4.f;   // chromatic aberration at 0 HP
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpDesat = 0.5f;   // desaturation at 0 HP
 	float BaseFOV = 90.f;
+	int32 LastLevel = 1;  // to detect level-ups for the celebration burst
 	ECombatStyle CurrentStyle = ECombatStyle::Melee;
 
 	/** Player gold (persisted in the profile). */

@@ -165,6 +165,7 @@ void AFirstPersonCharacter::BeginPlay()
 	if (Stats)
 	{
 		Stats->OnStatsChanged.AddUObject(this, &AFirstPersonCharacter::HandleStatsChanged);
+		LastLevel = Stats->GetLevel();
 	}
 	if (Inventory)
 	{
@@ -200,6 +201,22 @@ void AFirstPersonCharacter::HandleStatsChanged(UStatsComponent* /*ChangedStats*/
 {
 	RefreshResourceMaxes(/*bRefill*/ false);
 	PersistProfile();
+
+	// Level-up burst: a gold poof rising off the player.
+	if (Stats && Stats->GetLevel() > LastLevel)
+	{
+		LastLevel = Stats->GetLevel();
+		if (UWorld* World = GetWorld())
+		{
+			FActorSpawnParameters P;
+			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			if (ADeathPoof* Poof = World->SpawnActor<ADeathPoof>(ADeathPoof::StaticClass(),
+				FTransform(GetActorLocation()), P))
+			{
+				Poof->SetColor(FLinearColor(1.f, 0.85f, 0.2f)); // gold
+			}
+		}
+	}
 }
 
 void AFirstPersonCharacter::AddGold(int32 Amount)

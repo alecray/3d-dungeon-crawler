@@ -26,6 +26,8 @@ protected:
 
 private:
 	float Pulse = 0.f;
+	float LastPct = 1.f;    // to detect when the player just took damage
+	float FlashTime = 0.f;  // remaining time on the red "took a hit" flash
 
 	/** Health fraction at/below which the overlay starts showing. */
 	static constexpr float Threshold = 0.35f;
