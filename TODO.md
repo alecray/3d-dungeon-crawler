@@ -61,10 +61,9 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 
 ## Flow / UX
 
-- [ ] Insufficient-resource feedback — when the player tries an ability/action but lacks the stamina (or
-      mana) for it, give a clear "can't do that" cue instead of nothing happening: e.g. a denial sound, a
-      quick red flash/shake of the stamina (or mana) bar, and/or a brief on-screen "Not enough stamina"
-      message. Covers melee swings, sprint, and Q abilities.
+- [x] Insufficient-resource feedback — denied actions (dash/melee/ranged with no stamina, mage with no
+      mana) flash the matching HUD bar red. Still TODO (optional polish): a denial *sound* + on-screen
+      "Not enough X" text + flashing the Q-ability cost too.
 - [ ] Rebindable controls — let the player change key bindings from the settings menu (click a row,
       press a new key); persist the remaps in the save profile and apply to the Enhanced Input mappings.
 - [ ] (later) Dedicated main-menu level — needs an empty .umap authored in-editor; then point the
@@ -116,10 +115,10 @@ Done (batches 1-2): impact spark bursts on hits, ambient drifting dust motes, sc
 gold level-up burst, sprint FOV kick, low-HP chromatic aberration + desaturation.
 
 Remaining (batch 3):
-- [ ] Footstep dust + richer ability-cast bursts (Whirlwind ring / Nova shockwave vs. the current poof).
+- [x] Footstep dust (puff every ~175cm). Still TODO: richer ability-cast bursts (Whirlwind ring / Nova shockwave vs. the current poof).
 - [ ] More ambient atmosphere — embers off torches, fog wisps, occasional ceiling drips.
-- [ ] More event bursts — pickup sparkle + boss phase-transition shockwave + screen flash.
-- [ ] Trap telegraph glow before spikes pop; enemy spawn/death dissolve effects.
+- [x] Pickup sparkle (rarity-colored on collect) + chest open rarity-pop. Still TODO: boss phase-transition shockwave + screen flash.
+- [x] Trap telegraph glow before spikes pop; [x] enemy death dissolve (sink+shrink). Still TODO: enemy *spawn* dissolve (boss has a spawn VFX; regular mobs don't).
 
 ### Niagara VFX upgrade (art pass — replaces the code-driven graybox effects)
 The current effects spawn plain meshes + lights from C++ and animate them by hand (cheap, asset-free,
@@ -191,6 +190,16 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 # DONE
 
 ## Gameplay / combat
+- [x] **Dash/dodge** replaces sprint on Shift — short committed stamina-costed burst (Dark-Souls feel).
+- [x] **Boss combat pass** (Dark-Souls direction): attack lands on anim **frame 20** (dodgeable by
+      repositioning), melee reach measured from the boss's body edge (so the big crab can actually hit),
+      hits for a brutal flat **135** (~75% of starting HP), closes fast (MoveSpeed 430), and runs in
+      anim-test mode (`bAbilitiesEnabled=false`) with no specials while anims are finalized.
+- [x] **Boss loot + spawn VFX** — drops 3-5 rolled items at the kill site (rarity loot beams); a code-
+      driven spawn-in effect (`ABossSpawnVFX`: ground flare + energy pillar + shard swirl + debris); the
+      return portal activates at the room corner farthest from the death spot.
+- [x] **Quick-win feel batch** — insufficient-stamina/mana bar flash, enemy death dissolve (sink+shrink),
+      footstep dust, item pickup sparkle + chest open rarity-pop, trap telegraph warning glow.
 - [x] Boss encounter sequence — spawn-on-entry opposite the player; entrance doors seal (open on death);
       first-ever kill plays a camera-focus + screen-shake + intro cinematic (persisted per boss id).
 - [x] Boss fight depth — scuttle + telegraphed lunge, hybrid navmesh, projectile volley (3-spread p2+),

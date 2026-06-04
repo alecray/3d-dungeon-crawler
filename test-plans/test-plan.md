@@ -14,6 +14,28 @@ Untested / unchecked work is up top (**TO TEST**); sections you've already passe
 
 # TO TEST
 
+## 0. This session's changes (NEW — test these first)
+**Dash (Shift):**
+- [ ] Shift does a quick **dash** in your movement direction (or facing when standing still), **not** a sprint.
+- [ ] It **costs stamina** and has a short cooldown; spamming is gated. With no stamina the **stamina bar flashes red** and you don't dash.
+
+**Insufficient-resource feedback:**
+- [ ] Swinging/firing with no stamina (or casting a spell with no mana) **flashes the matching HUD bar red** instead of silently doing nothing.
+
+**Boss combat (anim-test mode — no specials):**
+- [ ] The boss **swings its attack animation** when in range, and the hit **lands partway through the swing** (frame 20) — you can **step/dash out of the way to dodge it**.
+- [ ] A clean hit is **brutal (~75% of your HP)**. It closes distance **quickly**.
+- [ ] On death it **drops several items** at the kill spot (each with a **rarity-colored beam**), and the **return portal appears elsewhere in the room** (a back corner), not on the loot.
+- [ ] The boss **spawn-in** plays a code VFX: ground flare + an energy pillar + a rising shard swirl + a debris ring. No phase changes / specials (that's expected — anim-test mode).
+- [ ] **Boss room** has **no scenery except a banner on each side of every doorway**, and is **two walls tall** (raised ceiling) with no clipping between the wall courses.
+
+**VFX / feel quick wins:**
+- [ ] **Footstep dust** puffs at your feet as you move on the ground.
+- [ ] **Enemy death** sinks into the floor + shrinks (dissolve), not a pop-up.
+- [ ] **Picking up** a dropped item throws a rarity-colored **sparkle**; opening a **chest** pops a rarity-colored burst (brighter for Rare+).
+- [ ] **Traps glow red** (pulsing) just before they fire — spikes ramp before rising, plates flash on the step, dart shooters glow before a shot.
+- [ ] **Wall torches** sit a bit lower and their light comes from the **flame tip**, not the middle of the stick.
+
 ## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
 - [ ] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.
 - [ ] It plays an **idle** animation standing still and a **walk** animation while moving/chasing.

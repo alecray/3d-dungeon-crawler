@@ -85,10 +85,18 @@ World & generation:
 
 Combat feel & VFX (code-driven, no imported art):
 
-- [x] Floating damage numbers; weapon use costs stamina/mana (melee included)
+- [x] **Dash/dodge** on Shift (replaces sprint) — a short, committed, stamina-costed burst
+- [x] **Dark-Souls-leaning combat** — the boss hits hard (~75% of starting HP) but its blow lands on a
+      specific animation frame, so it's dodgeable by repositioning; reach is measured from its body edge
+- [x] Floating damage numbers; weapon use costs stamina/mana (melee included), with an **insufficient-
+      resource bar flash** when you're too tired/low on mana to act
 - [x] Game juice — hit-stop on melee impact, camera kick, enemy knockback, low-health red vignette
 - [x] VFX pass — impact spark bursts on hits, ambient drifting dust motes, screen damage flash, gold
-      level-up burst, sprint FOV kick, low-HP chromatic aberration + desaturation
+      level-up burst, dash FOV kick, low-HP chromatic aberration + desaturation
+- [x] More VFX — **footstep dust**, **enemy death dissolve** (sink + shrink), **rarity loot beams** on
+      dropped items + **pickup sparkle** + **chest open rarity-pop**, **trap telegraph glow** before a
+      hazard fires, and a code-driven **boss spawn-in** (ground flare + energy pillar + shard swirl)
+- [x] Boss drops rolled loot on death; item-affix naming scaffold ("Sword of the Inferno"-style) in place
 - [x] FPS counter (top-right); dev menu (No Clip / God Mode / Reveal Map / Teleport to Boss / Kill Player
       / Teleport Home)
 
