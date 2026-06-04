@@ -14,6 +14,8 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/Slider.h"
+#include "Components/ScrollBox.h"
+#include "Components/SizeBox.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "AudioDevice.h"
 #include "Engine/World.h"
@@ -49,7 +51,7 @@ bool UPauseMenuWidget::Initialize()
 		PS->SetAnchors(FAnchors(0.5f, 0.5f));
 		PS->SetAlignment(FVector2D(0.5f, 0.5f));
 		PS->SetPosition(FVector2D::ZeroVector);
-		PS->SetSize(FVector2D(420.f, 460.f));
+		PS->SetSize(FVector2D(440.f, 600.f));
 	}
 
 	UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Box"));
@@ -119,6 +121,56 @@ bool UPauseMenuWidget::Initialize()
 
 	AddSliderRow(TEXT("Mouse Sensitivity"), SensSlider, SensValueText, &UPauseMenuWidget::OnSensitivityChanged);
 	AddSliderRow(TEXT("Master Volume"), VolumeSlider, VolumeValueText, &UPauseMenuWidget::OnVolumeChanged);
+
+	// --- Controls reference (every player binding) ---
+	UTextBlock* ControlsHeader = WidgetTree->ConstructWidget<UTextBlock>();
+	ControlsHeader->SetText(FText::FromString(TEXT("Controls")));
+	if (UVerticalBoxSlot* CHS = Cast<UVerticalBoxSlot>(SettingsPanel->AddChildToVerticalBox(ControlsHeader)))
+	{
+		CHS->SetPadding(FMargin(0.f, 18.f, 0.f, 6.f));
+	}
+
+	USizeBox* ControlsSize = WidgetTree->ConstructWidget<USizeBox>();
+	ControlsSize->SetHeightOverride(230.f);
+	SettingsPanel->AddChildToVerticalBox(ControlsSize);
+
+	UScrollBox* ControlsScroll = WidgetTree->ConstructWidget<UScrollBox>();
+	ControlsSize->AddChild(ControlsScroll);
+
+	auto AddControlRow = [&](const TCHAR* Keys, const TCHAR* Action)
+	{
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
+		ControlsScroll->AddChild(Row);
+
+		UTextBlock* K = WidgetTree->ConstructWidget<UTextBlock>();
+		K->SetText(FText::FromString(Keys));
+		if (UHorizontalBoxSlot* KS = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(K)))
+		{
+			KS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		}
+
+		UTextBlock* A = WidgetTree->ConstructWidget<UTextBlock>();
+		A->SetText(FText::FromString(Action));
+		A->SetJustification(ETextJustify::Right);
+		if (UHorizontalBoxSlot* AS = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(A)))
+		{
+			AS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			AS->SetPadding(FMargin(8.f, 2.f, 0.f, 2.f));
+		}
+	};
+
+	AddControlRow(TEXT("W  A  S  D"),       TEXT("Move"));
+	AddControlRow(TEXT("Mouse"),            TEXT("Look"));
+	AddControlRow(TEXT("Space"),            TEXT("Jump"));
+	AddControlRow(TEXT("Left Shift (hold)"),TEXT("Sprint"));
+	AddControlRow(TEXT("Left Mouse"),       TEXT("Attack"));
+	AddControlRow(TEXT("Q"),                TEXT("Use Ability"));
+	AddControlRow(TEXT("1 - 8"),            TEXT("Hotbar slots (use / equip)"));
+	AddControlRow(TEXT("E"),                TEXT("Interact (open / pick up / portal / shop)"));
+	AddControlRow(TEXT("I"),                TEXT("Inventory"));
+	AddControlRow(TEXT("C"),                TEXT("Collection Log"));
+	AddControlRow(TEXT("K"),                TEXT("Skill Tree"));
+	AddControlRow(TEXT("Esc"),              TEXT("Pause / Settings"));
 
 	return true;
 }

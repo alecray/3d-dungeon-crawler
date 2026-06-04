@@ -77,7 +77,8 @@ Next / not yet done:
 
 ## Flow / UX
 
-- [ ] Controls in settings — a controls reference (and ideally rebinding) in the pause/settings menu.
+- [x] Controls in settings — full controls reference (every binding) in the pause→Settings panel,
+      scrollable key→action list. (Later: live rebinding.)
 - [x] Start screen — graybox main menu (title + Start/Quit) shown at launch over the boot map
       (opaque, once per session). Start fades in to play; Quit exits.
 - [x] Scene transitions — black camera fades on every level travel (portal town<->dungeon, death
