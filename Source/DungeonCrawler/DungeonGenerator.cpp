@@ -963,15 +963,18 @@ void ADungeonGenerator::ScatterChests()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	// Skip the player's start room (kept clear); the boss room always gets one as a reward.
+	// Skip the player's start room (kept clear) and the boss room (kept bare — the reward is the fight +
+	// the return portal that appears on the boss's death).
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
-		const bool bBossRoom = (i == BossRoomIndex);
+		if (i == BossRoomIndex)
+		{
+			continue;
+		}
 
 		// How many chests this room gets, by type.
 		int32 NumChests;
-		if (bBossRoom)                              { NumChests = 1; }
-		else if (Rooms[i].Type == ERoomType::Treasure) { NumChests = Rng.RandRange(2, 3); }
+		if (Rooms[i].Type == ERoomType::Treasure)      { NumChests = Rng.RandRange(2, 3); }
 		else if (Rooms[i].Type == ERoomType::Elite)    { NumChests = 1; }
 		else if (Rooms[i].Type == ERoomType::Rest)     { NumChests = 0; }
 		else                                        { NumChests = (Rng.FRand() <= ChestChancePerRoom) ? 1 : 0; }

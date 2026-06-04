@@ -26,7 +26,7 @@ ABossMonster::ABossMonster()
 	AttackRange = 260.f;
 	AggroRange = 6000.f;       // notices the player anywhere in the big boss room
 	AttackCooldown = 1.6f;
-	MoveSpeed = 280.f;
+	MoveSpeed = 430.f;          // closes on the player quickly (was a sluggish 280)
 	XPReward = 300;
 
 	// Three cube "growths" revealed one per phase to show the boss morphing. Sized in BodyRoot's
@@ -535,8 +535,8 @@ bool ABossMonster::TickCustomChase(float DeltaSeconds, APawn* Player, const FVec
 	{
 	case EMoveState::Scuttle:
 	{
-		// Sidestep around the player while drifting slowly inward — a crab-like scuttle.
-		const FVector Move = (Lateral * StrafeSign * 0.85f + DirToPlayer * 0.35f).GetSafeNormal();
+		// Sidestep around the player while pressing inward — a crab-like scuttle that still closes distance.
+		const FVector Move = (Lateral * StrafeSign * 0.7f + DirToPlayer * 0.7f).GetSafeNormal();
 		AddMovementInput(Move, 1.f);
 		if (MoveTimer <= 0.f)
 		{
