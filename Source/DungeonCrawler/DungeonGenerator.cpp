@@ -688,6 +688,37 @@ void ADungeonGenerator::ScatterProps()
 	{
 		const FDungeonRoom& Room = Rooms[RoomIndex];
 
+		// The boss arena stays deliberately bare — no furniture/stacks/racks — except a pair of banners
+		// flanking each doorway (one on each side), so it reads as a grand, uncluttered fight space.
+		if (RoomIndex == BossRoomIndex)
+		{
+			for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
+			{
+				for (int32 x = Room.X; x < Room.X + Room.W; ++x)
+				{
+					if (CellAt(x, y) != ECell::Room) { continue; }
+					for (int32 d = 0; d < 4; ++d)
+					{
+						if (CellAt(x + DX[d], y + DY[d]) != ECell::Corridor) { continue; } // doorway edge
+						const FVector Outward(DX[d], DY[d], 0.f);
+						const int32 PX = -DY[d];
+						const int32 PY = DX[d];
+						for (int32 s = -1; s <= 1; s += 2) // a banner on each side of the opening
+						{
+							const int32 jx = x + s * PX;
+							const int32 jy = y + s * PY;
+							if (IsFloor(jx, jy) && !IsFloor(jx + DX[d], jy + DY[d]))
+							{
+								const FVector Loc = Xf.TransformPosition(CellToLocal(jx, jy)) + Outward * (HalfCell - 12.f);
+								SpawnProp(EPropType::Banner, Loc, (-Outward).Rotation(), 1.f);
+							}
+						}
+					}
+				}
+			}
+			continue; // nothing else spawns in the boss room
+		}
+
 		// --- Deliberate, themed scenery: each room picks one décor theme; furniture lines the WALLS
 		//     (aligned, facing in), corner STACKS pile in the corners, and a dining set can sit in the
 		//     middle of roomier halls. The centre is otherwise left walkable, so it reads as a place
