@@ -51,6 +51,19 @@ void ABossArena::AddDoorSlot(const FTransform& WorldXf, const FVector& SizeCm)
 	DoorSlots.Add({ WorldXf, SizeCm });
 }
 
+void ABossArena::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// The boss, doors and return portal are spawned at runtime and owned by this arena (not tracked by
+	// the generator), so destroy them here — otherwise a dungeon regenerate leaves orphaned bosses around.
+	if (Boss) { Boss->Destroy(); }
+	for (ABossDoor* Door : Doors) { if (Door) { Door->Destroy(); } }
+	if (ReturnPortal) { ReturnPortal->Destroy(); }
+	if (IntroCamera) { IntroCamera->Destroy(); }
+	if (HealthBar) { HealthBar->RemoveFromParent(); HealthBar = nullptr; }
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void ABossArena::OnTriggerOverlap(UPrimitiveComponent* /*OverlappedComp*/, AActor* OtherActor, UPrimitiveComponent* /*OtherComp*/,
 	int32 /*OtherBodyIndex*/, bool /*bFromSweep*/, const FHitResult& /*Sweep*/)
 {
