@@ -371,10 +371,21 @@ void ADungeonGenerator::DecorateRooms()
 
 void ADungeonGenerator::CarveCorridors()
 {
+	// Connect each room to its NEAREST already-placed room rather than the previous one in sequence —
+	// this yields shorter, less sprawling corridors while still guaranteeing a fully connected layout.
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
-		const FDungeonRoom& A = Rooms[i - 1];
 		const FDungeonRoom& B = Rooms[i];
+		int32 Best = 0;
+		int32 BestDistSq = MAX_int32;
+		for (int32 j = 0; j < i; ++j)
+		{
+			const int32 dx = Rooms[j].CenterX() - B.CenterX();
+			const int32 dy = Rooms[j].CenterY() - B.CenterY();
+			const int32 DistSq = dx * dx + dy * dy;
+			if (DistSq < BestDistSq) { BestDistSq = DistSq; Best = j; }
+		}
+		const FDungeonRoom& A = Rooms[Best];
 		CarveLine(A.CenterX(), A.CenterY(), B.CenterX(), B.CenterY(), Rng.RandRange(0, 1) == 0);
 	}
 }
@@ -507,6 +518,10 @@ void ADungeonGenerator::BuildGeometry()
 
 			const FVector C = CellToLocal(x, y);
 
+			// The boss room is built double-height (taller walls + raised ceiling) for a grand arena.
+			const bool bBoss = IsBossRoomCell(x, y);
+			const float CellCeil = bBoss ? WallHeight * 2.f : WallHeight;
+
 			// Floor: top sits at Z = 0. (Collision comes from the mesh itself — cube or imported.)
 			if (bCustomFloor)
 			{
@@ -523,43 +538,46 @@ void ADungeonGenerator::BuildGeometry()
 			if (bCustomFloor)
 			{
 				const FVector CeilLoc = C + FVector(-FloorCtr.X * FloorScale, -FloorCtr.Y * FloorScale,
-					WallHeight - FloorMinZ * FloorScale);
+					CellCeil - FloorMinZ * FloorScale);
 				CeilingISM->AddInstance(FTransform(FRotator::ZeroRotator, CeilLoc, FVector(FloorScale)), /*bWorldSpace*/ false);
 			}
 			else
 			{
-				AddTile(CeilingISM, C + FVector(0.f, 0.f, WallHeight + SlabThickness * 0.5f),
+				AddTile(CeilingISM, C + FVector(0.f, 0.f, CellCeil + SlabThickness * 0.5f),
 					FVector(CellSize, CellSize, SlabThickness));
 			}
 
 			// Cube-wall geometry (used when there's no custom wall mesh): embed into both slabs so no
 			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting).
-			const float WallTall = WallHeight + 2.f * SlabThickness;
-			const float WallZ = WallHeight * 0.5f;
+			const float WallTall = CellCeil + 2.f * SlabThickness;
+			const float WallZ = CellCeil * 0.5f;
+			// Above a boss-room doorway, a lintel caps the gap from the corridor's lower ceiling up to the
+			// taller boss ceiling so you don't see into the void above the opening.
+			const float LintelH = CellCeil - WallHeight;
+			const float LintelZ = (WallHeight + CellCeil) * 0.5f;
 
-			// Raise a wall on each edge that borders a non-floor cell (doorways are where two
-			// floor cells meet, so no wall is built there). Custom walls alternate facing (flip every
-			// other cell along the run) so the painted side varies.
-			if (!IsFloor(x + 1, y))
+			// Builds the wall for one edge. Solid (non-floor) edges get a full-height wall; a boss-room
+			// edge that opens onto a normal-height floor cell gets just the lintel band above the doorway.
+			auto EdgeWall = [&](int32 nx, int32 ny, const FVector& EdgeOff, bool bRunAlongX, bool bFlip)
 			{
-				if (bCustomWall) { AddWall(C + FVector(HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) != 0); }
-				else { AddTile(WallISM, C + FVector(HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
-			}
-			if (!IsFloor(x - 1, y))
-			{
-				if (bCustomWall) { AddWall(C + FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) == 0); }
-				else { AddTile(WallISM, C + FVector(-HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
-			}
-			if (!IsFloor(x, y + 1))
-			{
-				if (bCustomWall) { AddWall(C + FVector(0.f, HalfCell, 0.f), /*bRunAlongX*/ true, (x & 1) != 0); }
-				else { AddTile(WallISM, C + FVector(0.f, HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
-			}
-			if (!IsFloor(x, y - 1))
-			{
-				if (bCustomWall) { AddWall(C + FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true, (x & 1) == 0); }
-				else { AddTile(WallISM, C + FVector(0.f, -HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
-			}
+				const FVector Size = bRunAlongX ? FVector(WallSpan, WallThickness, WallTall) : FVector(WallThickness, WallSpan, WallTall);
+				if (!IsFloor(nx, ny))
+				{
+					// Tall boss walls fall back to cube tiles (the custom wall mesh is authored single-height).
+					if (bCustomWall && !bBoss) { AddWall(C + EdgeOff, bRunAlongX, bFlip); }
+					else { AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, WallZ), Size); }
+				}
+				else if (bBoss && !IsBossRoomCell(nx, ny) && LintelH > 1.f)
+				{
+					const FVector LintelSize = bRunAlongX ? FVector(WallSpan, WallThickness, LintelH) : FVector(WallThickness, WallSpan, LintelH);
+					AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, LintelZ), LintelSize);
+				}
+			};
+
+			EdgeWall(x + 1, y, FVector(HalfCell, 0.f, 0.f),  /*bRunAlongX*/ false, (y & 1) != 0);
+			EdgeWall(x - 1, y, FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) == 0);
+			EdgeWall(x, y + 1, FVector(0.f, HalfCell, 0.f),  /*bRunAlongX*/ true,  (x & 1) != 0);
+			EdgeWall(x, y - 1, FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true,  (x & 1) == 0);
 		}
 	}
 }
@@ -629,10 +647,11 @@ void ADungeonGenerator::ScatterProps()
 		return false;
 	};
 
-	// Places a prop flush against the wall in direction Outward, facing into the open space.
+	// Places a prop near the wall in direction Outward, facing into the open space. The inset keeps the
+	// prop's body clear of the wall thickness so it doesn't clip into the wall.
 	auto SpawnWallProp = [&](EPropType Type, int32 x, int32 y, const FVector& Outward, float Scale)
 	{
-		const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 20.f);
+		const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 55.f);
 		SpawnProp(Type, Loc, (-Outward).Rotation(), Scale);
 	};
 

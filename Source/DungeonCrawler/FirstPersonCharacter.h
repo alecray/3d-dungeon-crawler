@@ -68,6 +68,11 @@ public:
 	void AddGold(int32 Amount);          // adds (clamped >= 0) and saves
 	bool TrySpendGold(int32 Amount);     // false if insufficient; otherwise deducts and saves
 
+	// ---- Dev tools (invoked from the pause menu's Dev panel) ----
+	bool DevToggleNoClip();   // fly through walls; returns the new on/off state
+	bool DevToggleGodMode();  // invulnerability; returns the new on/off state
+	void DevKill();           // force player death
+
 	/** Captures and writes the player profile to disk (e.g. before traveling between levels). */
 	void SaveNow() { PersistProfile(); }
 
@@ -308,6 +313,7 @@ private:
 	float LastAttackTime = -1000.f;
 	bool bDead = false;
 	bool bSprintHeld = false;
+	bool bNoClip = false;
 	ECombatStyle CurrentStyle = ECombatStyle::Melee;
 
 	/** Player gold (persisted in the profile). */

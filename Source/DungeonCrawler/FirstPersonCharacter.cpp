@@ -920,6 +920,40 @@ void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
 	CameraKick(0.5f); // a light recoil on firing
 }
 
+bool AFirstPersonCharacter::DevToggleNoClip()
+{
+	bNoClip = !bNoClip;
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		Move->SetMovementMode(bNoClip ? MOVE_Flying : MOVE_Walking);
+		Move->MaxFlySpeed = 1200.f;
+	}
+	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+	{
+		Capsule->SetCollisionEnabled(bNoClip ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryAndPhysics);
+	}
+	return bNoClip;
+}
+
+bool AFirstPersonCharacter::DevToggleGodMode()
+{
+	if (Health)
+	{
+		Health->SetInvulnerable(!Health->IsInvulnerable());
+		return Health->IsInvulnerable();
+	}
+	return false;
+}
+
+void AFirstPersonCharacter::DevKill()
+{
+	if (Health)
+	{
+		Health->SetInvulnerable(false); // a dev kill always lands, even with god mode on
+		Health->Kill();
+	}
+}
+
 void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 {
 	if (bDead)

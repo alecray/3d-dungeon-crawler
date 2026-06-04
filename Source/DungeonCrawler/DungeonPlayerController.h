@@ -6,6 +6,7 @@
 
 class UHUDWidget;
 class UUserWidget;
+class UMinimapWidget;
 class UInventoryWidget;
 class UInventoryComponent;
 class ALootChest;
@@ -48,6 +49,10 @@ public:
 	/** Fade the screen to black over Duration (s), then open Map — the standard scene transition. */
 	void FadeToBlackAndTravel(FName Map, float Duration = 0.45f);
 
+	// Dev menu helpers (invoked from the pause menu's Dev panel).
+	void DevRevealMap();
+	void DevTeleportHome();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -75,6 +80,7 @@ private:
 	FName PendingTravelMap;
 	FTimerHandle TravelTimer;
 
+	UPROPERTY() TObjectPtr<UMinimapWidget> MinimapWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> HUDWidget;
 	UPROPERTY() TObjectPtr<UInventoryWidget> InventoryWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> CollectionWidget;

@@ -93,10 +93,10 @@ protected:
 	int32 TargetRoomCount = 8;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "2"))
-	int32 MinRoomCells = 3;
+	int32 MinRoomCells = 4;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "2"))
-	int32 MaxRoomCells = 7;
+	int32 MaxRoomCells = 9;
 
 	/** How hard to try placing each room before giving up. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "1"))
@@ -115,11 +115,11 @@ protected:
 	// ---- Props ----
 	/** Chance [0..1] that any given interior room cell receives a furniture prop. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0", ClampMax = "1"))
-	float PropFillChance = 0.24f;
+	float PropFillChance = 0.36f;
 
 	/** Chance [0..1] that any given corridor cell receives a wall-hugging prop. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0", ClampMax = "1"))
-	float CorridorPropChance = 0.12f;
+	float CorridorPropChance = 0.18f;
 
 	// ---- Monsters ----
 	/** Monster class to spawn in groups (defaults to AMonsterCharacter). */
@@ -156,7 +156,7 @@ protected:
 
 	/** Chance [0..1] that a (non-start) room contains a loot chest. The boss room always gets one. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Loot", meta = (ClampMin = "0", ClampMax = "1"))
-	float ChestChancePerRoom = 0.45f;
+	float ChestChancePerRoom = 0.55f;
 
 	// ---- Traps ----
 	/** Trap class scattered as dungeon hazards (defaults to ADungeonTrap). */

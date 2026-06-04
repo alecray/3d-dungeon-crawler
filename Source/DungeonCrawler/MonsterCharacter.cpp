@@ -337,7 +337,7 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 	{
 		if (UWorld* World = GetWorld())
 		{
-			const FVector Loc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() + 35.f);
+			const FVector Loc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() + 60.f);
 			FActorSpawnParameters P;
 			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			if (ADamageNumber* Num = World->SpawnActor<ADamageNumber>(ADamageNumber::StaticClass(), FTransform(Loc), P))

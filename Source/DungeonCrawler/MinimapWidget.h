@@ -22,6 +22,9 @@ public:
 	virtual bool Initialize() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
+	/** Reveals the entire map (dev map-reveal); forces a repaint on the next tick. */
+	void RevealEntireMap();
+
 private:
 	/** Locates the dungeon generator and (re)allocates the texture/fog buffers for its grid. */
 	bool EnsureMap();

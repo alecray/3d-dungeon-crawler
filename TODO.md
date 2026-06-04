@@ -17,6 +17,7 @@
       mesh swap-in points (BaseMeshOverride/SpikeMeshOverride/DartMeshOverride + /Game/Traps paths).
 - [x] Weapon usage costs stamina — melee now spends stamina (reducible by skills) like ranged/mage;
       the swing is gated when out of stamina. MeleeStaminaCost on the character.
+- [x] Dev menu (Esc → Dev Menu) — No Clip, God Mode (toggle), Reveal Map, Kill Player, Teleport Home.
 - [x] Game juice pass — hit-stop on connecting melee, camera kick on melee hit + ranged fire
       (UHitCameraShake), enemy knockback on player hits, and a pulsing low-health red vignette.
 - [x] Room-type variety — generator tags rooms Treasure (extra guarded chests) / Ambush (bigger forced
@@ -26,6 +27,8 @@
       reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
       require a consumable "life scroll" to respawn (else lose the run / drop loot). Ties into run-stakes
       + the town-portal difficulty/risk-reward idea in the backlog.
+- [ ] Mage weapon — add a staff/wand item so the Mage combat style can be equipped and fully exercised
+      (currently mage works only via abilities; no weapon item exists).
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 

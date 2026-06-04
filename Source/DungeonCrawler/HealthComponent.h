@@ -33,6 +33,13 @@ public:
 	/** Overrides the max (e.g. per monster type). When bRefill, current health is set to the new max. */
 	void SetMaxHealth(float NewMax, bool bRefill = true);
 
+	/** When invulnerable, ApplyDamage is a no-op (dev god mode). */
+	void SetInvulnerable(bool bInInvulnerable) { bInvulnerable = bInInvulnerable; }
+	bool IsInvulnerable() const { return bInvulnerable; }
+
+	/** Forces health to zero and fires OnDepleted once, ignoring invulnerability (dev kill). */
+	void Kill();
+
 	bool IsDead() const { return bDead; }
 	float GetHealth() const { return Health; }
 	float GetMaxHealth() const { return MaxHealth; }
@@ -54,4 +61,5 @@ protected:
 	float Health = 0.f;
 
 	bool bDead = false;
+	bool bInvulnerable = false;
 };

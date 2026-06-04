@@ -23,13 +23,20 @@ void ADamageNumber::Init(float Amount, bool bWeakPoint)
 	if (Text)
 	{
 		Text->SetText(FText::AsNumber(Rounded));
-		Text->SetTextRenderColor(bWeakPoint ? FColor(255, 140, 0) : FColor::White);
-		Text->SetWorldSize(bWeakPoint ? 72.f : 48.f);
+		// Bright, unlit, big enough to read through the dungeon's fog at combat range.
+		Text->SetTextRenderColor(bWeakPoint ? FColor(255, 140, 0) : FColor(255, 240, 120));
+		Text->SetWorldSize(bWeakPoint ? 160.f : 110.f);
+	}
+
+	// Face the camera immediately so it's never edge-on / mirrored on the first frame.
+	if (APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
+	{
+		SetActorRotation(FRotator(0.f, Cam->GetCameraRotation().Yaw + 180.f, 0.f));
 	}
 
 	// Drift up in a small arc with a little sideways scatter so stacked hits don't perfectly overlap.
-	Velocity = FVector(FMath::FRandRange(-45.f, 45.f), FMath::FRandRange(-45.f, 45.f), 190.f);
-	MaxLife = 0.9f;
+	Velocity = FVector(FMath::FRandRange(-45.f, 45.f), FMath::FRandRange(-45.f, 45.f), 200.f);
+	MaxLife = 1.0f;
 }
 
 void ADamageNumber::Tick(float DeltaSeconds)

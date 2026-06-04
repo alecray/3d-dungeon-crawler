@@ -157,12 +157,13 @@ void ABossArena::RunIntroCinematic(APawn* Player)
 	// Lock the player out for the duration of the cinematic.
 	Player->DisableInput(PC);
 
-	// Frame the boss from a point between it and the player, slightly raised.
+	// Frame the boss roughly straight-on (near eye level, only slightly raised) so the shot reads cleanly
+	// and the camera doesn't clip the ceiling.
 	FVector ToPlayer = Player->GetActorLocation() - Boss->GetActorLocation();
 	ToPlayer.Z = 0.f;
 	ToPlayer.Normalize();
-	const FVector Focus = Boss->GetActorLocation() + FVector(0.f, 0.f, 120.f);
-	const FVector CamLoc = Focus + ToPlayer * 380.f + FVector(0.f, 0.f, 160.f);
+	const FVector Focus = Boss->GetActorLocation() + FVector(0.f, 0.f, 80.f);
+	const FVector CamLoc = Focus + ToPlayer * 430.f + FVector(0.f, 0.f, 45.f);
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;

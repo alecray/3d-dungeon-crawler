@@ -18,22 +18,22 @@ art pass).
 ---
 
 ## 1. Start screen (NEW)
-- [ ] On launch a graybox menu fills the screen: title **DUNGEON CRAWLER** + **Start Game** / **Quit**.
-- [ ] Nothing of the world shows behind it; the player can't move while it's up.
-- [ ] **Start** → menu closes and the world **fades in from black**; you have control in town.
-- [ ] **Quit** → the game exits.
-- [ ] Returning to town from the dungeon does **not** re-show the menu (only once per launch).
+- [x] On launch a graybox menu fills the screen: title **DUNGEON CRAWLER** + **Start Game** / **Quit**.
+- [x] Nothing of the world shows behind it; the player can't move while it's up.
+- [x] **Start** → menu closes and the world **fades in from black**; you have control in town.
+- [x] **Quit** → the game exits.
+- [x] Returning to town from the dungeon does **not** re-show the menu (only once per launch).
 
 ## 2. Scene transitions — black fades (NEW)
-- [ ] Entering the dungeon via the town portal **fades to black, then fades in** on the dungeon.
-- [ ] Returning to town via a portal does the same.
-- [ ] **Dying** fades to black, then fades in on the fresh run.
+- [x] Entering the dungeon via the town portal **fades to black, then fades in** on the dungeon.
+- [x] Returning to town via a portal does the same.
+- [x] **Dying** fades to black, then fades in on the fresh run.
 
 ## 3. Controls reference in settings (NEW)
-- [ ] Pause (**Esc**) → **Settings** shows a scrollable **Controls** list under the sliders.
-- [ ] Every binding is present: WASD move, mouse look, Space jump, Shift sprint, LMB attack, Q ability,
+- [x] Pause (**Esc**) → **Settings** shows a scrollable **Controls** list under the sliders.
+- [x] Every binding is present: WASD move, mouse look, Space jump, Shift sprint, LMB attack, Q ability,
       1-8 hotbar, E interact, I/C/K menus, Esc pause.
-- [ ] The list fits / scrolls cleanly inside the panel.
+- [x] The list fits / scrolls cleanly inside the panel.
 
 ## 4. Boss encounter sequence (NEW)
 First-ever kill of the boss (fresh save):
@@ -49,9 +49,9 @@ On death:
 - [ ] The sealed doors **sink back down**; the **return portal activates** (cyan gate) near room center.
 
 ## 5. Boss health bar (NEW)
-- [ ] A **red boss health bar** appears pinned **top-center** when the fight starts, labelled
+- [x] A **red boss health bar** appears pinned **top-center** when the fight starts, labelled
       (e.g. **HERMIT CRAB**).
-- [ ] It **drains as you damage the boss**, and is **removed when the boss dies**.
+- [x] It **drains as you damage the boss**, and is **removed when the boss dies**.
 
 ## 6. Boss fight mechanics (NEW)
 - [ ] **Movement:** the boss **scuttles sideways / circles** you, then **telegraphs (pauses) and lunges**
@@ -90,7 +90,7 @@ On death:
 - [ ] Traps appear in corridors (and occasionally rooms) but **not in the spawn room**.
 
 ## 10. Room-type variety (NEW)
-- [ ] Rooms feel distinct, flagged by a **colored marker light**: **gold = Treasure**, **red = Ambush**,
+- [x] Rooms feel distinct, flagged by a **colored marker light**: **gold = Treasure**, **red = Ambush**,
       **green = Rest (safe)**, **purple = Elite** (Normal rooms have no marker).
 - [ ] **Treasure** rooms have **2-3 chests** and are **guarded**; **Rest** rooms have **no monsters/traps**;
       **Ambush** rooms have a **bigger swarm**; **Elite** rooms have **one tough mini-boss + a chest**.
@@ -122,9 +122,9 @@ On death:
 - [ ] Dropping an item spawns it in the world with its real mesh; **E** picks it back up.
 
 ## 16. Minimap (fog of war)
-- [ ] A framed minimap sits **top-right**, starting mostly dark.
-- [ ] Walking **reveals** walkable cells around you; unexplored stays dark.
-- [ ] The **boss room tints red** once revealed; a **cyan dot** tracks you. No crash; regenerating resets fog.
+- [x] A framed minimap sits **top-right**, starting mostly dark.
+- [x] Walking **reveals** walkable cells around you; unexplored stays dark.
+- [x] The **boss room tints red** once revealed; a **cyan dot** tracks you. No crash; regenerating resets fog.
 
 ## 17. Skill tree (K)
 - [ ] **K** opens a centered panel: **Melee / Ranged / Mage** columns + **Points: N** matching unspent points.

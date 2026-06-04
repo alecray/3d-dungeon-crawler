@@ -100,6 +100,7 @@ bool UPauseMenuWidget::Initialize()
 
 	AddButton(TEXT("Resume"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnResumeClicked);
 	AddButton(TEXT("Settings"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSettingsClicked);
+	AddButton(TEXT("Dev Menu"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevMenuClicked);
 	AddButton(TEXT("Quit"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnQuitClicked);
 
 	// Settings sub-panel (hidden until "Settings" is pressed).
@@ -197,6 +198,56 @@ bool UPauseMenuWidget::Initialize()
 	AddControlRow(TEXT("K"),                TEXT("Skill Tree"));
 	AddControlRow(TEXT("Esc"),              TEXT("Pause / Settings"));
 
+	// --- Dev panel (hidden until "Dev Menu" is pressed) ---
+	DevPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("DevPanel"));
+	DevPanel->SetVisibility(ESlateVisibility::Collapsed);
+	if (UVerticalBoxSlot* DPS = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(DevPanel)))
+	{
+		DPS->SetPadding(FMargin(0.f, 14.f, 0.f, 0.f));
+	}
+
+	UTextBlock* DevHeader = WidgetTree->ConstructWidget<UTextBlock>();
+	DevHeader->SetText(FText::FromString(TEXT("Dev Menu")));
+	DevHeader->SetJustification(ETextJustify::Center);
+	if (UVerticalBoxSlot* DHS = Cast<UVerticalBoxSlot>(DevPanel->AddChildToVerticalBox(DevHeader)))
+	{
+		DHS->SetHorizontalAlignment(HAlign_Center);
+		DHS->SetPadding(FMargin(0.f, 0.f, 0.f, 6.f));
+	}
+
+	// Creates a dev button in DevPanel; caller binds OnClicked by literal name (AddDynamic macro limitation).
+	auto MakeDevButton = [&](const TCHAR* Label, UTextBlock*& OutText) -> UButton*
+	{
+		UButton* Btn = WidgetTree->ConstructWidget<UButton>();
+		USizeBox* BtnSize = WidgetTree->ConstructWidget<USizeBox>();
+		BtnSize->SetHeightOverride(34.f);
+		OutText = WidgetTree->ConstructWidget<UTextBlock>();
+		OutText->SetText(FText::FromString(Label));
+		OutText->SetJustification(ETextJustify::Center);
+		if (USizeBoxSlot* TS = Cast<USizeBoxSlot>(BtnSize->AddChild(OutText)))
+		{
+			TS->SetHorizontalAlignment(HAlign_Fill);
+			TS->SetVerticalAlignment(VAlign_Center);
+		}
+		Btn->AddChild(BtnSize);
+		if (UVerticalBoxSlot* BS = Cast<UVerticalBoxSlot>(DevPanel->AddChildToVerticalBox(Btn)))
+		{
+			BS->SetPadding(FMargin(0.f, 4.f));
+		}
+		return Btn;
+	};
+
+	UTextBlock* NoClipText = nullptr;
+	UTextBlock* GodModeText = nullptr;
+	UTextBlock* Throwaway = nullptr;
+	MakeDevButton(TEXT("No Clip: OFF"),  NoClipText )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevNoClip);
+	MakeDevButton(TEXT("God Mode: OFF"), GodModeText)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevGodMode);
+	MakeDevButton(TEXT("Reveal Map"),    Throwaway  )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevReveal);
+	MakeDevButton(TEXT("Kill Player"),   Throwaway  )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevKill);
+	MakeDevButton(TEXT("Teleport Home"), Throwaway  )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevHome);
+	NoClipLabel = NoClipText;
+	GodModeLabel = GodModeText;
+
 	return true;
 }
 
@@ -240,6 +291,57 @@ void UPauseMenuWidget::OnSettingsClicked()
 void UPauseMenuWidget::OnQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, /*bIgnorePlatformRestrictions*/ false);
+}
+
+void UPauseMenuWidget::OnDevMenuClicked()
+{
+	if (DevPanel)
+	{
+		const bool bVisible = DevPanel->GetVisibility() != ESlateVisibility::Collapsed;
+		DevPanel->SetVisibility(bVisible ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
+	}
+}
+
+void UPauseMenuWidget::OnDevNoClip()
+{
+	if (AFirstPersonCharacter* P = GetPlayer())
+	{
+		const bool bOn = P->DevToggleNoClip();
+		if (NoClipLabel) { NoClipLabel->SetText(FText::FromString(bOn ? TEXT("No Clip: ON") : TEXT("No Clip: OFF"))); }
+	}
+}
+
+void UPauseMenuWidget::OnDevGodMode()
+{
+	if (AFirstPersonCharacter* P = GetPlayer())
+	{
+		const bool bOn = P->DevToggleGodMode();
+		if (GodModeLabel) { GodModeLabel->SetText(FText::FromString(bOn ? TEXT("God Mode: ON") : TEXT("God Mode: OFF"))); }
+	}
+}
+
+void UPauseMenuWidget::OnDevReveal()
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
+	{
+		PC->DevRevealMap();
+	}
+}
+
+void UPauseMenuWidget::OnDevKill()
+{
+	ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer());
+	if (PC) { PC->ClosePauseMenu(); } // unpause so the death flow can run
+	if (AFirstPersonCharacter* P = GetPlayer()) { P->DevKill(); }
+}
+
+void UPauseMenuWidget::OnDevHome()
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
+	{
+		PC->ClosePauseMenu(); // unpause so the fade/travel timer runs
+		PC->DevTeleportHome();
+	}
 }
 
 void UPauseMenuWidget::OnSensitivityChanged(float Value)

@@ -31,6 +31,14 @@ private:
 	UFUNCTION() void OnSensitivityChanged(float Value);
 	UFUNCTION() void OnVolumeChanged(float Value);
 
+	// Dev menu actions.
+	UFUNCTION() void OnDevMenuClicked();
+	UFUNCTION() void OnDevNoClip();
+	UFUNCTION() void OnDevGodMode();
+	UFUNCTION() void OnDevReveal();
+	UFUNCTION() void OnDevKill();
+	UFUNCTION() void OnDevHome();
+
 	AFirstPersonCharacter* GetPlayer() const;
 	UDungeonGameInstance* GetGI() const;
 	void SaveSettings();
@@ -44,4 +52,8 @@ private:
 	UPROPERTY() TObjectPtr<UTextBlock> SensValueText;
 	UPROPERTY() TObjectPtr<UTextBlock> VolumeValueText;
 	UPROPERTY() TObjectPtr<UVerticalBox> SettingsPanel;
+
+	UPROPERTY() TObjectPtr<UVerticalBox> DevPanel;
+	UPROPERTY() TObjectPtr<UTextBlock> NoClipLabel;
+	UPROPERTY() TObjectPtr<UTextBlock> GodModeLabel;
 };

@@ -13,7 +13,7 @@ void UHealthComponent::BeginPlay()
 
 float UHealthComponent::ApplyDamage(float Amount)
 {
-	if (bDead || Amount <= 0.f)
+	if (bDead || bInvulnerable || Amount <= 0.f)
 	{
 		return 0.f;
 	}
@@ -33,6 +33,17 @@ float UHealthComponent::ApplyDamage(float Amount)
 		OnDepleted.Broadcast(this);
 	}
 	return Applied;
+}
+
+void UHealthComponent::Kill()
+{
+	if (bDead)
+	{
+		return;
+	}
+	Health = 0.f;
+	bDead = true;
+	OnDepleted.Broadcast(this);
 }
 
 void UHealthComponent::Heal(float Amount)

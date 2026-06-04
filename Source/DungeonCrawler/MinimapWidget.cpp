@@ -95,6 +95,16 @@ bool UMinimapWidget::EnsureMap()
 	return true;
 }
 
+void UMinimapWidget::RevealEntireMap()
+{
+	for (bool& Cell : Revealed)
+	{
+		Cell = true;
+	}
+	LastPlayerX = -1; // force a repaint on the next tick
+	LastPlayerY = -1;
+}
+
 void UMinimapWidget::RevealAround(int32 CenterX, int32 CenterY)
 {
 	ADungeonGenerator* Gen = Generator.Get();

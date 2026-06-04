@@ -45,9 +45,10 @@ void ADungeonPlayerController::BeginPlay()
 			Bar->AddToViewport(1);
 		}
 		// Always-on corner minimap.
-		if (UMinimapWidget* Minimap = CreateWidget<UMinimapWidget>(this, UMinimapWidget::StaticClass()))
+		MinimapWidget = CreateWidget<UMinimapWidget>(this, UMinimapWidget::StaticClass());
+		if (MinimapWidget)
 		{
-			Minimap->AddToViewport(1);
+			MinimapWidget->AddToViewport(1);
 		}
 		// Low-health danger vignette (self-updating; sits under the menus).
 		if (ULowHealthVignetteWidget* Vignette = CreateWidget<ULowHealthVignetteWidget>(this, ULowHealthVignetteWidget::StaticClass()))
@@ -150,6 +151,19 @@ void ADungeonPlayerController::DoPendingTravel()
 	{
 		UGameplayStatics::OpenLevel(this, PendingTravelMap);
 	}
+}
+
+void ADungeonPlayerController::DevRevealMap()
+{
+	if (MinimapWidget)
+	{
+		MinimapWidget->RevealEntireMap();
+	}
+}
+
+void ADungeonPlayerController::DevTeleportHome()
+{
+	FadeToBlackAndTravel(TEXT("L_Town"));
 }
 
 UInventoryComponent* ADungeonPlayerController::GetPlayerInventory() const
