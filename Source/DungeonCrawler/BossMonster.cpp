@@ -148,6 +148,13 @@ void ABossMonster::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// While abilities are disabled (anim-testing mode), the boss stays in phase 1 and never casts a
+	// special — only the standard scuttle/lunge + melee attack runs.
+	if (!bAbilitiesEnabled)
+	{
+		return;
+	}
+
 	// Phase transitions on health thresholds.
 	const float Pct = Health->GetHealthPercent();
 	if (CurrentPhase < 3 && Pct <= Phase3HealthPct)

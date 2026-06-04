@@ -159,7 +159,13 @@ private:
 	FString SkeletalMeshPath = TEXT("/Game/Enemies/SK_Hermit_Crab_Boss.SK_Hermit_Crab_Boss");
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	float SkeletalMeshScale = 3.f;
+	float SkeletalMeshScale = 2.25f;
+
+	/** TEMP: while the boss animations are being finalized, leave this off so the boss stays in phase 1
+	    with no specials/phase-buffs/shell-retreat — just scuttle/lunge + the standard melee attack (so the
+	    attack animation can be tested cleanly). Flip back on to restore the full fight. */
+	UPROPERTY(EditAnywhere, Category = "Boss|Debug")
+	bool bAbilitiesEnabled = false;
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	FString IdleAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Idle.A_Hermit_Crab_Boss_Idle");

@@ -565,6 +565,11 @@ void ADungeonGenerator::BuildGeometry()
 			// course on top. The lower course only walls solid edges (doorways stay open); the upper course
 			// walls every edge that leaves the room (solid walls AND above doorways) so the top is a closed
 			// ring — exactly the same wall pieces, just stacked, with the ceiling already raised to match.
+			// Lift the upper course by a full wall-piece height so the two courses meet end-to-end instead
+			// of overlapping — the old WallHeight step left the lower piece's embed poking through the upper
+			// one (the clipping between the first and second layer). A 3cm overlap hides the seam.
+			const float StackStep = (bCustomWall ? (WallHeight + 2.f * WallEmbed) : WallTall) - 3.f;
+
 			const int32 Courses = bBoss ? 2 : 1;
 			for (int32 d = 0; d < 4; ++d)
 			{
@@ -575,7 +580,7 @@ void ADungeonGenerator::BuildGeometry()
 					const bool bWantWall = (c == 0) ? !IsFloor(nx, ny) : !IsBossRoomCell(nx, ny);
 					if (!bWantWall) { continue; }
 
-					const float ZOff = c * WallHeight;
+					const float ZOff = c * StackStep;
 					if (bCustomWall) { AddWall(C + EOff[d], ERunX[d], EFlip[d], ZOff); }
 					else
 					{
