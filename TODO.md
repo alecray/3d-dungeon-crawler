@@ -195,6 +195,13 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
       repositioning), melee reach measured from the boss's body edge (so the big crab can actually hit),
       hits for a brutal flat **135** (~75% of starting HP), closes fast (MoveSpeed 430), and runs in
       anim-test mode (`bAbilitiesEnabled=false`) with no specials while anims are finalized.
+- [x] **Boss telegraph + dodge feel** — a red floor disc (`AAttackTelegraph`) marks the exact danger
+      radius and flashes on impact; the zone is wide enough that you must DASH out (walk-back won't clear
+      it); attack cooldown 2.8s (no spam); player dash ~400cm; player melee lands ~45% through the swing.
+- [x] **Boss bug fixes** — entrance doors actually seal now (AlwaysSpawn); loot drops at floor level (not
+      the ceiling); intro camera+shake plays every encounter (not once-per-save) and frames the boss center.
+- [x] **Feedback polish** — hit sparks are a dark blood spurt (not a bright pop), damage numbers
+      bigger/brighter, skill tree panel enlarged + padded, banners lie flat on the wall.
 - [x] **Boss loot + spawn VFX** — drops 3-5 rolled items at the kill site (rarity loot beams); a code-
       driven spawn-in effect (`ABossSpawnVFX`: ground flare + energy pillar + shard swirl + debris); the
       return portal activates at the room corner farthest from the death spot.

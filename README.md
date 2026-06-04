@@ -61,8 +61,10 @@ Planned RPG systems (art-independent, in dependency order):
 Boss & encounters:
 
 - [x] Boss encounter sequence — boss spawns when you enter the room (opposite you), entrance doorways
-      seal for the fight (reopen on death), and the first-ever kill of a boss type plays a camera-focus
-      + screen-shake intro cinematic (persisted per boss id; replays skip it). Return portal on death.
+      seal for the fight (reopen on death), and a camera-focus + screen-shake intro cinematic plays
+      every encounter (framed on the boss). Return portal on death, placed away from the loot.
+- [x] Boss melee telegraph — a red danger disc on the floor (the exact hit radius) brightens through the
+      wind-up and flashes on impact; the zone is wide enough that you must **dash** out, not just step back
 - [x] Boss fight depth — crab-like scuttle + telegraphed lunge movement (hybrid navmesh: paths around
       cover when line-of-sight is blocked), 3 phases, specials (ground slam, summon adds, projectile
       volley, bubble-pool hazards, enrage, phase-3 shell-retreat), and a phase-1 back weak point (2× dmg)

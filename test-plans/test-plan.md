@@ -41,6 +41,21 @@ note: skill tree still needs more padding, you have plenty of screen real-estate
 - [ ] **Picking up** a dropped item throws a rarity-colored **sparkle**; opening a **chest** pops a rarity-colored burst (brighter for Rare+).
 - [ ] **Traps glow red** (pulsing) just before they fire — spikes ramp before rising, plates flash on the step, dart shooters glow before a shot.
 - [x] **Wall torches** sit a bit lower and their light comes from the **flame tip**, not the middle of the stick.
+- [ ] Footstep dust is now a **subtle muted puff** (no bright white flash / firecracker look).
+
+**Latest batch (boss feel + bugs):**
+- [ ] **Red ground telegraph** — a red disc appears on the floor where the boss is about to hit; it brightens through the wind-up and **flashes** on impact. Standing in it when it flashes = hit.
+- [ ] **Wide dodge-only zone** — the danger disc is wide enough that a **step-back won't clear it**; you must **dash** out. (If a dash can't escape it, tell me — it's tunable.)
+- [ ] **Attack cooldown** — the boss has a clear pause between swings (no spamming).
+- [ ] **Boss doors seal** — entrance doorways close with rising barriers when the fight starts (this was broken).
+- [ ] **Boss loot drops on the floor** (not up in the ceiling).
+- [ ] **Banners lie flat** along the wall (not jutting out perpendicular).
+- [ ] **Boss intro plays every time** (camera move + shake), including replays — not just the first kill.
+- [ ] **Intro camera frames the boss** (centered on it), not the empty space above it.
+- [ ] **Hit sparks** on monsters are now a **dark blood spurt**, not a bright pop.
+- [ ] **Player melee** lands **partway through the swing**, not on the first frame.
+- [ ] **Damage numbers** are big/bright and pop when you hit an enemy (easy to see).
+- [ ] **Skill tree (K)** is **bigger with more padding** — not cramped in the corner.
 
 ## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
 - [x] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.
