@@ -586,15 +586,6 @@ void ADungeonGenerator::ScatterProps()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	// Free-standing scenery scattered on open floor cells (rocks/mushrooms get a random scale).
-	// Coffins are intentionally excluded here — they always go flush against a wall (see below).
-	static const EPropType FloorProps[] = {
-		EPropType::Stool, EPropType::Table, EPropType::Crate, EPropType::Barrel, EPropType::Pots,
-		EPropType::Bucket, EPropType::Rocks, EPropType::Bones, EPropType::Anvil,
-		EPropType::Mushrooms
-	};
-	const int32 NumFloor = UE_ARRAY_COUNT(FloorProps);
-
 	// Wall-hugging scenery used in corridors and against room walls (won't block the path).
 	static const EPropType WallProps[] = {
 		EPropType::Barrel, EPropType::Pots, EPropType::Bucket, EPropType::Crate,
@@ -610,6 +601,8 @@ void ADungeonGenerator::ScatterProps()
 	const float BannerChancePerDoor = 0.6f;
 	const float WeaponRackChancePerWallCell = 0.03f;
 	const float CoffinChancePerWallCell = 0.05f;
+	const float WallFurnitureChance = 0.34f; // chance a wall-adjacent floor cell gets theme furniture
+	const float CornerStackChance = 0.6f;    // chance each room corner gets a prop stack
 
 	auto SpawnProp = [&](EPropType Type, const FVector& WorldLoc, const FRotator& Rot, float Scale)
 	{
@@ -652,46 +645,80 @@ void ADungeonGenerator::ScatterProps()
 	{
 		const FDungeonRoom& Room = Rooms[RoomIndex];
 
-		// --- Floor clutter on interior cells (skip the perimeter ring so it avoids walls/doors) ---
-		for (int32 y = Room.Y + 1; y < Room.Y + Room.H - 1; ++y)
+		// --- Deliberate, themed scenery: each room picks one décor theme; furniture lines the WALLS
+		//     (aligned, facing in), corner STACKS pile in the corners, and a dining set can sit in the
+		//     middle of roomier halls. The centre is otherwise left walkable, so it reads as a place
+		//     rather than uniform random scatter. ---
+		enum class EDecor : uint8 { Storage, Dining, Crypt, Smithy, Library, Count };
+		const EDecor Theme = (EDecor)Rng.RandRange(0, (int32)EDecor::Count - 1);
+
+		// Theme-appropriate prop to stand against a wall.
+		auto ThemeWallProp = [&]() -> EPropType
 		{
-			for (int32 x = Room.X + 1; x < Room.X + Room.W - 1; ++x)
+			switch (Theme)
 			{
-				if (Rng.FRand() > PropFillChance)
+			case EDecor::Storage: { const EPropType P[] = { EPropType::Barrel, EPropType::Pots, EPropType::Bucket, EPropType::Crate };     return P[Rng.RandRange(0, 3)]; }
+			case EDecor::Dining:  { const EPropType P[] = { EPropType::Barrel, EPropType::Crate, EPropType::Pots, EPropType::Bucket };      return P[Rng.RandRange(0, 3)]; }
+			case EDecor::Crypt:   { const EPropType P[] = { EPropType::Coffin, EPropType::Coffin, EPropType::Bones, EPropType::Rocks };     return P[Rng.RandRange(0, 3)]; }
+			case EDecor::Smithy:  { const EPropType P[] = { EPropType::Anvil, EPropType::Crate, EPropType::Barrel, EPropType::Bucket };     return P[Rng.RandRange(0, 3)]; }
+			default:              { const EPropType P[] = { EPropType::Bookshelf, EPropType::Dresser, EPropType::Cabinet, EPropType::Crate }; return P[Rng.RandRange(0, 3)]; }
+			}
+		};
+
+		// 1) Furniture flush against the walls, facing into the room (no random yaw).
+		for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
+		{
+			for (int32 x = Room.X; x < Room.X + Room.W; ++x)
+			{
+				FVector Outward;
+				if (!IsFloor(x, y) || !FindAdjacentWall(x, y, Outward) || Rng.FRand() > WallFurnitureChance)
 				{
 					continue;
 				}
-				const EPropType Type = FloorProps[Rng.RandRange(0, NumFloor - 1)];
-				const float Scale = (Type == EPropType::Rocks || Type == EPropType::Mushrooms)
-					? Rng.FRandRange(0.6f, 1.4f) : 1.f;
-				const FVector Loc = Xf.TransformPosition(CellToLocal(x, y));
-				const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
-				SpawnProp(Type, Loc, Rot, Scale);
+				const EPropType Type = ThemeWallProp();
+				const float Scale = (Type == EPropType::Rocks) ? Rng.FRandRange(0.7f, 1.2f) : 1.f;
+				SpawnWallProp(Type, x, y, Outward, Scale);
 			}
 		}
 
-		// --- Prop clusters: clumps of furniture piled tightly together for a lived-in look ---
-		const int32 InteriorCells = FMath::Max(0, Room.W - 2) * FMath::Max(0, Room.H - 2);
-		const int32 NumClusters = FMath::RoundToInt(InteriorCells * PropClusterDensity);
-		const float ClusterRadius = CellSize * 0.55f; // props pile within roughly one cell of the center
-		for (int32 c = 0; c < NumClusters; ++c)
+		// 2) Corner stacks: a tight pile of crates/barrels (bones in a crypt) tucked into each corner.
+		auto CornerStack = [&](int32 cx, int32 cy)
 		{
-			const int32 ccx = Rng.RandRange(Room.X + 1, Room.X + Room.W - 2);
-			const int32 ccy = Rng.RandRange(Room.Y + 1, Room.Y + Room.H - 2);
-			const FVector ClusterCenter = Xf.TransformPosition(CellToLocal(ccx, ccy));
-
-			// Each cluster favours one "primary" prop type so it reads as a coherent pile (a stack of
-			// barrels, a heap of crates), with the occasional odd item mixed in.
-			const EPropType Primary = FloorProps[Rng.RandRange(0, NumFloor - 1)];
-			const int32 Count = Rng.RandRange(FMath::Min(ClusterPropsMin, ClusterPropsMax), FMath::Max(ClusterPropsMin, ClusterPropsMax));
+			if (Rng.FRand() > CornerStackChance)
+			{
+				return;
+			}
+			const FVector Center = Xf.TransformPosition(CellToLocal(cx, cy));
+			const EPropType Stack = (Theme == EDecor::Crypt) ? EPropType::Bones
+				: (Theme == EDecor::Smithy) ? EPropType::Crate : EPropType::Barrel;
+			const int32 Count = Rng.RandRange(3, 5);
 			for (int32 p = 0; p < Count; ++p)
 			{
-				const EPropType Type = (Rng.FRand() < 0.7f) ? Primary : FloorProps[Rng.RandRange(0, NumFloor - 1)];
-				const float Scale = (Type == EPropType::Rocks || Type == EPropType::Mushrooms)
-					? Rng.FRandRange(0.6f, 1.4f) : 1.f;
-				const FVector Offset(Rng.FRandRange(-ClusterRadius, ClusterRadius), Rng.FRandRange(-ClusterRadius, ClusterRadius), 0.f);
-				const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
-				SpawnProp(Type, ClusterCenter + Offset, Rot, Scale);
+				const EPropType Type = (Rng.FRand() < 0.75f) ? Stack : EPropType::Crate;
+				const FVector Offset(Rng.FRandRange(-90.f, 90.f), Rng.FRandRange(-90.f, 90.f), 0.f);
+				SpawnProp(Type, Center + Offset, FRotator(0.f, Rng.FRandRange(0.f, 360.f), 0.f), 1.f);
+			}
+		};
+		if (Room.W >= 4 && Room.H >= 4)
+		{
+			CornerStack(Room.X + 1, Room.Y + 1);
+			CornerStack(Room.X + Room.W - 2, Room.Y + 1);
+			CornerStack(Room.X + 1, Room.Y + Room.H - 2);
+			CornerStack(Room.X + Room.W - 2, Room.Y + Room.H - 2);
+		}
+
+		// 3) Dining set centrepiece: a table ringed by stools, only in roomier dining halls.
+		if (Theme == EDecor::Dining && Room.W >= 5 && Room.H >= 5)
+		{
+			const FVector TableLoc = Xf.TransformPosition(CellToLocal(Room.CenterX(), Room.CenterY()));
+			SpawnProp(EPropType::Table, TableLoc, FRotator(0.f, Rng.FRandRange(0.f, 360.f), 0.f), 1.f);
+			const float StoolDist = CellSize * 0.55f;
+			static const int32 SDX[4] = { 1, -1, 0, 0 };
+			static const int32 SDY[4] = { 0, 0, 1, -1 };
+			for (int32 s = 0; s < 4; ++s)
+			{
+				const FVector Dir(SDX[s], SDY[s], 0.f);
+				SpawnProp(EPropType::Stool, TableLoc + Dir * StoolDist, (-Dir).Rotation(), 1.f); // face the table
 			}
 		}
 
