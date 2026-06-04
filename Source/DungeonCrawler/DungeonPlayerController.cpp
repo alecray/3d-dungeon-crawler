@@ -13,6 +13,7 @@
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
 #include "MainMenuWidget.h"
+#include "LowHealthVignetteWidget.h"
 #include "DungeonGameInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCameraManager.h"
@@ -46,6 +47,11 @@ void ADungeonPlayerController::BeginPlay()
 		if (UMinimapWidget* Minimap = CreateWidget<UMinimapWidget>(this, UMinimapWidget::StaticClass()))
 		{
 			Minimap->AddToViewport(1);
+		}
+		// Low-health danger vignette (self-updating; sits under the menus).
+		if (ULowHealthVignetteWidget* Vignette = CreateWidget<ULowHealthVignetteWidget>(this, ULowHealthVignetteWidget::StaticClass()))
+		{
+			Vignette->AddToViewport(2);
 		}
 
 		// First load of the session shows the start menu over the boot map; later loads (entering the

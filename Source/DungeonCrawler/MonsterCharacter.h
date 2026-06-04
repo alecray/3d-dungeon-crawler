@@ -88,6 +88,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Monster", meta = (ClampMin = "0"))
 	int32 XPReward = 25;
 
+	/** Horizontal knockback impulse applied when the player lands a hit (0 = none). */
+	UPROPERTY(EditAnywhere, Category = "Monster")
+	float KnockbackStrength = 280.f;
+
 	/** How long the hit-react pop lasts after taking damage (s). */
 	UPROPERTY(EditAnywhere, Category = "Monster")
 	float HitReactDuration = 0.18f;

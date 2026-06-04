@@ -17,22 +17,31 @@
       mesh swap-in points (BaseMeshOverride/SpikeMeshOverride/DartMeshOverride + /Game/Traps paths).
 - [x] Weapon usage costs stamina — melee now spends stamina (reducible by skills) like ranged/mage;
       the swing is gated when out of stamina. MeleeStaminaCost on the character.
+- [x] Game juice pass — hit-stop on connecting melee, camera kick on melee hit + ranged fire
+      (UHitCameraShake), enemy knockback on player hits, and a pulsing low-health red vignette.
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 
 ## RPG depth (genre features not yet implemented)
 
-- [ ] Loot rarity tiers + procedural affixes (rolled item stats: +damage, +crit, resistances, etc.)
 - [ ] Equipment set bonuses (wearing matching pieces grants extra effects)
 - [ ] Character classes / starting archetypes
-- [ ] Status effects (poison, burn, freeze, stun, bleed) on weapons/abilities/enemies
 - [ ] Elemental damage types + resistances/weaknesses
 - [ ] Dodge / block / parry defensive options
-- [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
 - [ ] Biomes / themed floors (visual + enemy-set variety per depth)
 - [ ] Keys & locked doors, secret rooms, destructible walls
 - [ ] Crafting / enchanting / item upgrades (sinks for materials + gold)
 - [ ] More consumables beyond potions (scrolls, food, buff items)
+
+## Backlog (bigger systems, not scheduled yet)
+
+- [ ] Status effects (poison, burn, freeze, stun, bleed) on weapons/abilities/enemies
+- [ ] Loot rarity tiers + procedural affixes (rolled item stats: +damage, +crit, resistances, etc.)
+- [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
+- [ ] FTUE for controls — first-run onboarding surfacing movement/attack/interact/abilities/inventory.
+- [ ] Dungeon-select menu on the town portal — lists dungeons/bosses you've cleared; replay at the same
+      or harder difficulty tiers for greater reward potential, with the risk of losing everything in the
+      run (high-stakes mode). Pairs with run-stakes / meta-progression.
 
 ## Boss — status & next
 
@@ -51,15 +60,19 @@ Next / not yet done:
       hands back cleanly, boss scuttles/lunges without jitter at the LoS hand-off.
 - [x] Shell-retreat mechanic (phase 3): tucks in = immobile + invulnerable (hits clang off) for
       ShellRetreatDuration, then re-emerges. In the phase-3 special pool.
-- [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam); burrow & resurface.
+- [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam).
 - [x] Boss health bar UI — dedicated top-center red bar (UBossHealthBarWidget) shown for the fight,
       removed on death; labelled from the boss id.
 - [x] Tuned projectile speed (boss bolts now 1500, dodgeable) + summoned adds get a real monster type.
 - [ ] Swap graybox: hermit-crab model, real gate/portcullis door mesh, portal mesh.
 - [ ] Support multiple boss types (only one boss id today).
 
+### Future boss mechanic ideas (later)
+- [ ] Burrow & resurface — boss digs under, re-emerges near the player (not for this boss).
+
 ## Flow / UX
 
+- [ ] Controls in settings — a controls reference (and ideally rebinding) in the pause/settings menu.
 - [x] Start screen — graybox main menu (title + Start/Quit) shown at launch over the boot map
       (opaque, once per session). Start fades in to play; Quit exits.
 - [x] Scene transitions — black camera fades on every level travel (portal town<->dungeon, death

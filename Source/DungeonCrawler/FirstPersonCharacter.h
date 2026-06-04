@@ -276,6 +276,15 @@ private:
 	void EquipActiveHotbarItem();
 
 	void MeleeAttack();
+
+	/** Briefly slows global time for impact "hit-stop" (restored after Duration real seconds). */
+	void TriggerHitStop(float Duration = 0.055f, float Dilation = 0.04f);
+	/** Plays the short combat camera-kick shake at the given scale. */
+	void CameraKick(float Scale);
+
+	// Hit-stop bookkeeping (counted in real time so the dilation actually un-freezes).
+	bool bHitStopActive = false;
+	float HitStopRealLeft = 0.f;
 	/** Fires the center bolt plus ExtraProjectiles additional bolts in a horizontal spread. */
 	void FireProjectile(float Damage, int32 ExtraProjectiles = 0);
 

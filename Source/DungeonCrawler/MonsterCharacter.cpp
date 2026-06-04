@@ -287,11 +287,23 @@ void AMonsterCharacter::PlayAttackAnim()
 	AttackAnimEndTime = GetWorld()->GetTimeSeconds() + AttackAnim->GetPlayLength();
 }
 
-float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& /*FromLocation*/)
+float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)
 {
 	// Base monsters have no weak points; clear the flag and apply the damage straight through.
 	bLastHitWeak = false;
-	return Health ? Health->ApplyDamage(BaseDamage) : 0.f;
+	const float Dealt = Health ? Health->ApplyDamage(BaseDamage) : 0.f;
+
+	// Juice: knock the monster back away from where the hit came from (small upward hop).
+	if (Dealt > 0.f && !bDead && KnockbackStrength > 0.f)
+	{
+		FVector Dir = GetActorLocation() - FromLocation;
+		Dir.Z = 0.f;
+		if (Dir.Normalize())
+		{
+			LaunchCharacter(Dir * KnockbackStrength + FVector(0.f, 0.f, 120.f), /*bXYOverride*/ true, /*bZOverride*/ false);
+		}
+	}
+	return Dealt;
 }
 
 void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, float Amount)

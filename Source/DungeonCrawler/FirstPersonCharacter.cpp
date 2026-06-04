@@ -14,6 +14,8 @@
 #include "ShopNPC.h"
 #include "Projectile.h"
 #include "DeathPoof.h"
+#include "HitCameraShake.h"
+#include "Misc/App.h"
 #include "EngineUtils.h" // TActorIterator
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
@@ -518,9 +520,38 @@ void AFirstPersonCharacter::PerformAreaBurst(float Radius, float Damage)
 	World->SpawnActor<ADeathPoof>(ADeathPoof::StaticClass(), FTransform(Center + FVector(0.f, 0.f, 40.f)), P);
 }
 
+void AFirstPersonCharacter::TriggerHitStop(float Duration, float Dilation)
+{
+	if (UWorld* World = GetWorld())
+	{
+		UGameplayStatics::SetGlobalTimeDilation(World, Dilation);
+		bHitStopActive = true;
+		HitStopRealLeft = Duration;
+	}
+}
+
+void AFirstPersonCharacter::CameraKick(float Scale)
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->ClientStartCameraShake(UHitCameraShake::StaticClass(), Scale);
+	}
+}
+
 void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	// Count hit-stop in REAL time (FApp delta is unaffected by global dilation) and restore when done.
+	if (bHitStopActive)
+	{
+		HitStopRealLeft -= FApp::GetDeltaTime();
+		if (HitStopRealLeft <= 0.f)
+		{
+			bHitStopActive = false;
+			UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
+		}
+	}
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	const float Speed2D = GetVelocity().Size2D();
@@ -846,6 +877,13 @@ void AFirstPersonCharacter::MeleeAttack()
 	{
 		Health->Heal(TotalDealt * Lifesteal);
 	}
+
+	// Juice: a connecting swing freezes for a few frames and kicks the camera.
+	if (TotalDealt > 0.f)
+	{
+		TriggerHitStop();
+		CameraKick(1.f);
+	}
 }
 
 void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
@@ -878,6 +916,8 @@ void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
 			Proj->Launch(Dir, Damage, this);
 		}
 	}
+
+	CameraKick(0.5f); // a light recoil on firing
 }
 
 void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
