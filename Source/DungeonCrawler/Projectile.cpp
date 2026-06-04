@@ -31,9 +31,10 @@ AProjectile::AProjectile()
 	Movement->ProjectileGravityScale = 0.f; // straight flight
 }
 
-void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shooter)
+void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shooter, bool bTargetPlayer, float GravityScale)
 {
 	Damage = InDamage;
+	bDamagesPlayer = bTargetPlayer;
 
 	if (Shooter)
 	{
@@ -41,6 +42,7 @@ void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shoot
 	}
 	Collision->OnComponentHit.AddDynamic(this, &AProjectile::OnHit);
 
+	Movement->ProjectileGravityScale = GravityScale;
 	Movement->Velocity = Direction.GetSafeNormal() * Speed;
 	SetLifeSpan(LifeSeconds);
 }
@@ -48,11 +50,22 @@ void AProjectile::Launch(const FVector& Direction, float InDamage, AActor* Shoot
 void AProjectile::OnHit(UPrimitiveComponent* /*HitComp*/, AActor* OtherActor, UPrimitiveComponent* /*OtherComp*/,
 	FVector /*NormalImpulse*/, const FHitResult& /*Hit*/)
 {
-	if (OtherActor && OtherActor->IsA(AMonsterCharacter::StaticClass()))
+	// Boss bolts hurt the player (anything with health that isn't a monster); player bolts hurt monsters.
+	const bool bIsMonster = OtherActor && OtherActor->IsA(AMonsterCharacter::StaticClass());
+	const bool bValidTarget = OtherActor && (bDamagesPlayer ? !bIsMonster : bIsMonster);
+	if (bValidTarget)
 	{
-		if (UHealthComponent* MonsterHealth = OtherActor->FindComponentByClass<UHealthComponent>())
+		if (!bDamagesPlayer)
 		{
-			MonsterHealth->ApplyDamage(Damage);
+			// Player's bolt: route through the monster so back/weak-point hits are detected.
+			if (AMonsterCharacter* Monster = Cast<AMonsterCharacter>(OtherActor))
+			{
+				Monster->ApplyHitDamage(Damage, GetActorLocation());
+			}
+		}
+		else if (UHealthComponent* TargetHealth = OtherActor->FindComponentByClass<UHealthComponent>())
+		{
+			TargetHealth->ApplyDamage(Damage);
 		}
 	}
 	Destroy();

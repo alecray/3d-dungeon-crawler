@@ -3,6 +3,7 @@
 #include "StatsComponent.h"
 #include "MonsterTypes.h"
 #include "DeathPoof.h"
+#include "DamageNumber.h"
 
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h" // EPathFollowingRequestResult values
@@ -214,18 +215,22 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	{
 		if (!bAttacking) { SetLocomotion(true); }
 
-		// Chase via navmesh so we path around walls. Re-issue periodically since the player moves.
-		RepathTimer -= DeltaSeconds;
-		if (AI && RepathTimer <= 0.f)
+		// Subclasses (the boss) can take over movement here; otherwise use the default navmesh chase.
+		if (!TickCustomChase(DeltaSeconds, Player, Dir, Dist))
 		{
-			RepathTimer = RepathInterval;
-			const EPathFollowingRequestResult::Type Result =
-				AI->MoveToActor(Player, AttackRange * 0.85f, /*bStopOnOverlap*/ true, /*bUsePathfinding*/ true);
-			bNavChasing = (Result != EPathFollowingRequestResult::Failed); // navmesh tile ready?
-		}
-		if (!bNavChasing)
-		{
-			AddMovementInput(Dir, 1.f); // fallback: steer straight until the navmesh has generated
+			// Chase via navmesh so we path around walls. Re-issue periodically since the player moves.
+			RepathTimer -= DeltaSeconds;
+			if (AI && RepathTimer <= 0.f)
+			{
+				RepathTimer = RepathInterval;
+				const EPathFollowingRequestResult::Type Result =
+					AI->MoveToActor(Player, AttackRange * 0.85f, /*bStopOnOverlap*/ true, /*bUsePathfinding*/ true);
+				bNavChasing = (Result != EPathFollowingRequestResult::Failed); // navmesh tile ready?
+			}
+			if (!bNavChasing)
+			{
+				AddMovementInput(Dir, 1.f); // fallback: steer straight until the navmesh has generated
+			}
 		}
 		return;
 	}
@@ -282,9 +287,32 @@ void AMonsterCharacter::PlayAttackAnim()
 	AttackAnimEndTime = GetWorld()->GetTimeSeconds() + AttackAnim->GetPlayLength();
 }
 
-void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, float /*Amount*/)
+float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& /*FromLocation*/)
+{
+	// Base monsters have no weak points; clear the flag and apply the damage straight through.
+	bLastHitWeak = false;
+	return Health ? Health->ApplyDamage(BaseDamage) : 0.f;
+}
+
+void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, float Amount)
 {
 	HitReactTimeLeft = HitReactDuration; // kick off the pop
+
+	// Floating damage number above the monster.
+	if (Amount > 0.f)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			const FVector Loc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() + 35.f);
+			FActorSpawnParameters P;
+			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			if (ADamageNumber* Num = World->SpawnActor<ADamageNumber>(ADamageNumber::StaticClass(), FTransform(Loc), P))
+			{
+				Num->Init(Amount, bLastHitWeak);
+			}
+		}
+	}
+	bLastHitWeak = false; // consume the flag so unrouted damage (traps, etc.) shows as a normal hit
 }
 
 void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)

@@ -20,8 +20,13 @@ class DUNGEONCRAWLER_API AProjectile : public AActor
 public:
 	AProjectile();
 
-	/** Sets damage + who fired it (ignored for collision), and sends it flying along Direction. */
-	void Launch(const FVector& Direction, float InDamage, AActor* Shooter);
+	/**
+	 * Sets damage + who fired it (ignored for collision) and sends it flying along Direction.
+	 * @param bTargetPlayer  when true the bolt damages the player (and ignores monsters) — used by the
+	 *                       boss; when false it damages monsters — used by the player's weapons.
+	 * @param GravityScale   0 = straight flight; >0 makes it arc (lobbed shots).
+	 */
+	void Launch(const FVector& Direction, float InDamage, AActor* Shooter, bool bTargetPlayer = false, float GravityScale = 0.f);
 
 protected:
 	UFUNCTION()
@@ -45,4 +50,5 @@ protected:
 
 private:
 	float Damage = 10.f;
+	bool bDamagesPlayer = false; // false: hits monsters (player's shot); true: hits the player (boss shot)
 };

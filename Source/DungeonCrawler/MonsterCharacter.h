@@ -25,6 +25,13 @@ public:
 	/** Apply a monster type from the database (stats, scale, and optional skeletal mesh + run anim). */
 	void ApplyType(FName TypeId);
 
+	/**
+	 * Applies incoming damage from an attack, honoring directional weak points (overridden by the boss).
+	 * Player weapons route damage through here (instead of UHealthComponent directly) so weak-point hits
+	 * are detected. @param FromLocation world position the hit came from. Returns damage actually dealt.
+	 */
+	virtual float ApplyHitDamage(float BaseDamage, const FVector& FromLocation);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -97,6 +104,16 @@ protected:
 
 	/** Plays the hit-react pop without applying damage (for special-attack feedback). */
 	void TriggerHitReact() { HitReactTimeLeft = HitReactDuration; }
+
+	/**
+	 * Optional custom chase movement, called each frame while chasing (out of attack range). Return true
+	 * to take over movement and skip the default navmesh chase; false (default) keeps the default chase.
+	 * The boss overrides this to scuttle sideways and telegraph lunges.
+	 */
+	virtual bool TickCustomChase(float DeltaSeconds, APawn* Player, const FVector& DirToPlayer, float Dist) { return false; }
+
+	/** Set by ApplyHitDamage when the last hit struck a weak point — drives the damage-number styling. */
+	bool bLastHitWeak = false;
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;

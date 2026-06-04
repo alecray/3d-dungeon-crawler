@@ -10,6 +10,7 @@ class AMonsterCharacter;
 class ABossMonster;
 class ALootChest;
 class APortal;
+class ADungeonTrap;
 class UHealthComponent;
 
 /** A placed room as a rectangle of grid cells. */
@@ -101,7 +102,11 @@ protected:
 	// ---- Props ----
 	/** Chance [0..1] that any given interior room cell receives a furniture prop. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0", ClampMax = "1"))
-	float PropFillChance = 0.14f;
+	float PropFillChance = 0.24f;
+
+	/** Chance [0..1] that any given corridor cell receives a wall-hugging prop. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0", ClampMax = "1"))
+	float CorridorPropChance = 0.12f;
 
 	// ---- Monsters ----
 	/** Monster class to spawn in groups (defaults to AMonsterCharacter). */
@@ -135,6 +140,23 @@ protected:
 	/** Chance [0..1] that a (non-start) room contains a loot chest. The boss room always gets one. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Loot", meta = (ClampMin = "0", ClampMax = "1"))
 	float ChestChancePerRoom = 0.45f;
+
+	// ---- Traps ----
+	/** Trap class scattered as dungeon hazards (defaults to ADungeonTrap). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Traps")
+	TSubclassOf<ADungeonTrap> TrapClass;
+
+	/** Chance [0..1] that a corridor cell hosts a floor trap (spike floor or pressure plate). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Traps", meta = (ClampMin = "0", ClampMax = "1"))
+	float CorridorTrapChance = 0.08f;
+
+	/** Chance [0..1] that an interior room cell hosts a floor trap. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Traps", meta = (ClampMin = "0", ClampMax = "1"))
+	float RoomTrapChance = 0.02f;
+
+	/** Chance [0..1] that a wall cell beside open floor mounts a dart shooter. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Traps", meta = (ClampMin = "0", ClampMax = "1"))
+	float DartShooterChance = 0.025f;
 
 	// ---- Return portals (back to town) ----
 	/** Portal class for the return-to-town portals (defaults to APortal). */
@@ -226,6 +248,7 @@ private:
 	void ScatterProps();
 	void ScatterMonsters();
 	void ScatterChests();
+	void ScatterTraps();
 	void SpawnBoss();
 	/** Spawns the always-on return portal in the start room (the boss-room one is spawned with the boss). */
 	void SpawnReturnPortals();

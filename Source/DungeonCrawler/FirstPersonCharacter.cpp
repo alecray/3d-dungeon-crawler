@@ -502,10 +502,7 @@ void AFirstPersonCharacter::PerformAreaBurst(float Radius, float Damage)
 		{
 			continue;
 		}
-		if (UHealthComponent* MonsterHealth = Monster->FindComponentByClass<UHealthComponent>())
-		{
-			MonsterHealth->ApplyDamage(Damage);
-		}
+		Monster->ApplyHitDamage(Damage, Center);
 	}
 
 	// Graybox VFX feedback at the player.
@@ -825,10 +822,9 @@ void AFirstPersonCharacter::MeleeAttack()
 		}
 		AlreadyHit.Add(HitActor);
 
-		if (UHealthComponent* MonsterHealth = HitActor->FindComponentByClass<UHealthComponent>())
+		if (AMonsterCharacter* Monster = Cast<AMonsterCharacter>(HitActor))
 		{
-			MonsterHealth->ApplyDamage(DamagePerHit);
-			TotalDealt += DamagePerHit;
+			TotalDealt += Monster->ApplyHitDamage(DamagePerHit, GetActorLocation());
 		}
 	}
 

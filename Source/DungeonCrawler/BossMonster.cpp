@@ -1,9 +1,12 @@
 #include "BossMonster.h"
 #include "HealthComponent.h"
+#include "Projectile.h"
+#include "BubbleHazard.h"
 
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
@@ -27,6 +30,15 @@ ABossMonster::ABossMonster()
 	MorphParts.Add(AddBox(TEXT("Morph1_BackSpike"), FVector(-28.f, 0.f, 45.f), FVector(28.f, 28.f, 70.f)));
 	MorphParts.Add(AddBox(TEXT("Morph2_Crown"),     FVector(0.f, 0.f, 115.f), FVector(75.f, 75.f, 26.f)));
 	MorphParts.Add(AddBox(TEXT("Morph3_Horns"),     FVector(34.f, 0.f, 70.f), FVector(40.f, 60.f, 80.f)));
+
+	// Bright marker on the back (-X) flagging the phase-1 weak point; shown only during phase 1.
+	BackWeakMesh = AddBox(TEXT("BackWeakPoint"), FVector(-32.f, 0.f, 55.f), FVector(20.f, 46.f, 46.f));
+
+	// Face the player (not the movement direction) so the back weak point and lunges stay meaningful.
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	ProjectileClass = AProjectile::StaticClass();
+	BubbleClass = ABubbleHazard::StaticClass();
 }
 
 void ABossMonster::BeginPlay()
@@ -43,6 +55,10 @@ void ABossMonster::BeginPlay()
 			Part->SetVisibility(false);
 		}
 	}
+
+	MoveState = EMoveState::Scuttle;
+	MoveTimer = FMath::FRandRange(1.f, 2.f);
+	StrafeSign = (FMath::FRand() < 0.5f) ? -1.f : 1.f;
 
 	CurrentPhase = 0;
 	AdvanceToPhase(1);
@@ -94,6 +110,14 @@ void ABossMonster::AdvanceToPhase(int32 NewPhase)
 	{
 		MorphParts[NewPhase - 1]->SetVisibility(true);
 	}
+
+	// The back weak point is only exposed in phase 1; the boss armors over it afterwards.
+	bBackWeakActive = (NewPhase == 1);
+	if (BackWeakMesh)
+	{
+		BackWeakMesh->SetVisibility(bBackWeakActive);
+	}
+
 	TriggerHitReact(); // visual pop on morph
 
 	// Phases 2 and 3 buff the boss.
@@ -124,9 +148,11 @@ void ABossMonster::ScheduleNextSpecial()
 void ABossMonster::DoRandomSpecial()
 {
 	// Pool of mechanics widens with phase.
-	TArray<int32, TInlineAllocator<3>> Pool;
+	TArray<int32, TInlineAllocator<5>> Pool;
 	Pool.Add(0); // slam (always)
+	Pool.Add(3); // projectile volley (always)
 	if (CurrentPhase >= 2) { Pool.Add(1); } // summon
+	if (CurrentPhase >= 2) { Pool.Add(4); } // bubble burst
 	if (CurrentPhase >= 3) { Pool.Add(2); } // enrage
 
 	switch (Pool[FMath::RandRange(0, Pool.Num() - 1)])
@@ -134,6 +160,8 @@ void ABossMonster::DoRandomSpecial()
 	case 0: SlamAttack(); break;
 	case 1: SummonAdds(); break;
 	case 2: EnrageBurst(); break;
+	case 3: SpitProjectiles(); break;
+	case 4: BubbleBurst(); break;
 	default: break;
 	}
 }
@@ -195,4 +223,156 @@ void ABossMonster::EnrageBurst()
 	{
 		GEngine->AddOnScreenDebugMessage(/*Key*/ 13, 1.5f, FColor::Yellow, TEXT("Boss: ENRAGED!"));
 	}
+}
+
+void ABossMonster::SpitProjectiles()
+{
+	UWorld* World = GetWorld();
+	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!World || !ProjectileClass || !Player)
+	{
+		return;
+	}
+
+	const FVector Muzzle = GetActorLocation() + GetActorForwardVector() * 120.f + FVector(0.f, 0.f, 120.f);
+	FVector ToPlayer = (Player->GetActorLocation() + FVector(0.f, 0.f, 40.f)) - Muzzle;
+	if (!ToPlayer.Normalize())
+	{
+		return;
+	}
+
+	// One aimed bolt in phase 1; a 3-bolt spread from phase 2 on.
+	const int32 Count = (CurrentPhase >= 2) ? 3 : 1;
+
+	FActorSpawnParameters P;
+	P.Owner = this;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	for (int32 i = 0; i < Count; ++i)
+	{
+		const float Yaw = (Count > 1) ? FMath::Lerp(-ProjectileSpread, ProjectileSpread, (float)i / (Count - 1)) : 0.f;
+		const FVector Dir = ToPlayer.RotateAngleAxis(Yaw, FVector::UpVector);
+		if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), Muzzle), P))
+		{
+			Proj->Launch(Dir, ProjectileDamage, this, /*bTargetPlayer*/ true, /*GravityScale*/ 0.f);
+		}
+	}
+
+	TriggerHitReact();
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(/*Key*/ 14, 1.5f, FColor::Cyan, TEXT("Boss: SPITS PROJECTILES!"));
+	}
+}
+
+void ABossMonster::BubbleBurst()
+{
+	UWorld* World = GetWorld();
+	if (!World || !BubbleClass)
+	{
+		return;
+	}
+
+	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	const FVector Around = Player ? Player->GetActorLocation() : GetActorLocation();
+
+	FActorSpawnParameters P;
+	P.Owner = this;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// Drop a cluster of pools around the player, forcing them to reposition.
+	for (int32 i = 0; i < BubbleCount; ++i)
+	{
+		const FVector Offset(FMath::FRandRange(-360.f, 360.f), FMath::FRandRange(-360.f, 360.f), 0.f);
+		FVector Loc = Around + Offset;
+		Loc.Z = Around.Z - 70.f; // sit roughly on the floor
+		if (ABubbleHazard* Bubble = World->SpawnActor<ABubbleHazard>(BubbleClass, FTransform(Loc), P))
+		{
+			Bubble->Init(BubbleRadius, BubbleDamage, BubbleLifetime);
+		}
+	}
+
+	TriggerHitReact();
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(/*Key*/ 15, 1.5f, FColor::Green, TEXT("Boss: BUBBLING POOLS ERUPT!"));
+	}
+}
+
+float ABossMonster::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)
+{
+	float Dmg = BaseDamage;
+	bool bWeak = false;
+
+	if (bBackWeakActive)
+	{
+		FVector ToHit = FromLocation - GetActorLocation();
+		ToHit.Z = 0.f;
+		// A hit counts as a back strike when it comes from behind the boss's facing.
+		if (ToHit.Normalize() && FVector::DotProduct(GetActorForwardVector(), ToHit) < -0.25f)
+		{
+			Dmg *= WeakPointMultiplier;
+			bWeak = true;
+		}
+	}
+
+	bLastHitWeak = bWeak; // read by HandleDamaged to style the floating number
+	return Health ? Health->ApplyDamage(Dmg) : 0.f;
+}
+
+bool ABossMonster::TickCustomChase(float DeltaSeconds, APawn* Player, const FVector& DirToPlayer, float Dist)
+{
+	// Always face the player so the back weak point and forward lunges stay meaningful.
+	const FRotator Face(0.f, DirToPlayer.Rotation().Yaw, 0.f);
+	SetActorRotation(FMath::RInterpTo(GetActorRotation(), Face, DeltaSeconds, 7.f));
+
+	const FVector Lateral = FVector::CrossProduct(FVector::UpVector, DirToPlayer).GetSafeNormal();
+	MoveTimer -= DeltaSeconds;
+
+	switch (MoveState)
+	{
+	case EMoveState::Scuttle:
+	{
+		// Sidestep around the player while drifting slowly inward — a crab-like scuttle.
+		const FVector Move = (Lateral * StrafeSign * 0.85f + DirToPlayer * 0.35f).GetSafeNormal();
+		AddMovementInput(Move, 1.f);
+		if (MoveTimer <= 0.f)
+		{
+			if (FMath::FRand() < 0.5f) { StrafeSign *= -1.f; } // occasionally reverse the circle
+			if (Dist < LungeRange)
+			{
+				MoveState = EMoveState::Telegraph;
+				MoveTimer = LungeTelegraph;
+				TriggerHitReact(); // wind-up tell
+			}
+			else
+			{
+				MoveTimer = FMath::FRandRange(0.8f, 1.6f);
+			}
+		}
+		break;
+	}
+	case EMoveState::Telegraph:
+		// Hold still, faced at the player, then dash.
+		if (MoveTimer <= 0.f)
+		{
+			MoveState = EMoveState::Lunge;
+			MoveTimer = LungeTime;
+			GetCharacterMovement()->MaxWalkSpeed = BaseMoveSpeed * LungeSpeedMult;
+		}
+		break;
+	case EMoveState::Lunge:
+		AddMovementInput(DirToPlayer, 1.f); // fast forward dash
+		if (MoveTimer <= 0.f)
+		{
+			MoveState = EMoveState::Scuttle;
+			MoveTimer = FMath::FRandRange(1.2f, 2.2f);
+			StrafeSign = (FMath::FRand() < 0.5f) ? -1.f : 1.f;
+			// Restore normal speed (respecting an active enrage burst).
+			GetCharacterMovement()->MaxWalkSpeed = (EnrageEndTime > 0.f) ? BaseMoveSpeed * 2.f : BaseMoveSpeed;
+		}
+		break;
+	}
+
+	return true; // boss handles its own chase movement
 }

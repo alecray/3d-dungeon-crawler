@@ -5,6 +5,8 @@
 #include "BossMonster.generated.h"
 
 class UStaticMeshComponent;
+class AProjectile;
+class ABubbleHazard;
 
 /**
  * Oversized boss built on top of AMonsterCharacter (it inherits the chase/attack/health/hit-react).
@@ -22,8 +24,14 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** Doubles damage from behind while the phase-1 back weak point is exposed. */
+	virtual float ApplyHitDamage(float BaseDamage, const FVector& FromLocation) override;
+
 protected:
 	virtual void BeginPlay() override;
+
+	/** Crab-like movement: scuttle sideways around the player and telegraph forward lunges. */
+	virtual bool TickCustomChase(float DeltaSeconds, APawn* Player, const FVector& DirToPlayer, float Dist) override;
 
 	/** Health fraction at/below which the boss enters phase 2 and phase 3. */
 	UPROPERTY(EditAnywhere, Category = "Boss")
@@ -50,6 +58,51 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Boss")
 	int32 SummonCount = 2;
 
+	// ---- Phase-1 back weak point ----
+	/** Damage multiplier applied to hits landed on the boss's back during phase 1. */
+	UPROPERTY(EditAnywhere, Category = "Boss|WeakPoint")
+	float WeakPointMultiplier = 2.f;
+
+	// ---- Projectile volley ----
+	UPROPERTY(EditAnywhere, Category = "Boss|Projectiles")
+	TSubclassOf<AProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Projectiles")
+	float ProjectileDamage = 14.f;
+
+	/** Half-angle (deg) of the spread fired in phase 2+ (3 bolts). */
+	UPROPERTY(EditAnywhere, Category = "Boss|Projectiles")
+	float ProjectileSpread = 14.f;
+
+	// ---- Bubble hazards (phases 2-3) ----
+	UPROPERTY(EditAnywhere, Category = "Boss|Bubbles")
+	TSubclassOf<ABubbleHazard> BubbleClass;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Bubbles")
+	int32 BubbleCount = 4;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Bubbles")
+	float BubbleRadius = 150.f;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Bubbles")
+	float BubbleDamage = 12.f;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Bubbles")
+	float BubbleLifetime = 5.f;
+
+	// ---- Lunge movement ----
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float LungeRange = 950.f;       // start winding up a lunge once within this distance
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float LungeTelegraph = 0.45f;   // wind-up hold before the dash
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float LungeTime = 0.45f;        // dash duration
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float LungeSpeedMult = 2.6f;    // dash speed vs. base move speed
+
 private:
 	void AdvanceToPhase(int32 NewPhase);
 	void ScheduleNextSpecial();
@@ -58,13 +111,28 @@ private:
 	void SlamAttack();
 	void SummonAdds();
 	void EnrageBurst();
+	void SpitProjectiles();
+	void BubbleBurst();
 
 	/** Three cube "growths" revealed one-per-phase to show the boss morphing. */
 	UPROPERTY()
 	TArray<TObjectPtr<UStaticMeshComponent>> MorphParts;
 
+	/** Bright marker on the boss's back, exposed during phase 1 to flag the weak point. */
+	UPROPERTY()
+	TObjectPtr<UStaticMeshComponent> BackWeakMesh;
+
 	int32 CurrentPhase = 0;
 	float NextSpecialTime = 0.f;
 	float EnrageEndTime = 0.f;
 	float BaseMoveSpeed = 0.f;
+
+	/** True while the phase-1 back weak point is exposed. */
+	bool bBackWeakActive = false;
+
+	// Scuttle/lunge movement state machine (see TickCustomChase).
+	enum class EMoveState : uint8 { Scuttle, Telegraph, Lunge };
+	EMoveState MoveState = EMoveState::Scuttle;
+	float MoveTimer = 0.f;
+	float StrafeSign = 1.f;
 };

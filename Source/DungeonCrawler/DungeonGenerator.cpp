@@ -6,6 +6,7 @@
 #include "LootChest.h"
 #include "ItemPickup.h"
 #include "Portal.h"
+#include "DungeonTrap.h"
 #include "HealthComponent.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
@@ -77,6 +78,7 @@ ADungeonGenerator::ADungeonGenerator()
 	MonsterClass = AMonsterCharacter::StaticClass();
 	BossClass = ABossMonster::StaticClass();
 	ChestClass = ALootChest::StaticClass();
+	TrapClass = ADungeonTrap::StaticClass();
 }
 
 void ADungeonGenerator::BeginPlay()
@@ -143,6 +145,7 @@ void ADungeonGenerator::Generate()
 	ScatterProps();
 	ScatterMonsters();
 	ScatterChests();
+	ScatterTraps();
 	SpawnBoss();
 	SpawnReturnPortals();
 	if (bSpawnTorches)
@@ -505,17 +508,29 @@ void ADungeonGenerator::ScatterProps()
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	// Free-standing scenery scattered on open floor cells (rocks/mushrooms get a random scale).
+	// Coffins are intentionally excluded here — they always go flush against a wall (see below).
 	static const EPropType FloorProps[] = {
 		EPropType::Stool, EPropType::Table, EPropType::Crate, EPropType::Barrel, EPropType::Pots,
-		EPropType::Bucket, EPropType::Rocks, EPropType::Bones, EPropType::Anvil, EPropType::Coffin,
+		EPropType::Bucket, EPropType::Rocks, EPropType::Bones, EPropType::Anvil,
 		EPropType::Mushrooms
 	};
 	const int32 NumFloor = UE_ARRAY_COUNT(FloorProps);
+
+	// Wall-hugging scenery used in corridors and against room walls (won't block the path).
+	static const EPropType WallProps[] = {
+		EPropType::Barrel, EPropType::Pots, EPropType::Bucket, EPropType::Crate,
+		EPropType::Bones, EPropType::Rocks, EPropType::Coffin
+	};
+	const int32 NumWall = UE_ARRAY_COUNT(WallProps);
+
+	static const int32 DX[4] = { 1, -1, 0, 0 };
+	static const int32 DY[4] = { 0, 0, 1, -1 };
 
 	const FTransform Xf = GetActorTransform();
 	const float HalfCell = CellSize * 0.5f;
 	const float BannerChancePerDoor = 0.6f;
 	const float WeaponRackChancePerWallCell = 0.03f;
+	const float CoffinChancePerWallCell = 0.05f;
 
 	auto SpawnProp = [&](EPropType Type, const FVector& WorldLoc, const FRotator& Rot, float Scale)
 	{
@@ -526,6 +541,30 @@ void ADungeonGenerator::ScatterProps()
 			if (!FMath::IsNearlyEqual(Scale, 1.f)) { Prop->SetActorScale3D(FVector(Scale)); }
 			SpawnedActors.Add(Prop);
 		}
+	};
+
+	// Finds a random adjacent solid (non-floor) direction for cell (x,y); used to hug props to walls.
+	auto FindAdjacentWall = [&](int32 x, int32 y, FVector& OutDir) -> bool
+	{
+		int32 Order[4] = { 0, 1, 2, 3 };
+		for (int32 i = 3; i > 0; --i) { Swap(Order[i], Order[Rng.RandRange(0, i)]); }
+		for (int32 k = 0; k < 4; ++k)
+		{
+			const int32 d = Order[k];
+			if (!IsFloor(x + DX[d], y + DY[d]))
+			{
+				OutDir = FVector(DX[d], DY[d], 0.f);
+				return true;
+			}
+		}
+		return false;
+	};
+
+	// Places a prop flush against the wall in direction Outward, facing into the open space.
+	auto SpawnWallProp = [&](EPropType Type, int32 x, int32 y, const FVector& Outward, float Scale)
+	{
+		const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 20.f);
+		SpawnProp(Type, Loc, (-Outward).Rotation(), Scale);
 	};
 
 	// Skip room 0 so the player's spawn room stays clear.
@@ -552,8 +591,6 @@ void ADungeonGenerator::ScatterProps()
 		}
 
 		// --- Wall-mounted weapon racks + banners flanking doorways (whole room incl. perimeter) ---
-		static const int32 DX[4] = { 1, -1, 0, 0 };
-		static const int32 DY[4] = { 0, 0, 1, -1 };
 		for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
 		{
 			for (int32 x = Room.X; x < Room.X + Room.W; ++x)
@@ -588,15 +625,44 @@ void ADungeonGenerator::ScatterProps()
 						}
 						break; // this cell handled as a doorway
 					}
-					if (!IsFloor(nx, ny) && Rng.FRand() <= WeaponRackChancePerWallCell)
+					if (!IsFloor(nx, ny))
 					{
-						// Solid wall: mount a weapon rack flush against it, facing into the room.
-						const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 18.f);
-						SpawnProp(EPropType::WeaponRack, Loc, (-Outward).Rotation(), 1.f);
-						break; // one wall prop per cell
+						if (Rng.FRand() <= WeaponRackChancePerWallCell)
+						{
+							// Solid wall: mount a weapon rack flush against it, facing into the room.
+							const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 18.f);
+							SpawnProp(EPropType::WeaponRack, Loc, (-Outward).Rotation(), 1.f);
+							break; // one wall prop per cell
+						}
+						if (Rng.FRand() <= CoffinChancePerWallCell)
+						{
+							// Solid wall: stand a coffin flush against it, facing into the room.
+							SpawnWallProp(EPropType::Coffin, x, y, Outward, 1.f);
+							break; // one wall prop per cell
+						}
 					}
 				}
 			}
+		}
+	}
+
+	// --- Corridor clutter: wall-hugging props so they never block the passage ---
+	for (int32 y = 0; y < GridHeight; ++y)
+	{
+		for (int32 x = 0; x < GridWidth; ++x)
+		{
+			if (CellAt(x, y) != ECell::Corridor || Rng.FRand() > CorridorPropChance)
+			{
+				continue;
+			}
+			FVector Outward;
+			if (!FindAdjacentWall(x, y, Outward))
+			{
+				continue; // open junction cell — leave it clear
+			}
+			const EPropType Type = WallProps[Rng.RandRange(0, NumWall - 1)];
+			const float Scale = (Type == EPropType::Rocks) ? Rng.FRandRange(0.6f, 1.2f) : 1.f;
+			SpawnWallProp(Type, x, y, Outward, Scale);
 		}
 	}
 }
@@ -676,6 +742,92 @@ void ADungeonGenerator::ScatterChests()
 		if (ALootChest* Chest = World->SpawnActor<ALootChest>(ChestClass, FTransform(Rot, GetRoomCenterWorld(i) + Offset), Params))
 		{
 			SpawnedActors.Add(Chest);
+		}
+	}
+}
+
+void ADungeonGenerator::ScatterTraps()
+{
+	UWorld* World = GetWorld();
+	if (!World || !TrapClass)
+	{
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	const FTransform Xf = GetActorTransform();
+	const float HalfCell = CellSize * 0.5f;
+
+	static const int32 DX[4] = { 1, -1, 0, 0 };
+	static const int32 DY[4] = { 0, 0, 1, -1 };
+
+	// Keep the player's start room (room 0) free of hazards.
+	auto InStartRoom = [&](int32 x, int32 y) -> bool
+	{
+		if (!Rooms.IsValidIndex(0)) { return false; }
+		const FDungeonRoom& R = Rooms[0];
+		return x >= R.X && x < R.X + R.W && y >= R.Y && y < R.Y + R.H;
+	};
+
+	auto SpawnTrap = [&](ETrapType Type, const FVector& WorldLoc, const FRotator& Rot)
+	{
+		if (ADungeonTrap* Trap = World->SpawnActor<ADungeonTrap>(TrapClass, FTransform(Rot, WorldLoc), Params))
+		{
+			Trap->Configure(Type);
+			SpawnedActors.Add(Trap);
+		}
+	};
+
+	// --- Corridors: floor hazards, and dart shooters mounted to fire across the passage ---
+	for (int32 y = 0; y < GridHeight; ++y)
+	{
+		for (int32 x = 0; x < GridWidth; ++x)
+		{
+			if (CellAt(x, y) != ECell::Corridor || InStartRoom(x, y))
+			{
+				continue;
+			}
+
+			if (Rng.FRand() <= CorridorTrapChance)
+			{
+				const ETrapType Type = (Rng.FRand() < 0.5f) ? ETrapType::SpikeFloor : ETrapType::PressurePlate;
+				SpawnTrap(Type, Xf.TransformPosition(CellToLocal(x, y)), FRotator::ZeroRotator);
+				continue; // don't also mount a shooter on this cell
+			}
+
+			if (Rng.FRand() <= DartShooterChance)
+			{
+				for (int32 d = 0; d < 4; ++d)
+				{
+					if (!IsFloor(x + DX[d], y + DY[d]))
+					{
+						const FVector Outward(DX[d], DY[d], 0.f);
+						const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 10.f);
+						SpawnTrap(ETrapType::DartShooter, Loc, (-Outward).Rotation());
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	// --- Rooms: occasional floor hazards on interior cells (skip perimeter ring and the start room) ---
+	for (int32 i = 1; i < Rooms.Num(); ++i)
+	{
+		const FDungeonRoom& Room = Rooms[i];
+		for (int32 y = Room.Y + 1; y < Room.Y + Room.H - 1; ++y)
+		{
+			for (int32 x = Room.X + 1; x < Room.X + Room.W - 1; ++x)
+			{
+				if (Rng.FRand() <= RoomTrapChance)
+				{
+					const ETrapType Type = (Rng.FRand() < 0.5f) ? ETrapType::SpikeFloor : ETrapType::PressurePlate;
+					SpawnTrap(Type, Xf.TransformPosition(CellToLocal(x, y)), FRotator::ZeroRotator);
+				}
+			}
 		}
 	}
 }
