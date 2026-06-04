@@ -163,7 +163,7 @@ private:
 
 	/** Target size (cm) of the crab's largest dimension — scales the imported mesh to a boss-sized body. */
 	UPROPERTY(EditAnywhere, Category = "Boss")
-	float CrabMeshTargetSize = 450.f;
+	float CrabMeshTargetSize = 585.f;
 
 	int32 CurrentPhase = 0;
 	float NextSpecialTime = 0.f;

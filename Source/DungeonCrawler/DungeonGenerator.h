@@ -252,11 +252,6 @@ private:
 	/** Index into Rooms of the big boss room (the furthest room from the start), or INDEX_NONE. */
 	int32 BossRoomIndex = INDEX_NONE;
 
-	/** The single open entrance to the (otherwise sealed) boss room: cell + outward edge dir (0..3). */
-	int32 BossDoorX = INDEX_NONE;
-	int32 BossDoorY = INDEX_NONE;
-	int32 BossDoorDir = INDEX_NONE; // 0=+X, 1=-X, 2=+Y, 3=-Y
-
 	/** Props and lights spawned for the current layout, tracked so a regenerate can clear them. */
 	UPROPERTY()
 	TArray<TObjectPtr<AActor>> SpawnedActors;
@@ -275,8 +270,6 @@ private:
 	void ClearLayout();
 	void PlaceRooms();
 	void PlaceBossRoom();
-	/** Chooses the single boss-room entrance cell/edge (a perimeter cell bordering a corridor). */
-	void FindBossEntrance();
 	/** Tags non-start, non-boss rooms with a special type (treasure/ambush/rest/elite). */
 	void AssignRoomTypes();
 	/** Spawns a colored marker light in each special room so its type reads at a glance. */
