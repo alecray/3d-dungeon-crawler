@@ -89,6 +89,24 @@ void ABossMonster::BeginPlay()
 		if (CrabMesh) { CrabMesh->SetVisibility(false); }
 	}
 
+	// Resizing the capsule to fit the crab can leave it clipping into the floor — and because the boss is
+	// frozen during its intro it can't settle via gravity. Snap it so the capsule base rests on the floor.
+	if (bSkeletal)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			const float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+			const FVector Center = GetActorLocation();
+			FHitResult Hit;
+			FCollisionQueryParams Params(SCENE_QUERY_STAT(BossFloorSnap), /*bTraceComplex*/ false, this);
+			if (World->LineTraceSingleByChannel(Hit, Center, Center - FVector(0.f, 0.f, 3000.f), ECC_Visibility, Params))
+			{
+				SetActorLocation(FVector(Center.X, Center.Y, Hit.ImpactPoint.Z + HalfHeight + 2.f),
+					/*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+			}
+		}
+	}
+
 	// Hide every growth, then reveal phase 1's.
 	for (UStaticMeshComponent* Part : MorphParts)
 	{
