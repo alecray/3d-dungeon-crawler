@@ -120,8 +120,12 @@
 - [x] Boss fight depth — scuttle + telegraphed lunge, hybrid navmesh, projectile volley (3-spread p2+),
       phase-1 back weak point, phase-2/3 bubble pools, shell-retreat (p3), 3 phases + specials.
 - [x] Boss health bar — dedicated top-center red bar, labelled from the boss id, removed on death.
-- [x] Boss room built double-height (taller walls + raised ceiling + doorway lintels); intro camera
-      moved straight-on/lower (no ceiling clip). Projectile speed tuned; summoned adds get a real type.
+- [x] Boss switched to the hermit-crab skeletal mesh (idle/walk hooked; attack/spawn anims pending) with
+      a static/graybox fallback; boss room is a normal (big) room; floor-snap so it spawns on the ground;
+      no traps in the boss arena; intro camera straighter/lower. Projectile speed tuned; adds get a real type.
+- [x] Scenery feels deliberate — per-room décor themes, furniture lined against walls (coffins flat),
+      corner stacks, dining sets; scenery avoids traps and never overlaps other scenery.
+- [x] Dev menu also has Teleport to Boss; arena cleans up its boss/doors/portal on regenerate.
 - [x] Floating damage numbers — world-space 3D text; weak-point hits bigger/orange; big & bright.
 - [x] Improve enemy pathing (runtime navmesh + MoveTo).
 - [x] Dungeon traps — spike floors, pressure plates, dart shooters (ADungeonTrap).
