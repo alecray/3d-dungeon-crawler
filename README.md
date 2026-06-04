@@ -153,6 +153,8 @@ Flow / UX:
 - `ABossSpawnVFX` / `AAttackTelegraph` — the boss's code-driven spawn-in effect, and the red floor disc
   that marks (and flashes on) its incoming hit.
 - `ABonfire` — a Rest-room rest point: `[E]` to fully heal, refill mana/stamina, and checkpoint-save.
+- `ABlackjackTable` + `UBlackjackWidget` — a town minigame (prototype): a 3D card table; bet gold vs a
+  dealer with the rules engine in the table, cards dealt as 3D meshes, and a slim on-screen control bar.
 - `CharacterClass.h` — the starting-archetype loadouts (Warrior/Ranger/Mage: a stat spread + a weapon).
 - `ADungeonTrap` (spike floor / pressure plate / dart shooter) + `ABubbleHazard` — graybox hazards with
   mesh swap-in points; the generator tags rooms with a type (`ERoomType`) and a décor theme for

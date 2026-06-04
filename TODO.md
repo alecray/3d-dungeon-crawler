@@ -99,9 +99,11 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
 - [ ] FTUE for controls — first-run onboarding surfacing movement/attack/interact/abilities/inventory.
 - [ ] Fishing mechanic in the town — a relaxing side activity (cast/reel minigame, catch table, maybe sell/cook the catch).
-- [ ] Dungeon-select menu on the town portal — lists dungeons/bosses you've cleared; replay at the same
-      or harder difficulty tiers for greater reward potential, with the risk of losing everything in the
-      run (high-stakes mode). Pairs with run-stakes / meta-progression.
+- [ ] **Portal difficulty-select screen** — interacting with the town portal pops up a screen to pick the
+      dungeon + **difficulty tier**. Higher tiers = tougher enemies/boss + better rewards. A tier is only
+      **unlocked once you've killed that dungeon's boss** at the previous tier (so you ramp up by clearing).
+      Persist the highest tier cleared per dungeon in the save. Pairs with run-stakes / high-stakes mode
+      (risk losing the run for greater reward). Builds on the dungeon-select/meta-progression idea.
 - [ ] Destructible props — smash barrels/crates/pots for coins/loot + a debris burst (classic crawler feel).
 - [ ] Mimics — a chest variant that's secretly a monster; snaps at you when opened.
 - [ ] Shrines / altars — interact for a random blessing (or a gamble: buff vs. curse). Pairs with run-stakes.
@@ -115,7 +117,10 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] Item durability + repair (gold sink), and/or gem socketing / runes for gear customization.
 - [x] Loot beams — every dropped item emits a rarity-colored pillar + glow (taller/brighter for rarer);
       the boss drops a handful of rolled items on death. (Still TODO: rarity feedback on chest loot + auto-loot.)
-- [ ] Some sort of gambling. Blackjack?
+- [~] Gambling — **blackjack prototyped** (`ABlackjackTable` + `UBlackjackWidget`): a 3D table in town,
+      cards dealt as 3D meshes, bet gold vs a dealer (3:2 blackjack, dealer stands on 17). Still TODO:
+      real card/table art, tune the 3D card layout + label orientation, make the controls diegetic (3D
+      buttons), and place it permanently in L_Town (currently code-spawned near the player start).
 
 ## Aesthetics / VFX (code-driven, no imported art needed)
 
@@ -138,6 +143,23 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
       (`ABossSpawnVFX` — pairs with the dissolve shader option B above), and the batch-3 effects above.
 - [ ] Add the Niagara plugin/module dependency and a small helper to spawn a system at a transform with
       a tint param, so each call site is a one-liner.
+
+## Foundation / infrastructure (NOT gameplay or content — the missing plumbing)
+
+- [ ] **Audio — there is none.** No SFX (hits, footsteps, UI clicks, pickups, ability casts, dealing
+      cards), no music, no ambience. Biggest non-gameplay gap. Needs a SoundCue/MetaSound setup + an
+      audio bus per category wired to the existing master-volume setting, then hooks at each event site.
+- [ ] **Gamepad / controller support** — currently keyboard+mouse only. Add gamepad mappings to the
+      Enhanced Input contexts + UI navigation for the menus.
+- [ ] **Video / graphics settings** — resolution, fullscreen/windowed/borderless, quality presets
+      (view distance / shadows / textures / effects), VSync, frame-rate cap, and an FOV slider. The
+      settings menu currently only has mouse sensitivity + master volume.
+- [ ] **Save robustness** — multiple save slots, save versioning/migration, and an explicit
+      autosave cadence (today it's a single auto-saved profile).
+- [ ] **Packaged build** — produce a shippable .exe (currently only runs from the editor); shake out
+      cooked-content / path issues.
+- [ ] **Loading screens** for level travel (town↔dungeon currently just black-fades).
+- [ ] Accessibility — colorblind-safe rarity colors, text-size scaling, subtitles (once audio exists).
 
 ## Engine / Settings
 
