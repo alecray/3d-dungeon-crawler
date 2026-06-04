@@ -500,14 +500,16 @@ void AMonsterCharacter::UpdateDeathEffect(float DeltaSeconds)
 
 	const float Alpha = 1.f - (DeathTimeLeft / DeathDuration); // 0 -> 1 over the effect
 
-	// Pop upward with gravity (launch then fall) and a fast tumble.
-	const float Up = 320.f * Alpha - 700.f * Alpha * Alpha; // simple v0*t - 0.5*g*t^2 shape (cm)
-	const FQuat Spin(DeathSpinAxis, FMath::DegreesToRadians(Alpha * 1080.f)); // up to ~3 turns about the axis
-	DeathComp->SetRelativeLocation(DeathBaseLoc + FVector(0.f, 0.f, FMath::Max(0.f, Up)));
+	// Dissolve: sink the body into the floor with a slow tumble while it shrinks away — reads as the
+	// corpse disintegrating rather than a cartoon pop. The death poof covers the final vanish.
+	const float SinkDepth = DeathBaseScale.Z > 0.f ? 120.f : 90.f;       // how far it sinks (cm)
+	const float Sink = -SinkDepth * FMath::Pow(Alpha, 1.5f);             // accelerate downward
+	const FQuat Spin(DeathSpinAxis, FMath::DegreesToRadians(Alpha * 240.f)); // gentle settle, not a tumble
+	DeathComp->SetRelativeLocation(DeathBaseLoc + FVector(0.f, 0.f, Sink));
 	DeathComp->SetRelativeRotation(Spin.Rotator());
 
-	// Aggressive shrink to nothing.
-	DeathComp->SetRelativeScale3D(DeathBaseScale * FMath::Max(0.f, 1.f - Alpha));
+	// Shrink to nothing as it sinks (ease in so it lingers a touch, then collapses).
+	DeathComp->SetRelativeScale3D(DeathBaseScale * FMath::Max(0.f, 1.f - Alpha * Alpha));
 
 	if (DeathTimeLeft <= 0.f)
 	{
