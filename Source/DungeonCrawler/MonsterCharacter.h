@@ -25,6 +25,9 @@ public:
 	/** Apply a monster type from the database (stats, scale, and optional skeletal mesh + run anim). */
 	void ApplyType(FName TypeId);
 
+	/** Buffs this monster into an "elite" (much tankier/harder-hitting, bigger, more XP). Call post-spawn. */
+	void MakeElite();
+
 	/**
 	 * Applies incoming damage from an attack, honoring directional weak points (overridden by the boss).
 	 * Player weapons route damage through here (instead of UHealthComponent directly) so weak-point hits

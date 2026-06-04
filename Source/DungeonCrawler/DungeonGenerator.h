@@ -14,6 +14,16 @@ class ADungeonTrap;
 class ABossArena;
 class UHealthComponent;
 
+/** Special-purpose tag for a room, driving its monsters / loot / decoration. */
+enum class ERoomType : uint8
+{
+	Normal,   // standard: chance-based monster group + loot
+	Treasure, // guaranteed extra chests, guarded by a group
+	Ambush,   // a larger forced swarm, no loot
+	Rest,     // safe breather: no monsters, no traps
+	Elite,    // a single tough elite + a guaranteed chest
+};
+
 /** A placed room as a rectangle of grid cells. */
 USTRUCT()
 struct FDungeonRoom
@@ -24,6 +34,8 @@ struct FDungeonRoom
 	int32 Y = 0; // min cell Y
 	int32 W = 0; // width in cells
 	int32 H = 0; // height in cells
+
+	ERoomType Type = ERoomType::Normal;
 
 	int32 CenterX() const { return X + W / 2; }
 	int32 CenterY() const { return Y + H / 2; }
@@ -242,6 +254,10 @@ private:
 	void ClearLayout();
 	void PlaceRooms();
 	void PlaceBossRoom();
+	/** Tags non-start, non-boss rooms with a special type (treasure/ambush/rest/elite). */
+	void AssignRoomTypes();
+	/** Spawns a colored marker light in each special room so its type reads at a glance. */
+	void DecorateRooms();
 	void CarveCorridors();
 	void CarveLine(int32 X0, int32 Y0, int32 X1, int32 Y1, bool bHorizontalFirst);
 	void BuildGeometry();

@@ -165,6 +165,28 @@ void AMonsterCharacter::ApplyType(FName TypeId)
 	}
 }
 
+void AMonsterCharacter::MakeElite()
+{
+	MonsterMaxHealth *= 4.f;
+	AttackDamage *= 1.6f;
+	XPReward *= 4;
+	BodyScale *= 1.35f;
+
+	if (Health)
+	{
+		Health->SetMaxHealth(MonsterMaxHealth, /*bRefill*/ true);
+	}
+	// Enlarge the visible body (graybox uses BodyRoot; skeletal types use the inherited mesh).
+	if (bUsingSkeletalBody && GetMesh())
+	{
+		GetMesh()->SetRelativeScale3D(GetMesh()->GetRelativeScale3D() * 1.35f);
+	}
+	else if (BodyRoot)
+	{
+		BodyRoot->SetRelativeScale3D(FVector(BodyScale));
+	}
+}
+
 void AMonsterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

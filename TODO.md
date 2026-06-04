@@ -19,6 +19,9 @@
       the swing is gated when out of stamina. MeleeStaminaCost on the character.
 - [x] Game juice pass — hit-stop on connecting melee, camera kick on melee hit + ranged fire
       (UHitCameraShake), enemy knockback on player hits, and a pulsing low-health red vignette.
+- [x] Room-type variety — generator tags rooms Treasure (extra guarded chests) / Ambush (bigger forced
+      swarm) / Rest (safe: no monsters/traps) / Elite (one tough MakeElite mini-boss + chest) / Normal,
+      each with a colored marker light. (Later: shrine/buff room, locked vaults, puzzle rooms.)
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 
@@ -35,6 +38,8 @@
 
 ## Backlog (bigger systems, not scheduled yet)
 
+- [ ] Enemy behavior archetypes — distinct AI beyond chase+melee: ranged shooter, charger, exploder,
+      shielded/flanker (so encounters are about positioning + threat, not just trading hits).
 - [ ] Status effects (poison, burn, freeze, stun, bleed) on weapons/abilities/enemies
 - [ ] Loot rarity tiers + procedural affixes (rolled item stats: +damage, +crit, resistances, etc.)
 - [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)

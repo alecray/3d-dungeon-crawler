@@ -10,6 +10,8 @@
 #include "BossArena.h"
 #include "HealthComponent.h"
 
+#include "Engine/PointLight.h"
+#include "Components/PointLightComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/PointLightComponent.h"
@@ -142,12 +144,14 @@ void ADungeonGenerator::Generate()
 	ClearLayout();
 	PlaceRooms();
 	PlaceBossRoom();
+	AssignRoomTypes();
 	CarveCorridors();
 	BuildGeometry();
 	ScatterProps();
 	ScatterMonsters();
 	ScatterChests();
 	ScatterTraps();
+	DecorateRooms();
 	SetupBossEncounter();
 	SpawnReturnPortals();
 	if (bSpawnTorches)
@@ -299,6 +303,70 @@ void ADungeonGenerator::PlaceBossRoom()
 	// Added last so the corridor chain ends here, making it the final room before the boss.
 	Rooms.Add(Best);
 	BossRoomIndex = Rooms.Num() - 1;
+}
+
+void ADungeonGenerator::AssignRoomTypes()
+{
+	// Weighted roll per room (start room 0 and the boss room stay Normal/untagged).
+	for (int32 i = 1; i < Rooms.Num(); ++i)
+	{
+		if (i == BossRoomIndex)
+		{
+			continue;
+		}
+		const float R = Rng.FRand();
+		if      (R < 0.14f) { Rooms[i].Type = ERoomType::Treasure; }
+		else if (R < 0.28f) { Rooms[i].Type = ERoomType::Ambush; }
+		else if (R < 0.40f) { Rooms[i].Type = ERoomType::Rest; }
+		else if (R < 0.48f) { Rooms[i].Type = ERoomType::Elite; }
+		else                { Rooms[i].Type = ERoomType::Normal; } // ~52%
+	}
+}
+
+void ADungeonGenerator::DecorateRooms()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// A colored marker light at each special room's center so its type reads at a glance.
+	for (int32 i = 1; i < Rooms.Num(); ++i)
+	{
+		if (i == BossRoomIndex)
+		{
+			continue;
+		}
+		FLinearColor Color;
+		float Intensity;
+		switch (Rooms[i].Type)
+		{
+		case ERoomType::Treasure: Color = FLinearColor(1.0f, 0.78f, 0.25f); Intensity = 4000.f; break; // gold
+		case ERoomType::Elite:    Color = FLinearColor(0.7f, 0.30f, 1.00f); Intensity = 4000.f; break; // purple
+		case ERoomType::Rest:     Color = FLinearColor(0.4f, 1.00f, 0.55f); Intensity = 2500.f; break; // green
+		case ERoomType::Ambush:   Color = FLinearColor(1.0f, 0.22f, 0.15f); Intensity = 3000.f; break; // red
+		default: continue; // Normal rooms get no marker
+		}
+
+		const FVector Loc = GetRoomCenterWorld(i) + FVector(0.f, 0.f, 250.f);
+		if (APointLight* Light = World->SpawnActor<APointLight>(APointLight::StaticClass(), FTransform(Loc), Params))
+		{
+			if (UPointLightComponent* C = Cast<UPointLightComponent>(Light->GetLightComponent()))
+			{
+				C->SetMobility(EComponentMobility::Movable);
+				C->SetLightColor(Color);
+				C->SetIntensity(Intensity);
+				C->SetAttenuationRadius(800.f);
+				C->SetCastShadows(false);
+			}
+			SpawnedActors.Add(Light);
+		}
+	}
 }
 
 void ADungeonGenerator::CarveCorridors()
@@ -687,28 +755,61 @@ void ADungeonGenerator::ScatterMonsters()
 	// Skip room 0 (player spawn) and the boss room (the boss fights solo).
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
-		if (i == BossRoomIndex || Rng.FRand() > MonsterGroupChance)
+		if (i == BossRoomIndex)
 		{
 			continue;
 		}
 
 		const FDungeonRoom& Room = Rooms[i];
+		const ERoomType Type = Room.Type;
+		if (Type == ERoomType::Rest)
+		{
+			continue; // safe breather room
+		}
+
 		const FVector Center = GetRoomCenterWorld(i);
 		const float SpreadX = FMath::Max(0.f, (Room.W - 1) * 0.4f) * CellSize;
 		const float SpreadY = FMath::Max(0.f, (Room.H - 1) * 0.4f) * CellSize;
 
-		const int32 GroupSize = Rng.RandRange(MinSize, MaxSize);
-		for (int32 k = 0; k < GroupSize; ++k)
+		auto SpawnMonster = [&](const FVector& Offset) -> AMonsterCharacter*
 		{
-			const FVector Offset(Rng.FRandRange(-SpreadX, SpreadX), Rng.FRandRange(-SpreadY, SpreadY), 100.f);
 			const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
-
 			if (AMonsterCharacter* Monster = World->SpawnActor<AMonsterCharacter>(
 				MonsterClass, FTransform(Rot, Center + Offset), Params))
 			{
 				Monster->ApplyType(MonsterDatabase::RollRandomType(Rng));
 				SpawnedActors.Add(Monster);
+				return Monster;
 			}
+			return nullptr;
+		};
+
+		// Elite room: a single tough mini-boss.
+		if (Type == ERoomType::Elite)
+		{
+			if (AMonsterCharacter* Elite = SpawnMonster(FVector(0.f, 0.f, 100.f)))
+			{
+				Elite->MakeElite();
+			}
+			continue;
+		}
+
+		// Treasure (guards) and Ambush always populate; normal rooms roll the chance.
+		const bool bForced = (Type == ERoomType::Treasure || Type == ERoomType::Ambush);
+		if (!bForced && Rng.FRand() > MonsterGroupChance)
+		{
+			continue;
+		}
+
+		int32 GroupSize = Rng.RandRange(MinSize, MaxSize);
+		if (Type == ERoomType::Ambush)
+		{
+			GroupSize = MaxSize + 2; // a bigger swarm
+		}
+
+		for (int32 k = 0; k < GroupSize; ++k)
+		{
+			SpawnMonster(FVector(Rng.FRandRange(-SpreadX, SpreadX), Rng.FRandRange(-SpreadY, SpreadY), 100.f));
 		}
 	}
 }
@@ -729,20 +830,27 @@ void ADungeonGenerator::ScatterChests()
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
 		const bool bBossRoom = (i == BossRoomIndex);
-		if (!bBossRoom && Rng.FRand() > ChestChancePerRoom)
-		{
-			continue;
-		}
+
+		// How many chests this room gets, by type.
+		int32 NumChests;
+		if (bBossRoom)                              { NumChests = 1; }
+		else if (Rooms[i].Type == ERoomType::Treasure) { NumChests = Rng.RandRange(2, 3); }
+		else if (Rooms[i].Type == ERoomType::Elite)    { NumChests = 1; }
+		else if (Rooms[i].Type == ERoomType::Rest)     { NumChests = 0; }
+		else                                        { NumChests = (Rng.FRand() <= ChestChancePerRoom) ? 1 : 0; }
 
 		const FDungeonRoom& Room = Rooms[i];
 		const float SpreadX = FMath::Max(0.f, (Room.W - 2) * 0.4f) * CellSize;
 		const float SpreadY = FMath::Max(0.f, (Room.H - 2) * 0.4f) * CellSize;
-		const FVector Offset(Rng.FRandRange(-SpreadX, SpreadX), Rng.FRandRange(-SpreadY, SpreadY), 0.f);
-		const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
 
-		if (ALootChest* Chest = World->SpawnActor<ALootChest>(ChestClass, FTransform(Rot, GetRoomCenterWorld(i) + Offset), Params))
+		for (int32 c = 0; c < NumChests; ++c)
 		{
-			SpawnedActors.Add(Chest);
+			const FVector Offset(Rng.FRandRange(-SpreadX, SpreadX), Rng.FRandRange(-SpreadY, SpreadY), 0.f);
+			const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
+			if (ALootChest* Chest = World->SpawnActor<ALootChest>(ChestClass, FTransform(Rot, GetRoomCenterWorld(i) + Offset), Params))
+			{
+				SpawnedActors.Add(Chest);
+			}
 		}
 	}
 }
@@ -819,6 +927,10 @@ void ADungeonGenerator::ScatterTraps()
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
 		const FDungeonRoom& Room = Rooms[i];
+		if (Room.Type == ERoomType::Rest)
+		{
+			continue; // safe room — no traps
+		}
 		for (int32 y = Room.Y + 1; y < Room.Y + Room.H - 1; ++y)
 		{
 			for (int32 x = Room.X + 1; x < Room.X + Room.W - 1; ++x)
