@@ -519,6 +519,10 @@ void ADungeonGenerator::BuildGeometry()
 
 			const FVector C = CellToLocal(x, y);
 
+			// The boss room's walls run two blocks tall, so its ceiling sits twice as high.
+			const bool bBoss = IsBossRoomCell(x, y);
+			const float CellCeil = bBoss ? WallHeight * 2.f : WallHeight;
+
 			// Floor: top sits at Z = 0. (Collision comes from the mesh itself — cube or imported.)
 			if (bCustomFloor)
 			{
@@ -535,41 +539,49 @@ void ADungeonGenerator::BuildGeometry()
 			if (bCustomFloor)
 			{
 				const FVector CeilLoc = C + FVector(-FloorCtr.X * FloorScale, -FloorCtr.Y * FloorScale,
-					WallHeight - FloorMinZ * FloorScale);
+					CellCeil - FloorMinZ * FloorScale);
 				CeilingISM->AddInstance(FTransform(FRotator::ZeroRotator, CeilLoc, FVector(FloorScale)), /*bWorldSpace*/ false);
 			}
 			else
 			{
-				AddTile(CeilingISM, C + FVector(0.f, 0.f, WallHeight + SlabThickness * 0.5f),
+				AddTile(CeilingISM, C + FVector(0.f, 0.f, CellCeil + SlabThickness * 0.5f),
 					FVector(CellSize, CellSize, SlabThickness));
 			}
 
 			// Cube-wall geometry (used when there's no custom wall mesh): embed into both slabs so no
-			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting).
-			const float WallTall = WallHeight + 2.f * SlabThickness;
-			const float WallZ = WallHeight * 0.5f;
+			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting). Boss walls are
+			// twice as tall; where its tall wall meets a normal-height doorway, a plain lintel caps the gap.
+			const float WallTall = CellCeil + 2.f * SlabThickness;
+			const float WallZ = CellCeil * 0.5f;
+			const float LintelH = CellCeil - WallHeight;          // 0 for normal rooms
+			const float LintelZ = (WallHeight + CellCeil) * 0.5f;
 
-			// Raise a wall on each edge that borders a non-floor cell (doorways are where two floor cells
-			// meet, so no wall is built there). Custom walls alternate facing for variety.
-			if (!IsFloor(x + 1, y))
+			static const int32 EX[4] = { 1, -1, 0, 0 };
+			static const int32 EY[4] = { 0, 0, 1, -1 };
+			const FVector EOff[4] = { FVector(HalfCell, 0.f, 0.f), FVector(-HalfCell, 0.f, 0.f), FVector(0.f, HalfCell, 0.f), FVector(0.f, -HalfCell, 0.f) };
+			const bool ERunX[4] = { false, false, true, true };
+			const bool EFlip[4] = { (y & 1) != 0, (y & 1) == 0, (x & 1) != 0, (x & 1) == 0 };
+
+			for (int32 d = 0; d < 4; ++d)
 			{
-				if (bCustomWall) { AddWall(C + FVector(HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) != 0); }
-				else { AddTile(WallISM, C + FVector(HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
-			}
-			if (!IsFloor(x - 1, y))
-			{
-				if (bCustomWall) { AddWall(C + FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) == 0); }
-				else { AddTile(WallISM, C + FVector(-HalfCell, 0.f, WallZ), FVector(WallThickness, WallSpan, WallTall)); }
-			}
-			if (!IsFloor(x, y + 1))
-			{
-				if (bCustomWall) { AddWall(C + FVector(0.f, HalfCell, 0.f), /*bRunAlongX*/ true, (x & 1) != 0); }
-				else { AddTile(WallISM, C + FVector(0.f, HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
-			}
-			if (!IsFloor(x, y - 1))
-			{
-				if (bCustomWall) { AddWall(C + FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true, (x & 1) == 0); }
-				else { AddTile(WallISM, C + FVector(0.f, -HalfCell, WallZ), FVector(WallSpan, WallThickness, WallTall)); }
+				const int32 nx = x + EX[d];
+				const int32 ny = y + EY[d];
+				if (!IsFloor(nx, ny))
+				{
+					// Solid wall on this edge (tall boss walls use cube tiles; the custom mesh is single-height).
+					if (bCustomWall && !bBoss) { AddWall(C + EOff[d], ERunX[d], EFlip[d]); }
+					else
+					{
+						const FVector Size = ERunX[d] ? FVector(WallSpan, WallThickness, WallTall) : FVector(WallThickness, WallSpan, WallTall);
+						AddTile(WallISM, C + EOff[d] + FVector(0.f, 0.f, WallZ), Size);
+					}
+				}
+				else if (bBoss && !IsBossRoomCell(nx, ny) && LintelH > 1.f)
+				{
+					// Boss doorway onto a normal-height corridor: cap the gap above the opening.
+					const FVector LSize = ERunX[d] ? FVector(WallSpan, WallThickness, LintelH) : FVector(WallThickness, WallSpan, LintelH);
+					AddTile(WallISM, C + EOff[d] + FVector(0.f, 0.f, LintelZ), LSize);
+				}
 			}
 		}
 	}
