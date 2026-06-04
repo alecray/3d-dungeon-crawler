@@ -13,9 +13,10 @@ graybox so Blender assets can drop in later without code changes.
    world at runtime — any empty level works; no map asset is needed.
 
 **Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (melee swing
-/ ranged bolt / spell depending on the equipped weapon), **I** for inventory, **K** for the skill tree,
-**1–8** to select the hotbar slot (swaps the held weapon), **Q** to use your unlocked active ability,
-**E** to interact with chests / pickups / NPCs / portals, **Esc** for the pause menu.
+/ ranged bolt / spell depending on the equipped weapon), **I** for inventory, **C** for the collection
+log, **K** for the skill tree, **1–8** to select the hotbar slot (swaps the held weapon), **Q** to use
+your unlocked active ability, **E** to interact with chests / pickups / NPCs / portals, **Esc** for the
+pause menu (Resume / Settings / **Dev Menu** / Quit). The full list is also in the pause → Settings panel.
 
 ## Core Feature Plan
 
@@ -51,11 +52,43 @@ Planned RPG systems (art-independent, in dependency order):
 - [x] Skill tree (Borderlands-style) — 3 branches (Melee/Ranged/Mage), passive bonuses + combat
       modifiers (attack speed, lifesteal, multishot, cost reduction) + capstone active abilities
       (Whirlwind / Volley / Arcane Nova on **Q**); open with **K**
-- [x] Home town scene (L_Town) with a shop NPC (buy/sell) + travel portals to/from the dungeon
-      (start-room + boss-gated return portals)
-- [x] Pause menu & settings (Esc): Resume / Settings / Quit; mouse sensitivity + master volume,
-      persisted in the profile
-- [ ] Minimap (fog-of-war)
+- [x] Home town scene (L_Town) with a shop NPC (buy/sell, with gold shown) + travel portals to/from the
+      dungeon (start-room + boss-gated return portals)
+- [x] Pause menu & settings (Esc): Resume / Settings / Dev Menu / Quit; mouse sensitivity + master
+      volume + a full controls reference, persisted in the profile
+- [x] Minimap (fog-of-war)
+
+Boss & encounters:
+
+- [x] Boss encounter sequence — boss spawns when you enter the room (opposite you), entrance doorways
+      seal for the fight (reopen on death), and the first-ever kill of a boss type plays a camera-focus
+      + screen-shake intro cinematic (persisted per boss id; replays skip it). Return portal on death.
+- [x] Boss fight depth — crab-like scuttle + telegraphed lunge movement (hybrid navmesh: paths around
+      cover when line-of-sight is blocked), 3 phases, specials (ground slam, summon adds, projectile
+      volley, bubble-pool hazards, enrage, phase-3 shell-retreat), and a phase-1 back weak point (2× dmg)
+- [x] Dedicated boss health bar; the boss uses the hermit-crab skeletal mesh (idle/walk anims) with a
+      graybox fallback
+
+World & generation:
+
+- [x] Dungeon traps — spike floors, pressure plates, wall-mounted dart shooters (graybox, mesh-swappable)
+- [x] Room-type variety — Treasure / Ambush / Rest / Elite / Normal rooms, each with a colored marker light
+- [x] Deliberate, themed scenery — per-room décor themes, furniture lined against walls, corner stacks,
+      dining sets; scenery avoids traps and never overlaps other scenery
+- [x] Bigger rooms + shorter (nearest-neighbor) corridors; atmospheric volumetric fog
+
+Combat feel & VFX (code-driven, no imported art):
+
+- [x] Floating damage numbers; weapon use costs stamina/mana (melee included)
+- [x] Game juice — hit-stop on melee impact, camera kick, enemy knockback, low-health red vignette
+- [x] VFX pass — impact spark bursts on hits, ambient drifting dust motes, screen damage flash, gold
+      level-up burst, sprint FOV kick, low-HP chromatic aberration + desaturation
+- [x] FPS counter (top-right); dev menu (No Clip / God Mode / Reveal Map / Teleport to Boss / Kill Player
+      / Teleport Home)
+
+Flow / UX:
+
+- [x] Start screen (main menu on launch) + black-fade scene transitions on every level travel
 
 ## How it works
 
@@ -89,7 +122,20 @@ Planned RPG systems (art-independent, in dependency order):
 - `AMonsterCharacter` + `MonsterDatabase` (`FMonsterDef`) — data-driven enemies (health/speed/damage/
   scale/anim); `AProjectile` for ranged/mage attacks; `ADeathPoof` on death.
 - `UDungeonGameInstance` + `UDungeonSaveGame` — persistent player profile across levels and to disk
-  (attributes, level/XP, gold, inventory, hotbar, collection log).
+  (attributes, level/XP, gold, inventory, hotbar, collection log, and which boss intros have played).
+- `ABossMonster` (on `AMonsterCharacter`) — the hermit-crab boss: skeletal mesh + idle/walk anims,
+  scuttle/lunge movement, 3 phases, the specials above, and a phase-1 back weak point.
+- `ABossArena` + `ABossDoor` — the encounter manager: a room trigger that spawns the boss on entry,
+  seals the doorways with rising barriers, runs the intro camera (`UBossIntroCameraShake`) on the first
+  kill, and cleans up its boss/doors/portal on regenerate.
+- `ADungeonTrap` (spike floor / pressure plate / dart shooter) + `ABubbleHazard` — graybox hazards with
+  mesh swap-in points; the generator tags rooms with a type (`ERoomType`) and a décor theme for
+  deliberate scenery placement.
+- `ADamageNumber`, `AImpactBurst`, `AAmbientDust`, `UHitCameraShake` — code-driven combat/ambient VFX
+  (floating numbers, hit sparks, drifting dust, screen kick).
+- `UMainMenuWidget`, `ULowHealthVignetteWidget`, `UFpsCounterWidget`, `UBossHealthBarWidget`,
+  `UMinimapWidget` — pure-C++ HUD/menu widgets; `ADungeonPlayerController` drives the start screen,
+  black-fade scene transitions, the dev menu, and the boss-room teleport.
 
 The dungeon geometry and props start as code-driven graybox primitives and swap in imported meshes
 where available, so the project stays diff-friendly and mesh-agnostic.

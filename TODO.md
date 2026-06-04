@@ -67,12 +67,14 @@
 
 ## Aesthetics / VFX (code-driven, no imported art needed)
 
-- [ ] Impact VFX pass — sparks/ichor puffs on every hit, footstep dust, richer ability bursts
-      (today it's just damage numbers + a death poof).
-- [ ] Ambient dungeon atmosphere — drifting dust motes, embers off torches, fog wisps, occasional ceiling drips.
-- [ ] Event bursts — pickup / level-up / boss phase-transition particle pops + a brief screen flash.
+Done (batches 1-2): impact spark bursts on hits, ambient drifting dust motes, screen damage flash,
+gold level-up burst, sprint FOV kick, low-HP chromatic aberration + desaturation.
+
+Remaining (batch 3):
+- [ ] Footstep dust + richer ability-cast bursts (Whirlwind ring / Nova shockwave vs. the current poof).
+- [ ] More ambient atmosphere — embers off torches, fog wisps, occasional ceiling drips.
+- [ ] More event bursts — pickup sparkle + boss phase-transition shockwave + screen flash.
 - [ ] Trap telegraph glow before spikes pop; enemy spawn/death dissolve effects.
-- [ ] Post-process feel — subtle FOV kick when sprinting, chromatic aberration + desaturation at low HP.
 
 ## Engine / Settings
 
@@ -150,8 +152,15 @@
 - [x] Room-type variety — Treasure / Ambush / Rest / Elite / Normal, each with a colored marker light.
 - [x] Weapon usage costs stamina (melee now spends stamina, gated when empty).
 - [x] Game juice — hit-stop, camera kick, enemy knockback, low-health vignette.
-- [x] Dev menu (Esc → Dev Menu) — No Clip, God Mode, Reveal Map, Kill Player, Teleport Home.
+- [x] VFX pass (batches 1-2) — impact spark bursts, ambient dust motes, screen damage flash, gold
+      level-up burst, sprint FOV kick, low-HP chromatic aberration + desaturation. All pooled/cheap.
+- [x] Dev menu (Esc → Dev Menu) — No Clip, God Mode, Reveal Map, Teleport to Boss, Kill Player, Teleport Home.
 - [x] Potions pick up on E press (interact-to-collect).
+
+## UI / UX
+- [x] Inventory shows gold; shop and inventory no longer overlap (mutually exclusive).
+- [x] Skill tree decluttered — one clean line per node, full description in a hover tooltip.
+- [x] FPS counter (top-right, color-coded); pause menu widened + auto-sizes (no squish).
 
 ## Flow / UX
 - [x] Start screen — graybox main menu (Start/Quit) over the boot map, once per session.
