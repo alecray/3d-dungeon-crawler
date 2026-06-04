@@ -710,7 +710,7 @@ void ADungeonGenerator::ScatterProps()
 							if (IsFloor(jx, jy) && !IsFloor(jx + DX[d], jy + DY[d]))
 							{
 								const FVector Loc = Xf.TransformPosition(CellToLocal(jx, jy)) + Outward * (HalfCell - 12.f);
-								SpawnProp(EPropType::Banner, Loc, (-Outward).Rotation(), 1.f);
+								SpawnProp(EPropType::Banner, Loc, (-Outward).Rotation() + FRotator(0.f, 90.f, 0.f), 1.f); // +90: lay flat along the wall, not jutting out
 							}
 						}
 					}
@@ -825,7 +825,7 @@ void ADungeonGenerator::ScatterProps()
 								if (IsFloor(jx, jy) && !IsFloor(jx + DX[d], jy + DY[d]))
 								{
 									const FVector Loc = Xf.TransformPosition(CellToLocal(jx, jy)) + Outward * (HalfCell - 12.f);
-									SpawnProp(EPropType::Banner, Loc, (-Outward).Rotation(), 1.f);
+									SpawnProp(EPropType::Banner, Loc, (-Outward).Rotation() + FRotator(0.f, 90.f, 0.f), 1.f); // +90: lay flat along the wall, not jutting out
 								}
 							}
 						}
