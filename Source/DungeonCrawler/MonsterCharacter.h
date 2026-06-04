@@ -151,6 +151,8 @@ private:
 	void PlayAttackAnim();
 
 	bool bUsingSkeletalBody = false;
+	/** When true, the attack anim path prints an on-screen confirmation each swing (boss anim debugging). */
+	bool bLogAttackAnim = false;
 	float AttackAnimEndTime = 0.f;
 	float LastAttackTime = -1000.f;
 	float HitReactTimeLeft = 0.f;

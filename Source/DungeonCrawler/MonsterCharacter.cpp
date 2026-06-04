@@ -18,6 +18,8 @@
 #include "UObject/SoftObjectPath.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/Skeleton.h"
+#include "Engine/Engine.h" // GEngine on-screen debug
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
 static constexpr float MonsterUnitCm = 100.f;
@@ -163,9 +165,29 @@ bool AMonsterCharacter::SetupSkeletalBody(const FString& MeshPath, float MeshSca
 	const float MeshBottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -HalfHeight - MeshBottomZ));
 
-	RunAnim = Cast<UAnimSequence>(FSoftObjectPath(RunPath).TryLoad());
-	IdleAnim = Cast<UAnimSequence>(FSoftObjectPath(IdlePath).TryLoad());
-	AttackAnim = Cast<UAnimSequence>(FSoftObjectPath(AttackPath).TryLoad());
+	// Load each clip, then flag any that didn't load or are bound to a different skeleton than this mesh
+	// (a mismatched/empty clip plays nothing via PlayAnimation — the usual reason an anim "doesn't show").
+	USkeleton* MeshSkel = Skel->GetSkeleton();
+	auto LoadAnim = [&](const FString& Path, const TCHAR* Label) -> UAnimSequence*
+	{
+		if (Path.IsEmpty()) { return nullptr; }
+		UAnimSequence* Anim = Cast<UAnimSequence>(FSoftObjectPath(Path).TryLoad());
+		if (!Anim)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Monster %s] %s anim failed to load (missing or not an AnimSequence): %s"),
+				*GetName(), Label, *Path);
+		}
+		else if (MeshSkel && Anim->GetSkeleton() != MeshSkel)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[Monster %s] %s anim '%s' is bound to a DIFFERENT skeleton (%s) than the mesh (%s) — it will not play. Reimport it onto %s."),
+				*GetName(), Label, *Anim->GetName(),
+				*GetNameSafe(Anim->GetSkeleton()), *GetNameSafe(MeshSkel), *GetNameSafe(MeshSkel));
+		}
+		return Anim;
+	};
+	RunAnim = LoadAnim(RunPath, TEXT("Run/Walk"));
+	IdleAnim = LoadAnim(IdlePath, TEXT("Idle"));
+	AttackAnim = LoadAnim(AttackPath, TEXT("Attack"));
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	AnimState = ESkelAnim::None;
 	SetLocomotion(/*bMoving*/ false); // start idle
@@ -240,7 +262,13 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	const FVector Dir = ToPlayer / Dist;
 	AAIController* AI = Cast<AAIController>(GetController());
 
-	if (Dist > AttackRange)
+	// Melee reach is measured from the body's edge, not its centre: a big body (the boss's auto-fit
+	// capsule) can't let the player's centre get within a small AttackRange because the capsules collide
+	// first. Extending the reach by the radius beyond the 40cm baseline lets the front claw connect from
+	// "in front of the body" while leaving normal (~40cm-radius) monsters exactly as tuned.
+	const float Reach = AttackRange + FMath::Max(0.f, GetCapsuleComponent()->GetScaledCapsuleRadius() - 40.f);
+
+	if (Dist > Reach)
 	{
 		if (!bAttacking) { SetLocomotion(true); }
 
@@ -253,7 +281,7 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 			{
 				RepathTimer = RepathInterval;
 				const EPathFollowingRequestResult::Type Result =
-					AI->MoveToActor(Player, AttackRange * 0.85f, /*bStopOnOverlap*/ true, /*bUsePathfinding*/ true);
+					AI->MoveToActor(Player, Reach * 0.85f, /*bStopOnOverlap*/ true, /*bUsePathfinding*/ true);
 				bNavChasing = (Result != EPathFollowingRequestResult::Failed); // navmesh tile ready?
 			}
 			if (!bNavChasing)
@@ -307,13 +335,28 @@ void AMonsterCharacter::SetLocomotion(bool bMoving)
 
 void AMonsterCharacter::PlayAttackAnim()
 {
-	if (!bUsingSkeletalBody || !GetMesh() || !AttackAnim)
+	if (!bUsingSkeletalBody || !GetMesh())
 	{
+		return;
+	}
+	if (!AttackAnim)
+	{
+		// The swing still lands (damage already applied) but there's no clip to show.
+		if (bLogAttackAnim && GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red,
+				FString::Printf(TEXT("%s: melee fired but AttackAnim is null (see Output Log)"), *GetName()));
+		}
 		return;
 	}
 	GetMesh()->PlayAnimation(AttackAnim, /*bLooping*/ false);
 	AnimState = ESkelAnim::Attack;
 	AttackAnimEndTime = GetWorld()->GetTimeSeconds() + AttackAnim->GetPlayLength();
+	if (bLogAttackAnim && GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green,
+			FString::Printf(TEXT("%s: attack anim '%s' (%.2fs)"), *GetName(), *AttackAnim->GetName(), AttackAnim->GetPlayLength()));
+	}
 }
 
 float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)

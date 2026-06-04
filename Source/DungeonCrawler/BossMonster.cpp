@@ -61,6 +61,7 @@ void ABossMonster::BeginPlay()
 	Super::BeginPlay();
 
 	BaseMoveSpeed = MoveSpeed;
+	bLogAttackAnim = true; // TEMP: on-screen confirmation each swing while we verify the attack anim
 
 	// Prefer the animated skeletal crab. If its asset isn't imported yet, fall back to the static preview
 	// mesh; failing that, the graybox cubes remain.
