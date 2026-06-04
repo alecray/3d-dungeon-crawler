@@ -62,8 +62,10 @@ void ABossMonster::BeginPlay()
 
 	BaseMoveSpeed = MoveSpeed;
 
-	// If the imported crab mesh loaded, hide the graybox cubes and fit the crab to the capsule.
-	if (CrabMesh && CrabMesh->GetStaticMesh())
+	// Prefer the animated skeletal crab. If its asset isn't imported yet, fall back to the static preview
+	// mesh; failing that, the graybox cubes remain.
+	const bool bSkeletal = SetupSkeletalBody(SkeletalMeshPath, SkeletalMeshScale, RunAnimPath, IdleAnimPath, AttackAnimPath);
+	if (!bSkeletal && CrabMesh && CrabMesh->GetStaticMesh())
 	{
 		if (BodyRoot)
 		{
@@ -71,16 +73,20 @@ void ABossMonster::BeginPlay()
 		}
 		const FBoxSphereBounds B = CrabMesh->GetStaticMesh()->GetBounds();
 		const FVector Size = B.BoxExtent * 2.f;
-		// Scale so the crab's largest dimension hits the target boss size (a hermit crab is wide, so
+		// Scale so the static crab's largest dimension hits the target size (a hermit crab is wide, so
 		// fitting to the narrow capsule made it tiny). The capsule stays the hitbox.
 		const float Largest = FMath::Max3(Size.X, Size.Y, Size.Z);
 		const float S = CrabMeshTargetSize / FMath::Max(1.f, Largest);
 		CrabMesh->SetRelativeScale3D(FVector(S));
 		CrabMesh->SetRelativeRotation(FRotator(0.f, CrabMeshYaw, 0.f));
-		// Drop so the bottom of the mesh bounds rests on the capsule base (floor).
 		const float CapHalf = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 		const float BottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
 		CrabMesh->SetRelativeLocation(FVector(0.f, 0.f, -CapHalf - BottomZ));
+	}
+	else if (bSkeletal)
+	{
+		// Skeletal is showing; hide the unused static fallback mesh.
+		if (CrabMesh) { CrabMesh->SetVisibility(false); }
 	}
 
 	// Hide every growth, then reveal phase 1's.

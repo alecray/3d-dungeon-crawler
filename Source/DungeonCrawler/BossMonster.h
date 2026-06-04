@@ -153,16 +153,33 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> BackWeakMesh;
 
-	/** Imported hermit-crab body mesh; when valid it replaces the graybox cubes. */
-	UPROPERTY(VisibleAnywhere, Category = "Boss")
+	// ---- Hermit-crab body ----
+	// Preferred: an animated skeletal mesh + idle/run/attack anims (set these once the rig is imported).
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	FString SkeletalMeshPath = TEXT("/Game/Enemies/SK_HermitCrab.SK_HermitCrab");
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	float SkeletalMeshScale = 3.f;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	FString IdleAnimPath = TEXT("/Game/Enemies/A_HermitCrab_Idle.A_HermitCrab_Idle");
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	FString RunAnimPath = TEXT("/Game/Enemies/A_HermitCrab_Run.A_HermitCrab_Run");
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	FString AttackAnimPath = TEXT("/Game/Enemies/A_HermitCrab_Attack.A_HermitCrab_Attack");
+
+	/** Fallback static mesh shown only while the skeletal rig isn't imported yet. */
+	UPROPERTY(VisibleAnywhere, Category = "Boss|Mesh")
 	TObjectPtr<UStaticMeshComponent> CrabMesh;
 
-	/** Yaw applied to the crab mesh so its forward faces the actor's forward (tweak per imported asset). */
-	UPROPERTY(EditAnywhere, Category = "Boss")
+	/** Yaw applied to the fallback static mesh so its forward faces the actor's forward. */
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	float CrabMeshYaw = -90.f;
 
-	/** Target size (cm) of the crab's largest dimension — scales the imported mesh to a boss-sized body. */
-	UPROPERTY(EditAnywhere, Category = "Boss")
+	/** Target size (cm) of the fallback static mesh's largest dimension. */
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	float CrabMeshTargetSize = 585.f;
 
 	int32 CurrentPhase = 0;

@@ -129,40 +129,46 @@ void AMonsterCharacter::ApplyType(FName TypeId)
 	}
 
 	// Skeletal body if a mesh is available; otherwise keep the graybox cube body.
-	USkeletalMesh* Skel = !Def.SkeletalMeshPath.IsEmpty()
-		? Cast<USkeletalMesh>(FSoftObjectPath(Def.SkeletalMeshPath).TryLoad()) : nullptr;
-
-	if (Skel && GetMesh())
-	{
-		bUsingSkeletalBody = true;
-		const float S = FMath::Max(0.05f, Def.MeshScale);
-		GetMesh()->SetSkeletalMesh(Skel);
-		GetMesh()->SetRelativeScale3D(FVector(S));
-		GetMesh()->SetVisibility(true);
-		if (BodyRoot) { BodyRoot->SetVisibility(true, /*bPropagate*/ true); BodyRoot->SetHiddenInGame(true, true); }
-
-		// Auto-fit the collision capsule (hitbox) to the scaled mesh bounds so they always match.
-		const FBoxSphereBounds B = Skel->GetBounds();
-		const float Radius = FMath::Max(8.f, FMath::Max(B.BoxExtent.X, B.BoxExtent.Y) * S);
-		const float HalfHeight = FMath::Max(Radius, B.BoxExtent.Z * S);
-		GetCapsuleComponent()->SetCapsuleSize(Radius, HalfHeight);
-
-		// Drop the mesh so the bottom of its bounds sits at the capsule's base.
-		const float MeshBottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
-		GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -HalfHeight - MeshBottomZ));
-
-		RunAnim = Cast<UAnimSequence>(FSoftObjectPath(Def.RunAnimPath).TryLoad());
-		IdleAnim = Cast<UAnimSequence>(FSoftObjectPath(Def.IdleAnimPath).TryLoad());
-		AttackAnim = Cast<UAnimSequence>(FSoftObjectPath(Def.AttackAnimPath).TryLoad());
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		AnimState = ESkelAnim::None;
-		SetLocomotion(/*bMoving*/ false); // start idle
-	}
-	else
+	if (!SetupSkeletalBody(Def.SkeletalMeshPath, Def.MeshScale, Def.RunAnimPath, Def.IdleAnimPath, Def.AttackAnimPath))
 	{
 		bUsingSkeletalBody = false;
 		if (BodyRoot) { BodyRoot->SetRelativeScale3D(FVector(BodyScale)); }
 	}
+}
+
+bool AMonsterCharacter::SetupSkeletalBody(const FString& MeshPath, float MeshScale,
+	const FString& RunPath, const FString& IdlePath, const FString& AttackPath)
+{
+	USkeletalMesh* Skel = !MeshPath.IsEmpty() ? Cast<USkeletalMesh>(FSoftObjectPath(MeshPath).TryLoad()) : nullptr;
+	if (!Skel || !GetMesh())
+	{
+		return false;
+	}
+
+	bUsingSkeletalBody = true;
+	const float S = FMath::Max(0.05f, MeshScale);
+	GetMesh()->SetSkeletalMesh(Skel);
+	GetMesh()->SetRelativeScale3D(FVector(S));
+	GetMesh()->SetVisibility(true);
+	if (BodyRoot) { BodyRoot->SetVisibility(true, /*bPropagate*/ true); BodyRoot->SetHiddenInGame(true, true); }
+
+	// Auto-fit the collision capsule (hitbox) to the scaled mesh bounds so they always match.
+	const FBoxSphereBounds B = Skel->GetBounds();
+	const float Radius = FMath::Max(8.f, FMath::Max(B.BoxExtent.X, B.BoxExtent.Y) * S);
+	const float HalfHeight = FMath::Max(Radius, B.BoxExtent.Z * S);
+	GetCapsuleComponent()->SetCapsuleSize(Radius, HalfHeight);
+
+	// Drop the mesh so the bottom of its bounds sits at the capsule's base.
+	const float MeshBottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
+	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -HalfHeight - MeshBottomZ));
+
+	RunAnim = Cast<UAnimSequence>(FSoftObjectPath(RunPath).TryLoad());
+	IdleAnim = Cast<UAnimSequence>(FSoftObjectPath(IdlePath).TryLoad());
+	AttackAnim = Cast<UAnimSequence>(FSoftObjectPath(AttackPath).TryLoad());
+	GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+	AnimState = ESkelAnim::None;
+	SetLocomotion(/*bMoving*/ false); // start idle
+	return true;
 }
 
 void AMonsterCharacter::MakeElite()

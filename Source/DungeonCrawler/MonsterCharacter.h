@@ -109,6 +109,14 @@ protected:
 	/** Builds one graybox cube under BodyRoot. Available to subclasses (e.g. boss morph parts). */
 	UStaticMeshComponent* AddBox(const TCHAR* Name, const FVector& Center, const FVector& SizeCm);
 
+	/**
+	 * Loads a skeletal mesh + locomotion/attack anims onto the inherited mesh, hides the graybox cubes,
+	 * auto-fits the capsule, and starts the idle anim. Used by ApplyType (typed monsters) and the boss.
+	 * Returns false (leaving the graybox body) if the mesh path doesn't resolve.
+	 */
+	bool SetupSkeletalBody(const FString& MeshPath, float MeshScale,
+		const FString& RunPath, const FString& IdlePath, const FString& AttackPath);
+
 	/** Plays the hit-react pop without applying damage (for special-attack feedback). */
 	void TriggerHitReact() { HitReactTimeLeft = HitReactDuration; }
 
