@@ -143,9 +143,9 @@ void ADungeonPlayerController::StartGameAsClass(ECharacterClass Class)
 	}
 	if (bFresh)
 	{
-		if (AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetPawn()))
+		if (AFirstPersonCharacter* FPChar = Cast<AFirstPersonCharacter>(GetPawn()))
 		{
-			Player->ApplyClassLoadout(Class);
+			FPChar->ApplyClassLoadout(Class);
 		}
 	}
 	StartGameFromMenu();

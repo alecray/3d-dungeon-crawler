@@ -11,6 +11,7 @@ class UInventoryWidget;
 class UInventoryComponent;
 class ALootChest;
 class AShopNPC;
+enum class ECharacterClass : uint8; // defined in CharacterClass.h
 
 /**
  * Player controller that owns the on-screen UI: HUD, inventory grid, collection log, and the chest
@@ -48,7 +49,7 @@ public:
 
 	/** Class-select start: apply the chosen archetype's loadout to a fresh character, then start. On a
 	    returning profile (already has saved progress) the class is ignored and it just continues. */
-	void StartGameAsClass(enum class ECharacterClass Class);
+	void StartGameAsClass(ECharacterClass Class);
 
 	/** Fade the screen to black over Duration (s), then open Map — the standard scene transition. */
 	void FadeToBlackAndTravel(FName Map, float Duration = 0.45f);

@@ -23,6 +23,7 @@ class UAnimSequence;
 class AProjectile;
 struct FInputActionValue;
 struct FInputActionInstance;
+enum class ECharacterClass : uint8; // defined in CharacterClass.h
 
 /** How the equipped weapon attacks (ranged/mage behaviour arrives in Phase 3). */
 UENUM(BlueprintType)
@@ -85,7 +86,7 @@ public:
 	void SaveNow() { PersistProfile(); }
 
 	/** Applies a starting class's attribute spread + weapon to a fresh character (from the class-select menu). */
-	void ApplyClassLoadout(enum class ECharacterClass Class);
+	void ApplyClassLoadout(ECharacterClass Class);
 
 	// ---- Settings (pause menu) ----
 	float GetLookSensitivity() const { return LookSensitivity; }
