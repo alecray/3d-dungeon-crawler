@@ -1,6 +1,7 @@
 #include "LootChest.h"
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
+#include "ImpactBurst.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/BoxComponent.h"
@@ -79,7 +80,8 @@ void ALootChest::ResolveMeshes()
 
 void ALootChest::Open()
 {
-	if (!bOpened)
+	const bool bFirstOpen = !bOpened;
+	if (bFirstOpen)
 	{
 		bOpened = true;
 		RollLoot(); // roll once, on first open
@@ -87,6 +89,33 @@ void ALootChest::Open()
 	if (ChestMesh && OpenAnim)
 	{
 		ChestMesh->PlayAnimation(OpenAnim, /*bLooping*/ false); // holds on the final (open) frame
+	}
+	if (bFirstOpen)
+	{
+		SpawnLootSparkle(); // rarity-colored pop on the reveal
+	}
+}
+
+void ALootChest::SpawnLootSparkle()
+{
+	UWorld* World = GetWorld();
+	if (!World || !bHasLoot)
+	{
+		return;
+	}
+	const FLinearColor Col = RarityColor(BestRolledRarity);
+	const FVector Loc = GetActorLocation() + FVector(0.f, 0.f, 45.f);
+	FActorSpawnParameters P;
+	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// One burst, plus an extra for the rarer tiers so good loot really pops.
+	const int32 Bursts = ((int32)BestRolledRarity >= (int32)EItemRarity::Rare) ? 2 : 1;
+	for (int32 i = 0; i < Bursts; ++i)
+	{
+		if (AImpactBurst* Sparkle = World->SpawnActor<AImpactBurst>(AImpactBurst::StaticClass(), FTransform(Loc), P))
+		{
+			Sparkle->SetColor(Col);
+		}
 	}
 }
 
@@ -127,7 +156,12 @@ void ALootChest::RollLoot()
 		{
 			continue;
 		}
-		const int32 Count = (ItemDatabase::Get(ItemId).MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
+		const FItemDef& Def = ItemDatabase::Get(ItemId);
+		const int32 Count = (Def.MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
 		ChestInventory->AddItem(ItemId, Count);
+
+		// Track the best rarity rolled, for the open-reveal sparkle color.
+		bHasLoot = true;
+		if ((int32)Def.Rarity > (int32)BestRolledRarity) { BestRolledRarity = Def.Rarity; }
 	}
 }

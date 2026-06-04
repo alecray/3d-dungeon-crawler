@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ItemTypes.h" // EItemRarity
 #include "LootChest.generated.h"
 
 class USkeletalMeshComponent;
@@ -63,5 +64,9 @@ protected:
 
 private:
 	void RollLoot();
+	/** Burst of the best-rolled rarity's color when first opened (loot rarity feedback). */
+	void SpawnLootSparkle();
 	bool bOpened = false;
+	bool bHasLoot = false;
+	EItemRarity BestRolledRarity = EItemRarity::Common;
 };

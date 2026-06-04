@@ -1,6 +1,7 @@
 #include "ItemPickup.h"
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
+#include "ImpactBurst.h"
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -169,6 +170,18 @@ bool AItemPickup::Collect(APawn* ByPawn)
 		const int32 Leftover = Inv->AddItem(ItemId, Count);
 		if (Leftover <= 0)
 		{
+			// Pickup sparkle in the item's rarity color as it's collected.
+			if (UWorld* World = GetWorld())
+			{
+				const FLinearColor Col = ItemDatabase::Contains(ItemId) ? RarityColor(ItemDatabase::Get(ItemId).Rarity) : FLinearColor::White;
+				FActorSpawnParameters P;
+				P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				if (AImpactBurst* Sparkle = World->SpawnActor<AImpactBurst>(AImpactBurst::StaticClass(),
+					FTransform(GetActorLocation() + FVector(0.f, 0.f, 25.f)), P))
+				{
+					Sparkle->SetColor(Col);
+				}
+			}
 			Destroy();
 			return true;
 		}
