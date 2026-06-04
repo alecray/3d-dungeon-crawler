@@ -16,11 +16,11 @@ Untested / unchecked work is up top (**TO TEST**); sections you've already passe
 
 ## 0. This session's changes (NEW — test these first)
 **Dash (Shift):**
-- [ ] Shift does a quick **dash** in your movement direction (or facing when standing still), **not** a sprint.
-- [ ] It **costs stamina** and has a short cooldown; spamming is gated. With no stamina the **stamina bar flashes red** and you don't dash.
+- [x] Shift does a quick **dash** in your movement direction (or facing when standing still), **not** a sprint.
+- [x] It **costs stamina** and has a short cooldown; spamming is gated. With no stamina the **stamina bar flashes red** and you don't dash.
 
 **Insufficient-resource feedback:**
-- [ ] Swinging/firing with no stamina (or casting a spell with no mana) **flashes the matching HUD bar red** instead of silently doing nothing.
+- [x] Swinging/firing with no stamina (or casting a spell with no mana) **flashes the matching HUD bar red** instead of silently doing nothing.
 
 **Boss combat (anim-test mode — no specials):**
 - [ ] The boss **swings its attack animation** when in range, and the hit **lands partway through the swing** (frame 20) — you can **step/dash out of the way to dodge it**.

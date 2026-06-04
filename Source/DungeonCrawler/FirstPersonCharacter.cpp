@@ -639,12 +639,17 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 			if (UWorld* World = GetWorld())
 			{
 				const float CapHalf = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 88.f;
-				const FVector Feet = GetActorLocation() - FVector(0.f, 0.f, CapHalf - 2.f);
-				FActorSpawnParameters P;
-				P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-				if (AImpactBurst* Dust = World->SpawnActor<AImpactBurst>(AImpactBurst::StaticClass(), FTransform(Feet), P))
+				const FTransform FeetXf(GetActorLocation() - FVector(0.f, 0.f, CapHalf - 2.f));
+				// Deferred so the subtle, flash-FREE dust config + tint land before BeginPlay builds it
+				// (a plain SpawnActor would run BeginPlay first, leaving the default bright white flash).
+				if (AImpactBurst* Dust = World->SpawnActorDeferred<AImpactBurst>(
+					AImpactBurst::StaticClass(), FeetXf, this, nullptr,
+					ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 				{
-					Dust->SetColor(FLinearColor(0.5f, 0.45f, 0.38f)); // dusty tan, kicked up underfoot
+					Dust->Configure(/*Count*/ 3, /*Speed*/ 60.f, /*BitScale*/ 0.045f, /*Life*/ 0.45f,
+						/*FlashIntensity*/ 0.f, /*FlashRadius*/ 0.f); // no light — just a low puff
+					Dust->SetColor(FLinearColor(0.32f, 0.29f, 0.25f)); // muted dusty brown
+					UGameplayStatics::FinishSpawningActor(Dust, FeetXf);
 				}
 			}
 		}

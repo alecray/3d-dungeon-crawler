@@ -23,6 +23,14 @@ public:
 	/** Tints the bits + flash (e.g. ichor green for a crab). Call right after spawning. */
 	void SetColor(const FLinearColor& Color) { Tint = Color; }
 
+	/** Overrides the burst's shape before it spawns its parts (use with a DEFERRED spawn so it takes
+	    effect in BeginPlay). Pass FlashIntensity 0 for a flash-free puff (e.g. footstep dust). */
+	void Configure(int32 InCount, float InSpeed, float InBitScale, float InLife, float InFlashIntensity, float InFlashRadius)
+	{
+		Count = InCount; Speed = InSpeed; BitScale = InBitScale; LifeSeconds = InLife;
+		FlashIntensity = InFlashIntensity; FlashRadius = InFlashRadius;
+	}
+
 	virtual void Tick(float DeltaSeconds) override;
 
 protected:
