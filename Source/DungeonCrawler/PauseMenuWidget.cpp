@@ -88,8 +88,10 @@ bool UPauseMenuWidget::Initialize()
 		SS->SetPadding(FMargin(0.f, 14.f, 0.f, 0.f));
 	}
 
-	auto AddSliderRow = [&](const TCHAR* Label, TObjectPtr<USlider>& OutSlider, TObjectPtr<UTextBlock>& OutValue,
-		void (UPauseMenuWidget::*Handler)(float))
+	// Builds a "label  [slider]  value" row. NOTE: the slider's OnValueChanged is bound by the CALLER,
+	// not here — AddDynamic stringizes its literal function-name token, so a Handler passed through a
+	// variable registers as the name "Handler" and asserts at runtime.
+	auto AddSliderRow = [&](const TCHAR* Label, TObjectPtr<USlider>& OutSlider, TObjectPtr<UTextBlock>& OutValue)
 	{
 		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
 		SettingsPanel->AddChildToVerticalBox(Row);
@@ -108,7 +110,6 @@ bool UPauseMenuWidget::Initialize()
 			SLS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 			SLS->SetVerticalAlignment(VAlign_Center);
 		}
-		OutSlider->OnValueChanged.AddDynamic(this, Handler);
 
 		OutValue = WidgetTree->ConstructWidget<UTextBlock>();
 		OutValue->SetText(FText::FromString(TEXT("--")));
@@ -119,8 +120,10 @@ bool UPauseMenuWidget::Initialize()
 		}
 	};
 
-	AddSliderRow(TEXT("Mouse Sensitivity"), SensSlider, SensValueText, &UPauseMenuWidget::OnSensitivityChanged);
-	AddSliderRow(TEXT("Master Volume"), VolumeSlider, VolumeValueText, &UPauseMenuWidget::OnVolumeChanged);
+	AddSliderRow(TEXT("Mouse Sensitivity"), SensSlider, SensValueText);
+	AddSliderRow(TEXT("Master Volume"), VolumeSlider, VolumeValueText);
+	if (SensSlider)   { SensSlider->OnValueChanged.AddDynamic(this, &UPauseMenuWidget::OnSensitivityChanged); }
+	if (VolumeSlider) { VolumeSlider->OnValueChanged.AddDynamic(this, &UPauseMenuWidget::OnVolumeChanged); }
 
 	// --- Controls reference (every player binding) ---
 	UTextBlock* ControlsHeader = WidgetTree->ConstructWidget<UTextBlock>();
