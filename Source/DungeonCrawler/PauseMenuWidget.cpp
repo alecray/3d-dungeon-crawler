@@ -16,6 +16,7 @@
 #include "Components/Slider.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
+#include "Components/SizeBoxSlot.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "AudioDevice.h"
 #include "Engine/World.h"
@@ -51,27 +52,48 @@ bool UPauseMenuWidget::Initialize()
 		PS->SetAnchors(FAnchors(0.5f, 0.5f));
 		PS->SetAlignment(FVector2D(0.5f, 0.5f));
 		PS->SetPosition(FVector2D::ZeroVector);
-		PS->SetSize(FVector2D(440.f, 600.f));
+		PS->SetAutoSize(true); // height grows to fit content (width is fixed by the inner sizer) — never squished
 	}
 
+	// Fixed width, auto height: the panel wraps however tall its content is, so adding the controls list
+	// can't compress or clip the rest of the menu.
+	USizeBox* PanelSizer = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("PanelSizer"));
+	PanelSizer->SetWidthOverride(460.f);
+	Panel->SetContent(PanelSizer);
+
 	UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Box"));
-	Panel->SetContent(Box);
+	PanelSizer->AddChild(Box);
 
 	UTextBlock* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Title"));
 	Title->SetText(FText::FromString(TEXT("Paused")));
 	Title->SetJustification(ETextJustify::Center);
-	Box->AddChildToVerticalBox(Title);
+	if (FSlateFontInfo Font = Title->GetFont(); true) { Font.Size = 28; Title->SetFont(Font); }
+	if (UVerticalBoxSlot* TitleSlot = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(Title)))
+	{
+		TitleSlot->SetHorizontalAlignment(HAlign_Center);
+		TitleSlot->SetPadding(FMargin(0.f, 0.f, 0.f, 14.f));
+	}
 
 	auto AddButton = [&](const TCHAR* Label, void (UPauseMenuWidget::*Handler)())
 	{
 		UButton* Btn = WidgetTree->ConstructWidget<UButton>();
+
+		// Give the button a consistent height so it doesn't render as a thin sliver.
+		USizeBox* BtnSize = WidgetTree->ConstructWidget<USizeBox>();
+		BtnSize->SetHeightOverride(38.f);
 		UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 		T->SetText(FText::FromString(Label));
 		T->SetJustification(ETextJustify::Center);
-		Btn->AddChild(T);
+		if (USizeBoxSlot* TS = Cast<USizeBoxSlot>(BtnSize->AddChild(T)))
+		{
+			TS->SetHorizontalAlignment(HAlign_Fill);
+			TS->SetVerticalAlignment(VAlign_Center);
+		}
+		Btn->AddChild(BtnSize);
+
 		if (UVerticalBoxSlot* BS = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(Btn)))
 		{
-			BS->SetPadding(FMargin(0.f, 8.f));
+			BS->SetPadding(FMargin(0.f, 6.f));
 		}
 		return Btn;
 	};
