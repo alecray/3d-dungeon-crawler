@@ -156,19 +156,19 @@ private:
 	// ---- Hermit-crab body ----
 	// Preferred: an animated skeletal mesh + idle/run/attack anims (set these once the rig is imported).
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString SkeletalMeshPath = TEXT("/Game/Enemies/SK_HermitCrab.SK_HermitCrab");
+	FString SkeletalMeshPath = TEXT("/Game/Enemies/SK_Hermit_Crab_Boss.SK_Hermit_Crab_Boss");
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	float SkeletalMeshScale = 3.f;
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString IdleAnimPath = TEXT("/Game/Enemies/A_HermitCrab_Idle.A_HermitCrab_Idle");
+	FString IdleAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Idle.A_Hermit_Crab_Boss_Idle");
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString RunAnimPath = TEXT("/Game/Enemies/A_HermitCrab_Run.A_HermitCrab_Run");
+	FString RunAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Run.A_Hermit_Crab_Boss_Run");
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString AttackAnimPath = TEXT("/Game/Enemies/A_HermitCrab_Attack.A_HermitCrab_Attack");
+	FString AttackAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Attack.A_Hermit_Crab_Boss_Attack");
 
 	/** Fallback static mesh shown only while the skeletal rig isn't imported yet. */
 	UPROPERTY(VisibleAnywhere, Category = "Boss|Mesh")
