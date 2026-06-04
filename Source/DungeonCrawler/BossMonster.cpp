@@ -71,14 +71,14 @@ void ABossMonster::BeginPlay()
 		}
 		const FBoxSphereBounds B = CrabMesh->GetStaticMesh()->GetBounds();
 		const FVector Size = B.BoxExtent * 2.f;
-		const float CapHalf = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-		const float CapR = GetCapsuleComponent()->GetScaledCapsuleRadius();
-		const float FitW = (2.f * CapR) / FMath::Max(1.f, FMath::Max(Size.X, Size.Y));
-		const float FitH = (2.f * CapHalf) / FMath::Max(1.f, Size.Z);
-		const float S = FMath::Max(0.05f, FMath::Min(FitW, FitH));
+		// Scale so the crab's largest dimension hits the target boss size (a hermit crab is wide, so
+		// fitting to the narrow capsule made it tiny). The capsule stays the hitbox.
+		const float Largest = FMath::Max3(Size.X, Size.Y, Size.Z);
+		const float S = CrabMeshTargetSize / FMath::Max(1.f, Largest);
 		CrabMesh->SetRelativeScale3D(FVector(S));
 		CrabMesh->SetRelativeRotation(FRotator(0.f, CrabMeshYaw, 0.f));
-		// Drop so the bottom of the mesh bounds rests on the capsule base.
+		// Drop so the bottom of the mesh bounds rests on the capsule base (floor).
+		const float CapHalf = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 		const float BottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
 		CrabMesh->SetRelativeLocation(FVector(0.f, 0.f, -CapHalf - BottomZ));
 	}

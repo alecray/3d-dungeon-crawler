@@ -627,14 +627,13 @@ void ADungeonGenerator::BuildGeometry()
 					return;
 				}
 				const bool bEntrance = (x == BossDoorX && y == BossDoorY && d == BossDoorDir);
+				// Two plain wall courses stacked floor-to-ceiling (a normal-looking wall, just 2x tall);
+				// the single entrance gets only the upper course so its lower half is an open doorway.
 				if (!bEntrance)
 				{
 					Course(EdgeOff, bRunAlongX, -SlabThickness, WallHeight); // lower course
-					// Seam ledge at the join so it reads as two stacked walls, not one tall wall.
-					const FVector Ledge = bRunAlongX ? FVector(WallSpan, WallThickness + 28.f, 22.f) : FVector(WallThickness + 28.f, WallSpan, 22.f);
-					AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, WallHeight), Ledge);
 				}
-				Course(EdgeOff, bRunAlongX, WallHeight, CellCeil + SlabThickness); // upper course (lintel at the entrance)
+				Course(EdgeOff, bRunAlongX, WallHeight, CellCeil + SlabThickness); // upper course
 			};
 
 			EdgeWall(0, FVector(HalfCell, 0.f, 0.f),  /*bRunAlongX*/ false, (y & 1) != 0);
