@@ -246,6 +246,7 @@ bool UPauseMenuWidget::Initialize()
 	MakeDevButton(TEXT("Teleport to Boss"), Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevBoss);
 	MakeDevButton(TEXT("Kill Player"),      Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevKill);
 	MakeDevButton(TEXT("Teleport Home"),    Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevHome);
+	MakeDevButton(TEXT("Give 1,000,000 Gold"), Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevGold);
 	NoClipLabel = NoClipText;
 	GodModeLabel = GodModeText;
 
@@ -343,6 +344,11 @@ void UPauseMenuWidget::OnDevHome()
 		PC->ClosePauseMenu(); // unpause so the fade/travel timer runs
 		PC->DevTeleportHome();
 	}
+}
+
+void UPauseMenuWidget::OnDevGold()
+{
+	if (AFirstPersonCharacter* P = GetPlayer()) { P->AddGold(1000000); }
 }
 
 void UPauseMenuWidget::OnDevBoss()
