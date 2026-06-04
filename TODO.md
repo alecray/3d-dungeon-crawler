@@ -104,7 +104,8 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [x] Rest / campfire at Rest rooms — `ABonfire` (graybox stone base + flickering flame/light); interact
       to **fully heal + refill mana/stamina + checkpoint-save** (Dark-Souls bonfire). Reusable. (Later:
       use it as the death-respawn point + a brief buff.)
-- [ ] Aggro + stealth backstab — enemies notice by line-of-sight/noise; unaware/behind hits deal bonus damage.
+- [~] Aggro + stealth backstab — **backstab done**: hits landing from behind a regular monster deal
+      1.8× (shown as an orange crit number). Still TODO: line-of-sight/noise aggro + an unaware/stealth bonus.
 - [ ] Summon / companion — a temporary graybox ally (skill or item) that fights alongside you.
 - [ ] Bestiary — monster compendium that fills in as you kill each type (sibling to the collection log).
 - [ ] Item durability + repair (gold sink), and/or gem socketing / runes for gear customization.

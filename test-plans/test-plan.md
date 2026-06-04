@@ -57,6 +57,8 @@ note: skill tree still needs more padding, you have plenty of screen real-estate
 - [ ] **Damage numbers** are big/bright and pop when you hit an enemy (easy to see).
 - [ ] **Skill tree (K)** is **bigger with more padding** — not cramped in the corner.
 - [ ] **Bonfire** in Rest rooms (green-lit rooms): a flickering flame on a stone base; `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
+- [ ] **Mage weapon** — buy the **Apprentice Wand** from the shop (or find a Wand/Staff in loot), put it on the hotbar, select it: LMB now casts **spell bolts** that cost **mana** (Mage style).
+- [ ] **Backstab** — hitting a regular enemy **from behind** deals extra damage (orange crit number). Facing it = normal damage.
 
 ## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
 - [x] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.
