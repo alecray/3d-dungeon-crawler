@@ -22,18 +22,18 @@ pause menu (Resume / Settings / **Dev Menu** / Quit). The full list is also in t
 
 Built so far:
 
-- [x] First-person controller (WASD + mouse look, jump, sprint)
+- [x] First-person controller (WASD + mouse look, jump, dash/dodge on Shift)
 - [x] Procedurally generated dungeon (rooms + hallways, scattered props)
 - [x] Custom floor/wall meshes + textured furniture (stool/table/crate); floor mesh reused as the
       ceiling (underside shown for separate texturing); walls alternate facing for variety
 - [x] Stylized lighting (Lumen) + amber wall torches
 - [x] Health & damage system (player + monsters)
 - [x] Melee combat (skeletal sword + swing animation)
-- [x] Enemy AI (chase/attack, hit-react) + 3-phase morphing boss
+- [x] Enemy AI (chase/attack, hit-react, backstab bonus) + a telegraphed hermit-crab boss
 - [x] Player death → level restart
 - [x] Attributes (Strength, Intelligence, Dexterity, Vitality) + level/XP progression (XP on kills,
       melee scales with Strength)
-- [x] Health / Mana / Stamina bars (pure-C++ UMG HUD); stamina drives sprint
+- [x] Health / Mana / Stamina bars (pure-C++ UMG HUD); stamina drives the dash + weapon use
 - [x] Save persistence (profile: attributes/level/XP/gold via a Game Instance + SaveGame)
 
 Planned RPG systems (art-independent, in dependency order):
@@ -113,9 +113,10 @@ Flow / UX:
 
 - `ADungeonCrawlerGameMode` — spawns lighting + the dungeon generator on BeginPlay, then drops the
   player into the first room.
-- `AFirstPersonCharacter` — eye-height first-person camera with a skeletal-mesh sword that plays a
-  swing animation on attack; WASD + mouse-look + sprint via Enhanced Input configured entirely in C++
-  (no input assets). Carries stats, health/mana/stamina, and a saved profile.
+- `AFirstPersonCharacter` — eye-height first-person camera with a skeletal-mesh weapon; the melee hit
+  lands partway through the swing. WASD + mouse-look + a stamina-costed **dash/dodge** (Shift) via
+  Enhanced Input configured entirely in C++ (no input assets). Carries stats, health/mana/stamina, a
+  saved profile, and applies the chosen starting class loadout (`ApplyClassLoadout`).
 - `ADungeonGenerator` — grid/tilemap dungeon: rooms (multi-cell) joined by 1-cell-wide L-shaped
   corridors; floor/ceiling/wall tiles are instanced; walls are raised on any cell edge bordering a
   non-floor cell, so doorways appear automatically where corridors meet rooms. Tunables (room count,
@@ -134,24 +135,31 @@ Flow / UX:
   DataTable) defines items, rarity, value, equip kind, and icon mesh/texture.
 - `UHotbarComponent` + `UHotbarWidget` / `HotbarSlotWidget` — 8-slot action bar; selecting a weapon
   slot swaps the held mesh and sets the combat style.
-- `ALootChest` + `AItemPickup` — chests roll a loot table into the inventory; pickups display the
-  item's real mesh (recolored per item) and auto-collect on overlap.
+- `ALootChest` + `AItemPickup` — chests roll a loot table into their grid (and pop a rarity-colored
+  burst on first open); world pickups display the item's real mesh, emit a **rarity loot beam**, are
+  collected with **[E]**, and spark in the rarity color on pickup.
 - `UItemIconSubsystem` — renders each item's mesh to a cached render target once, so UI slots show a
   cheap 3D thumbnail (transparent background; rarity color behind).
 - `AMonsterCharacter` + `MonsterDatabase` (`FMonsterDef`) — data-driven enemies (health/speed/damage/
   scale/anim); `AProjectile` for ranged/mage attacks; `ADeathPoof` on death.
 - `UDungeonGameInstance` + `UDungeonSaveGame` — persistent player profile across levels and to disk
-  (attributes, level/XP, gold, inventory, hotbar, collection log, and which boss intros have played).
-- `ABossMonster` (on `AMonsterCharacter`) — the hermit-crab boss: skeletal mesh + idle/walk anims,
-  scuttle/lunge movement, 3 phases, the specials above, and a phase-1 back weak point.
+  (attributes, level/XP, gold, inventory, hotbar, collection log).
+- `ABossMonster` (on `AMonsterCharacter`) — the hermit-crab boss: skeletal mesh + idle/walk/attack anims,
+  scuttle/lunge movement, an attack that lands on a specific frame inside a wide telegraphed danger zone,
+  and (gated behind `bAbilitiesEnabled`, off while anims are finalized) 3 phases + specials + a back weak point.
 - `ABossArena` + `ABossDoor` — the encounter manager: a room trigger that spawns the boss on entry,
-  seals the doorways with rising barriers, runs the intro camera (`UBossIntroCameraShake`) on the first
-  kill, and cleans up its boss/doors/portal on regenerate.
+  seals the doorways with rising barriers, runs the intro camera (`UBossIntroCameraShake`) every
+  encounter, drops the boss's loot on death, and cleans up its boss/doors/portal on regenerate.
+- `ABossSpawnVFX` / `AAttackTelegraph` — the boss's code-driven spawn-in effect, and the red floor disc
+  that marks (and flashes on) its incoming hit.
+- `ABonfire` — a Rest-room rest point: `[E]` to fully heal, refill mana/stamina, and checkpoint-save.
+- `CharacterClass.h` — the starting-archetype loadouts (Warrior/Ranger/Mage: a stat spread + a weapon).
 - `ADungeonTrap` (spike floor / pressure plate / dart shooter) + `ABubbleHazard` — graybox hazards with
   mesh swap-in points; the generator tags rooms with a type (`ERoomType`) and a décor theme for
   deliberate scenery placement.
 - `ADamageNumber`, `AImpactBurst`, `AAmbientDust`, `UHitCameraShake` — code-driven combat/ambient VFX
-  (floating numbers, hit sparks, drifting dust, screen kick).
+  (big floating numbers, dark-blood hit sparks, drifting dust, screen kick; `AImpactBurst::Configure`
+  tunes count/flash so the same actor does footstep dust, hit spray, and pickup sparkles).
 - `UMainMenuWidget`, `ULowHealthVignetteWidget`, `UFpsCounterWidget`, `UBossHealthBarWidget`,
   `UMinimapWidget` — pure-C++ HUD/menu widgets; `ADungeonPlayerController` drives the start screen,
   black-fade scene transitions, the dev menu, and the boss-room teleport.

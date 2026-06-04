@@ -40,7 +40,8 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] **Remove the temporary `bAbilitiesEnabled` flag** (`ABossMonster`) once the anims above are in —
       restore the full fight unconditionally and delete the flag + its `Tick` guard + README note.
 - [ ] VERIFY IN PIE: intro camera framing, hold length, doors line up + actually block, input hands
-      back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room + lintels.
+      back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room (stacked
+      wall courses, no clipping), red attack telegraph + dodge-only zone feel.
 - [ ] Boss spawn-in **dissolve/materialize shader** (option B — the richer version of the code VFX that's
       already in via `ABossSpawnVFX`). Needs a material asset (can't be done in pure C++), then a small
       C++ hook to drive it. Steps:

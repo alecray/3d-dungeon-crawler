@@ -13,12 +13,6 @@ Untested / unchecked work is up top (**TO TEST**); sections you've already passe
 ---
 
 # TO TEST
-bug: door to boss room isnt sealing
-note: impact sparks are too bright when the player deals damage to a monster. how to make them more dark souls feeling?
-note: the player's melee hit needs to land like halfway through the animation, not right at the start
-note: skill tree still needs more padding, you have plenty of screen real-estate to make it bigger. see screenshot 11 in /screenshots
-
-
 
 ## 0. This session's changes (NEW — test these first)
 **Dash (Shift):**
@@ -36,12 +30,11 @@ note: skill tree still needs more padding, you have plenty of screen real-estate
 - [x] **Boss room** has **no scenery except a banner on each side of every doorway**, and is **two walls tall** (raised ceiling) with no clipping between the wall courses.
 
 **VFX / feel quick wins:**
-- [ ] **Footstep dust** puffs at your feet as you move on the ground.
+- [ ] **Footstep dust** — a **subtle muted puff** at your feet as you move (no bright white flash / firecracker look).
 - [ ] **Enemy death** sinks into the floor + shrinks (dissolve), not a pop-up.
 - [ ] **Picking up** a dropped item throws a rarity-colored **sparkle**; opening a **chest** pops a rarity-colored burst (brighter for Rare+).
 - [ ] **Traps glow red** (pulsing) just before they fire — spikes ramp before rising, plates flash on the step, dart shooters glow before a shot.
 - [x] **Wall torches** sit a bit lower and their light comes from the **flame tip**, not the middle of the stick.
-- [ ] Footstep dust is now a **subtle muted puff** (no bright white flash / firecracker look).
 
 **Latest batch (boss feel + bugs):**
 - [ ] **Red ground telegraph** — a red disc appears on the floor where the boss is about to hit; it brightens through the wind-up and **flashes** on impact. Standing in it when it flashes = hit.
@@ -61,36 +54,35 @@ note: skill tree still needs more padding, you have plenty of screen real-estate
 - [ ] **Backstab** — hitting a regular enemy **from behind** deals extra damage (orange crit number). Facing it = normal damage.
 - [ ] **Starting class** (fresh save — delete `DungeonProfile.sav` first) — the main menu shows **Choose your class: Warrior / Ranger / Mage**. Picking one starts you with that stat spread + weapon (sword/crossbow/wand) already equipped. A returning save instead shows **Continue** (no class pick). Nothing's locked — you can still level any stat / use any weapon / take any skill.
 
-## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
+## 1. Hermit-crab boss — skeletal mesh + anims
 - [x] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.
-- [x] It plays an **idle** animation standing still and a **walk** animation while moving/chasing.
+- [x] It plays an **idle** standing still and a **walk** while moving/chasing.
+- [ ] It plays the **attack** animation on its melee swings (the hit lands on frame 20 — see Section 0).
 - [x] It **stands on the floor** — not buried/sunk into the ground.
-- [x] Expected gaps (not bugs): no attack/spawn anims yet, so no swing animation on hit and the intro
-      "rise" doesn't show on the crab (the camera/shake still play).
+- [ ] Expected gaps (not bugs): no death anim yet; the spawn-in uses the code VFX (Section 0), not a rig "rise".
 
-## 2. Boss room + intro camera (UPDATED — now a normal room)
-- [x] The boss room is just a **normal (big) room** like the others — single height, normal walls/doorways.
-      No double-height, no stacked-wall pillars, no weird bars.
-- [x] **No floor traps** inside the boss arena.
-- [ ] The intro camera frames the boss roughly **straight-on** and **doesn't clip the ceiling**.
+## 2. Boss room + intro camera (UPDATED — double-height arena)
+- [ ] The boss room is a big arena that's **two walls tall** (raised ceiling), with **no clipping** between the
+      lower and upper wall courses.
+- [ ] **No scenery** inside except a **banner on each side of every doorway** (lying flat on the wall).
+- [ ] **No floor traps**, **no chest** in the boss arena.
+- [ ] The intro camera frames the **boss itself** (centered, scaled to fit), not the empty space above it.
 
 ## 3. Boss encounter sequence
-First-ever kill of the boss (fresh save):
-- [ ] Walking in triggers it: **input locks**, the boss **spawns opposite you**, camera **blends to frame it**
-      with a **screen shake**, then blends back and control returns.
+- [ ] Walking in triggers it: **input locks**, the boss **spawns opposite you** (with the spawn-in VFX), camera
+      **blends to frame it** with a **screen shake**, then blends back and control returns.
+- [ ] This now plays **every encounter, including replays** (no longer first-kill-only).
 - [ ] The **entrance doorways seal** with rising barriers (you can't leave).
-Replays / on death:
-- [ ] Replays: doors seal but **no camera blend / no shake**.
-- [ ] On death: doors **sink back down**; the **return portal activates**.
+- [ ] On death: doors **sink back down**; the **return portal activates** at a back corner (away from the loot).
 - [ ] No "Phase 9" / multiple bosses — regenerating the dungeon no longer leaves old bosses around.
 
 ## 4. Boss fight mechanics
-- [ ] **Movement:** scuttles sideways / circles you, then **telegraphs + lunges**. Smooth, no jitter.
+- [ ] **Movement:** scuttles sideways / circles you while pressing inward, then **telegraphs + lunges**. Smooth, no jitter.
 - [ ] **Navmesh hand-off:** break line of sight behind a wall → it **paths around**, then resumes scuttling.
-- [ ] **Phases:** at ~66% and ~33% HP it buffs; a "PHASE 2/3" message shows (only ever 1→2→3).
-- [ ] **Back weak point (phase 1):** hits from behind deal **~2×** (bigger orange numbers); marker gone after p1.
-- [ ] **Projectiles** (3-bolt spread p2+, dodgeable), **ground slam**, **summon adds**, **bubble pools (p2-3)**,
-      **enrage (p3)**, **shell-retreat (p3, invulnerable for a few sec)**.
+- NOTE: the boss runs in **anim-test mode** (`bAbilitiesEnabled = false`) right now, so the items below are
+  **expected NOT to happen** until abilities are re-enabled (they're here for when they are):
+  - [ ] Phases at ~66% / ~33% HP; phase-1 back weak point; projectile volley; ground slam; summon adds;
+        bubble pools; enrage; shell-retreat.
 
 ## 5. Scenery — deliberate placement (NEW)
 - [ ] Each room feels **themed** (storage / dining / crypt / smithy / library) — props from one coherent set.
@@ -107,7 +99,7 @@ Replays / on death:
 - [x] **Damage flash** — the screen pulses red the instant you take a hit.
 - [ ] **Level-up burst** — a gold poof erupts off you when you level up.
 - [x] **Low-HP screen** — chromatic aberration + desaturation ramp up as health drops (on top of the red vignette).
-- [x] **Sprint FOV** — the view widens a touch while sprinting.
+- [ ] **Dash FOV** — the view widens a touch during the dash burst (sprint was replaced by dash).
 - [x] **FPS holds** with all of it on (the dust is pooled; impacts are cheap).
 
 ## 7. Game feel / juice
@@ -141,7 +133,8 @@ Replays / on death:
 - [ ] Allocate/lock/multi-rank works; passives + modifiers + **Q capstones** work; persists across relaunch.
 
 ## 14. Floating damage numbers
-- [ ] Hitting an enemy spawns a **big bright gold** number that faces the camera and drifts up; weak-point = larger/orange.
+- [ ] Hitting an enemy spawns a **big, bright** number that pops, faces the camera, and drifts up (easy to see);
+      a **backstab / weak-point** hit is larger + **orange**.
 
 ## 15. Melee stamina
 - [x] A melee swing **drains stamina**; **out of stamina** = no swing. Skill cost-reduction also lowers melee cost.
@@ -169,7 +162,7 @@ Replays / on death:
       gold/inventory/equipment/skills survive transitions.
 
 ## 23. Regression
-- [x] HUD bars + level correct; sprint drains stamina; styles switch with weapon; chests loot; dungeon generates.
+- [x] HUD bars + level correct; styles switch with weapon; chests loot; dungeon generates.
 - [x] Inventory / hotbar / collection log / level / XP / gold persist across relaunch. No bright Lumen band on wall tops.
 
 ---
@@ -185,8 +178,10 @@ Replays / on death:
 ---
 
 ## Known / expected rough edges (not bugs)
-- Still graybox in places — doors/portal/traps/bubbles/room-markers are primitive shapes; the crab boss has
-  only idle/walk anims so far (no attack/spawn/death anims yet).
+- Still graybox in places — doors/portal/traps/bubbles/room-markers/bonfire are primitive shapes; the crab
+  boss has idle/walk/attack anims (no spawn/death anims yet — spawn uses code VFX).
+- The boss runs in **anim-test mode** (`bAbilitiesEnabled = false`): no phases/specials until re-enabled.
 - The **weapon-rack** prop spawns tilted/sunk (asset pivot fix is on the art TODO).
 - The start menu is an **overlay on the town map**, not a separate menu level.
-- The controls list is **read-only** (no rebinding yet); Mage style still needs a weapon item to fully exercise.
+- The controls list is **read-only** (no rebinding yet).
+- The mage staff/wand has **no held mesh yet** (graybox/hidden) — it still casts; a mesh swaps in later.
