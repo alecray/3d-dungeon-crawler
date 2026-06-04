@@ -69,6 +69,12 @@ Boss & encounters:
 - [x] Dedicated boss health bar; the boss uses the hermit-crab skeletal mesh (idle/walk anims) with a
       graybox fallback
 
+> **Temporary flag — `ABossMonster::bAbilitiesEnabled` (default OFF).** While the boss animations are
+> being finalized, the full fight is gated off: with it off the boss holds in phase 1 and only does the
+> standard scuttle/lunge + melee attack (so the attack anim can be tested cleanly) — no phase buffs,
+> specials, shell-retreat, or enrage. Flip it on (Details panel → Boss|Debug) to restore the full fight.
+> **Remove this flag once the remaining boss anims are in** (tracked in TODO.md).
+
 World & generation:
 
 - [x] Dungeon traps — spike floors, pressure plates, wall-mounted dart shooters (graybox, mesh-swappable)

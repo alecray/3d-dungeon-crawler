@@ -36,7 +36,8 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
   - [ ] **Shell-retreat** tuck-in + emerge (phase 3).
   - [ ] **Enrage** roar (phase 3).
 
-- [ ] Re-enable the full fight — flip `bAbilitiesEnabled` back on once the anims above are in.
+- [ ] **Remove the temporary `bAbilitiesEnabled` flag** (`ABossMonster`) once the anims above are in —
+      restore the full fight unconditionally and delete the flag + its `Tick` guard + README note.
 - [ ] VERIFY IN PIE: intro camera framing, hold length, doors line up + actually block, input hands
       back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room + lintels.
 - [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam).
