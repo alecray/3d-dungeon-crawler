@@ -19,6 +19,7 @@
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/Skeleton.h"
+#include "Misc/FrameRate.h"
 #include "Engine/Engine.h" // GEngine on-screen debug
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
@@ -268,6 +269,21 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	// "in front of the body" while leaving normal (~40cm-radius) monsters exactly as tuned.
 	const float Reach = AttackRange + FMath::Max(0.f, GetCapsuleComponent()->GetScaledCapsuleRadius() - 40.f);
 
+	// Resolve a pending (animation-timed) melee hit: the damage lands mid-swing on the hit frame, not when
+	// the swing starts, so the player can dodge by leaving reach before then. Runs regardless of the
+	// current range branch so a player who stepped out still whiffs the blow.
+	if (bHitPending && Now >= PendingHitTime)
+	{
+		bHitPending = false;
+		if (Dist <= Reach) // still in front of the claw at the moment of impact -> it connects
+		{
+			if (UHealthComponent* PlayerHealth = Player->FindComponentByClass<UHealthComponent>())
+			{
+				PlayerHealth->ApplyDamage(PendingDamage);
+			}
+		}
+	}
+
 	if (Dist > Reach)
 	{
 		if (!bAttacking) { SetLocomotion(true); }
@@ -302,9 +318,26 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	{
 		LastAttackTime = Now;
 		PlayAttackAnim();
-		if (UHealthComponent* PlayerHealth = Player->FindComponentByClass<UHealthComponent>())
+
+		// If a hit frame is configured and we have the clip, the damage lands later (mid-swing, dodgeable);
+		// otherwise it lands immediately as before.
+		float HitDelay = 0.f;
+		if (AttackHitFrame >= 0.f && bUsingSkeletalBody && AttackAnim)
 		{
-			PlayerHealth->ApplyDamage(AttackDamage);
+			const double Fps = AttackAnim->GetSamplingFrameRate().AsDecimal();
+			const float SafeFps = (Fps > 1.0) ? (float)Fps : 30.f;
+			HitDelay = FMath::Clamp(AttackHitFrame / SafeFps, 0.f, AttackAnim->GetPlayLength());
+		}
+
+		if (HitDelay > 0.f)
+		{
+			PendingDamage = AttackDamage;
+			PendingHitTime = Now + HitDelay;
+			bHitPending = true;
+		}
+		else if (UHealthComponent* PlayerHealth = Player->FindComponentByClass<UHealthComponent>())
+		{
+			PlayerHealth->ApplyDamage(AttackDamage); // immediate (no anim / no hit frame configured)
 		}
 	}
 	else if (!bAttacking)

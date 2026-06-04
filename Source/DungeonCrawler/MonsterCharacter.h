@@ -133,6 +133,10 @@ protected:
 	/** When true, the attack path prints an on-screen confirmation each swing (boss anim debugging). */
 	bool bLogAttackAnim = false;
 
+	/** Animation frame on which the melee blow connects. <0 = deal damage instantly when the swing starts
+	    (default for plain monsters). The boss sets this so its hit lands mid-swing and can be dodged. */
+	float AttackHitFrame = -1.f;
+
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;
 
@@ -156,6 +160,10 @@ private:
 	bool bUsingSkeletalBody = false;
 	float AttackAnimEndTime = 0.f;
 	float LastAttackTime = -1000.f;
+
+	bool bHitPending = false;
+	float PendingHitTime = 0.f;
+	float PendingDamage = 0.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
 

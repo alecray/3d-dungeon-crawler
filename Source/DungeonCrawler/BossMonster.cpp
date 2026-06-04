@@ -26,6 +26,7 @@ ABossMonster::ABossMonster()
 	AttackRange = 260.f;
 	AggroRange = 6000.f;       // notices the player anywhere in the big boss room
 	AttackCooldown = 1.6f;
+	AttackHitFrame = 20.f;      // the claw connects on frame 20 of the attack anim (dodgeable until then)
 	MoveSpeed = 430.f;          // closes on the player quickly (was a sluggish 280)
 	XPReward = 300;
 

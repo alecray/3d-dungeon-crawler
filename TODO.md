@@ -90,6 +90,7 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] Item durability + repair (gold sink), and/or gem socketing / runes for gear customization.
 - [x] Loot beams — every dropped item emits a rarity-colored pillar + glow (taller/brighter for rarer);
       the boss drops a handful of rolled items on death. (Still TODO: rarity feedback on chest loot + auto-loot.)
+- [ ] Some sort of gambling. Blackjack?
 
 ## Aesthetics / VFX (code-driven, no imported art needed)
 

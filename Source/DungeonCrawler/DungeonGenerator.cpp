@@ -1243,23 +1243,35 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 	}
 
 	const float HalfCell = CellSize * 0.5f;
-	const float TorchZ = WallHeight * 0.32f;
+	const float TorchZ = WallHeight * 0.26f; // sit the torch a bit lower on the wall
 
-	// Mount point flush on the inner wall face, at mid wall height.
+	// Mount point flush on the inner wall face.
 	const FVector MountLocal = CellLocal + OutwardDir * (HalfCell - 4.f) + FVector(0.f, 0.f, TorchZ);
-	// The torch's flame is just in front of (into the room) and above the mount; light sits there.
-	const FVector FlameLocal = MountLocal - OutwardDir * 14.f + FVector(0.f, 0.f, 22.f);
 
-	if (TorchMesh && TorchISM)
+	// Work out the flame height — the TIP of the torch — so the light reads as coming from the flame
+	// rather than the middle of the stick. Use the imported mesh's bounds when present; otherwise fall
+	// back to a fixed nub height for the graybox.
+	float FlameZ = TorchZ + 34.f; // graybox flame-nub tip
+	float Scale = 1.f;
+	FBoxSphereBounds B;
+	const bool bHaveMesh = (TorchMesh && TorchISM);
+	if (bHaveMesh)
+	{
+		B = TorchMesh->GetBounds();
+		const float NativeHeight = FMath::Max(1.f, B.BoxExtent.Z * 2.f);
+		Scale = FMath::Clamp(TorchMeshHeight / NativeHeight, 0.01f, 50.f);
+		// Top of the scaled mesh relative to its mounted origin (which sits at Z = TorchZ).
+		FlameZ = TorchZ + (B.Origin.Z + B.BoxExtent.Z) * Scale + 6.f; // +6 crowns the very tip
+	}
+
+	// Light sits just in front of the wall, up at the flame tip.
+	const FVector FlameLocal = CellLocal + OutwardDir * (HalfCell - 18.f) + FVector(0.f, 0.f, FlameZ);
+
+	if (bHaveMesh)
 	{
 		// The torch's front is along its local -Y, so point local +Y AT the wall (front faces the room).
 		const FVector IntoRoom = -OutwardDir;
 		const FRotator TorchRot(0.f, FMath::RadiansToDegrees(FMath::Atan2(OutwardDir.Y, OutwardDir.X)) - 90.f, 0.f);
-
-		// Scale the mesh to a sensible height regardless of its imported native scale.
-		const FBoxSphereBounds B = TorchMesh->GetBounds();
-		const float NativeHeight = FMath::Max(1.f, B.BoxExtent.Z * 2.f);
-		const float Scale = FMath::Clamp(TorchMeshHeight / NativeHeight, 0.01f, 50.f);
 
 		// Mount on the wall SURFACE and push the (scaled) mesh into the room so it sits flush on the
 		// wall instead of buried in it (abs offset works regardless of where the pivot sits).
