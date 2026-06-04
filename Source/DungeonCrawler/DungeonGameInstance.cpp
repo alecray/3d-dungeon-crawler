@@ -114,6 +114,16 @@ void UDungeonGameInstance::AddDiscovered(FName ItemId)
 	}
 }
 
+void UDungeonGameInstance::MarkBossIntroSeen(FName BossId)
+{
+	if (!BossId.IsNone() && !Profile.SeenBossIntros.Contains(BossId))
+	{
+		Profile.bInitialized = true;
+		Profile.SeenBossIntros.Add(BossId);
+		SaveProfile(); // persist immediately so the cinematic never replays, even without a manual save
+	}
+}
+
 bool UDungeonGameInstance::SaveProfile()
 {
 	UDungeonSaveGame* Save = Cast<UDungeonSaveGame>(

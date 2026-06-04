@@ -27,11 +27,28 @@ public:
 	/** Doubles damage from behind while the phase-1 back weak point is exposed. */
 	virtual float ApplyHitDamage(float BaseDamage, const FVector& FromLocation) override;
 
+	/** Stable identifier for this boss type — keys the "intro already seen" save flag. */
+	FName GetBossId() const { return BossId; }
+
+	/** Plays the spawn/intro animation; the boss stays frozen (no chase/attacks) until it finishes. */
+	void PlayIntro();
+
+	/** True while the spawn/intro animation is playing. */
+	bool IsIntroPlaying() const { return bIntroPlaying; }
+
 protected:
 	virtual void BeginPlay() override;
 
 	/** Crab-like movement: scuttle sideways around the player and telegraph forward lunges. */
 	virtual bool TickCustomChase(float DeltaSeconds, APawn* Player, const FVector& DirToPlayer, float Dist) override;
+
+	/** Stable id for this boss type (persists which bosses' intros have already played). */
+	UPROPERTY(EditAnywhere, Category = "Boss")
+	FName BossId = TEXT("HermitCrab");
+
+	/** Length of the spawn/intro animation (seconds). */
+	UPROPERTY(EditAnywhere, Category = "Boss")
+	float IntroDuration = 1.8f;
 
 	/** Health fraction at/below which the boss enters phase 2 and phase 3. */
 	UPROPERTY(EditAnywhere, Category = "Boss")
@@ -132,6 +149,11 @@ private:
 
 	/** True while the phase-1 back weak point is exposed. */
 	bool bBackWeakActive = false;
+
+	// Spawn/intro animation state (boss is frozen while this plays).
+	void UpdateIntro(float DeltaSeconds);
+	bool bIntroPlaying = false;
+	float IntroTimeLeft = 0.f;
 
 	// Scuttle/lunge movement state machine (see TickCustomChase).
 	enum class EMoveState : uint8 { Scuttle, Telegraph, Lunge };

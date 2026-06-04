@@ -68,6 +68,13 @@ void ABossMonster::BeginPlay()
 
 void ABossMonster::Tick(float DeltaSeconds)
 {
+	// Frozen during the spawn/intro animation: run only the intro, skip all chase/attack/special logic.
+	if (bIntroPlaying)
+	{
+		UpdateIntro(DeltaSeconds);
+		return;
+	}
+
 	Super::Tick(DeltaSeconds); // chase / melee / hit-react from the base monster
 
 	if (!Health || Health->IsDead())
@@ -100,6 +107,46 @@ void ABossMonster::Tick(float DeltaSeconds)
 	{
 		DoRandomSpecial();
 		ScheduleNextSpecial();
+	}
+}
+
+void ABossMonster::PlayIntro()
+{
+	bIntroPlaying = true;
+	IntroTimeLeft = FMath::Max(0.1f, IntroDuration);
+
+	// Stop any movement and start the body compressed so it can rise/roar out of the ground.
+	GetCharacterMovement()->StopMovementImmediately();
+	if (BodyRoot)
+	{
+		BodyRoot->SetRelativeScale3D(FVector(BodyScale * 0.2f));
+	}
+}
+
+void ABossMonster::UpdateIntro(float DeltaSeconds)
+{
+	IntroTimeLeft = FMath::Max(0.f, IntroTimeLeft - DeltaSeconds);
+	const float A = 1.f - (IntroDuration > 0.f ? IntroTimeLeft / IntroDuration : 0.f); // 0 -> 1
+
+	if (BodyRoot)
+	{
+		// Ease up to full size over the first 70%, then a brief overshoot "roar" wobble to settle.
+		float Scale = FMath::InterpEaseOut(0.2f, 1.f, FMath::Clamp(A / 0.7f, 0.f, 1.f), 2.f);
+		if (A > 0.7f)
+		{
+			Scale += FMath::Sin((A - 0.7f) / 0.3f * PI) * 0.12f;
+		}
+		BodyRoot->SetRelativeScale3D(FVector(BodyScale * Scale));
+	}
+
+	if (IntroTimeLeft <= 0.f)
+	{
+		bIntroPlaying = false;
+		if (BodyRoot)
+		{
+			BodyRoot->SetRelativeScale3D(FVector(BodyScale));
+		}
+		ScheduleNextSpecial(); // start the specials clock fresh now that the fight begins
 	}
 }
 

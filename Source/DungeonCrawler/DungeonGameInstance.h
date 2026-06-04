@@ -56,6 +56,12 @@ public:
 	const TArray<FName>& GetDiscovered() const { return Profile.DiscoveredItems; }
 	bool IsDiscovered(FName ItemId) const { return Profile.DiscoveredItems.Contains(ItemId); }
 
+	/** True once a boss type's intro cinematic has played (persisted, so it only plays the first time). */
+	bool HasSeenBossIntro(FName BossId) const { return Profile.SeenBossIntros.Contains(BossId); }
+
+	/** Records that a boss type's intro cinematic has played, and writes the profile to disk. */
+	void MarkBossIntroSeen(FName BossId);
+
 	/** Write the in-memory profile to the save slot. */
 	UFUNCTION(BlueprintCallable, Category = "Save")
 	bool SaveProfile();

@@ -33,6 +33,8 @@ struct FPlayerProfile
 	UPROPERTY() TArray<FName> SkillNodes; // allocated skill-tree nodes (one entry per rank)
 	UPROPERTY() TArray<FName> Equipment;  // equipped item per paperdoll slot (NAME_None = empty)
 
+	UPROPERTY() TArray<FName> SeenBossIntros; // boss ids whose intro cinematic has already played
+
 	// Settings (pause menu).
 	UPROPERTY() float MouseSensitivity = 1.f;
 	UPROPERTY() float MasterVolume = 1.f;

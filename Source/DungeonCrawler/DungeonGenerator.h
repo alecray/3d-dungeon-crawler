@@ -11,6 +11,7 @@ class ABossMonster;
 class ALootChest;
 class APortal;
 class ADungeonTrap;
+class ABossArena;
 class UHealthComponent;
 
 /** A placed room as a rectangle of grid cells. */
@@ -128,6 +129,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Boss")
 	TSubclassOf<ABossMonster> BossClass;
 
+	/** Boss encounter manager (trigger + spawn-on-entry + door seal + intro). Defaults to ABossArena. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Boss")
+	TSubclassOf<ABossArena> ArenaClass;
+
 	/** Side length (in cells) of the square boss room — much larger than normal rooms. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Boss", meta = (ClampMin = "6"))
 	int32 BossRoomCells = 13;
@@ -223,10 +228,6 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<AActor>> SpawnedActors;
 
-	/** The dormant return portal in the boss room, activated when the boss is defeated. */
-	UPROPERTY()
-	TObjectPtr<APortal> BossReturnPortal;
-
 	TArray<ECell> Cells;
 	FRandomStream Rng;
 
@@ -249,11 +250,10 @@ private:
 	void ScatterMonsters();
 	void ScatterChests();
 	void ScatterTraps();
-	void SpawnBoss();
-	/** Spawns the always-on return portal in the start room (the boss-room one is spawned with the boss). */
+	/** Spawns + configures the boss-room encounter manager (boss spawns when the player enters). */
+	void SetupBossEncounter();
+	/** Spawns the always-on return portal in the start room (the boss-room one is spawned by the arena). */
 	void SpawnReturnPortals();
-	/** Activates the dormant boss-room return portal when the boss dies. */
-	void HandleBossDefeated(UHealthComponent* DeadComponent);
 	void SpawnWallTorches();
 	/** Places one wall torch (bracket mesh + warm light) on the wall in the given outward direction. */
 	void PlaceWallTorch(const FVector& CellLocal, const FVector& OutwardDir);

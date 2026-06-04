@@ -3,7 +3,9 @@
 ## Gameplay
 
 
-- [ ] Change boss to spawn when you walk into the boss room (instead of at dungeon generation)
+- [x] Boss encounter sequence — boss spawns on room entry opposite the player; entrance doors seal for
+      the fight (open on death); first-ever kill of a boss type plays a camera-focus + screen-shake +
+      intro cinematic (persisted per boss id), replays just do the spawn animation.
 - [x] Boss fight depth — crab-like scuttle + telegraphed lunge movement, player-targeting projectile
       volley (3-spread in phase 2+), phase-1 back weak point (2x dmg from behind, marked + auto-hidden
       after p1), and phase-2/3 bubble-pool hazards (ABubbleHazard). Reuses existing phase/special system.

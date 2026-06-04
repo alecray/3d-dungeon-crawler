@@ -7,6 +7,7 @@
 #include "ItemPickup.h"
 #include "Portal.h"
 #include "DungeonTrap.h"
+#include "BossArena.h"
 #include "HealthComponent.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
@@ -79,6 +80,7 @@ ADungeonGenerator::ADungeonGenerator()
 	BossClass = ABossMonster::StaticClass();
 	ChestClass = ALootChest::StaticClass();
 	TrapClass = ADungeonTrap::StaticClass();
+	ArenaClass = ABossArena::StaticClass();
 }
 
 void ADungeonGenerator::BeginPlay()
@@ -146,7 +148,7 @@ void ADungeonGenerator::Generate()
 	ScatterMonsters();
 	ScatterChests();
 	ScatterTraps();
-	SpawnBoss();
+	SetupBossEncounter();
 	SpawnReturnPortals();
 	if (bSpawnTorches)
 	{
@@ -164,7 +166,6 @@ void ADungeonGenerator::ClearLayout()
 		}
 	}
 	SpawnedActors.Reset();
-	BossReturnPortal = nullptr;
 
 	if (FloorISM)   { FloorISM->ClearInstances(); }
 	if (WallISM)    { WallISM->ClearInstances(); }
@@ -832,39 +833,62 @@ void ADungeonGenerator::ScatterTraps()
 	}
 }
 
-void ADungeonGenerator::SpawnBoss()
+void ADungeonGenerator::SetupBossEncounter()
 {
 	UWorld* World = GetWorld();
-	if (!World || !BossClass || BossRoomIndex == INDEX_NONE)
+	if (!World || !BossClass || BossRoomIndex == INDEX_NONE || !Rooms.IsValidIndex(BossRoomIndex))
 	{
 		return;
 	}
 
+	TSubclassOf<ABossArena> AClass = ArenaClass;
+	if (!AClass) { AClass = ABossArena::StaticClass(); }
+
 	FActorSpawnParameters Params;
 	Params.Owner = this;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	// Lift by the boss capsule half-height so it stands on the floor.
-	const FVector Loc = GetRoomCenterWorld(BossRoomIndex) + FVector(0.f, 0.f, 160.f);
-	if (ABossMonster* Boss = World->SpawnActor<ABossMonster>(BossClass, FTransform(Loc), Params))
+	const FVector RoomCenter = GetRoomCenterWorld(BossRoomIndex);
+	ABossArena* Arena = World->SpawnActor<ABossArena>(AClass, FTransform(RoomCenter), Params);
+	if (!Arena)
 	{
-		SpawnedActors.Add(Boss);
+		return;
+	}
+	SpawnedActors.Add(Arena);
 
-		// Reward portal in the boss room: spawned dormant, activated when the boss dies.
-		TSubclassOf<APortal> PClass = PortalClass;
-		if (!PClass) { PClass = APortal::StaticClass(); }
-		const FVector PortalLoc = GetRoomCenterWorld(BossRoomIndex) + FVector(0.f, CellSize * 1.5f, 0.f);
-		if (APortal* Portal = World->SpawnActor<APortal>(PClass, FTransform(FRotator::ZeroRotator, PortalLoc), Params))
-		{
-			Portal->SetTargetMapName(TownMapName);
-			Portal->SetActive(false);
-			BossReturnPortal = Portal;
-			SpawnedActors.Add(Portal);
-		}
+	const FDungeonRoom& Room = Rooms[BossRoomIndex];
+	const FVector2D RoomHalf(Room.W * 0.5f * CellSize, Room.H * 0.5f * CellSize);
+	TSubclassOf<APortal> PClass = PortalClass;
+	if (!PClass) { PClass = APortal::StaticClass(); }
+	Arena->Configure(BossClass, RoomCenter, RoomHalf, PClass, TownMapName);
 
-		if (UHealthComponent* BossHealth = Boss->FindComponentByClass<UHealthComponent>())
+	// Register a sealing barrier at every doorway on the boss room's perimeter (a room cell whose
+	// neighbour is a corridor — each such opening is exactly one cell wide).
+	const FTransform Xf = GetActorTransform();
+	const float HalfCell = CellSize * 0.5f;
+	static const int32 DX[4] = { 1, -1, 0, 0 };
+	static const int32 DY[4] = { 0, 0, 1, -1 };
+	for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
+	{
+		for (int32 x = Room.X; x < Room.X + Room.W; ++x)
 		{
-			BossHealth->OnDepleted.AddUObject(this, &ADungeonGenerator::HandleBossDefeated);
+			if (CellAt(x, y) != ECell::Room)
+			{
+				continue;
+			}
+			for (int32 d = 0; d < 4; ++d)
+			{
+				if (CellAt(x + DX[d], y + DY[d]) == ECell::Corridor)
+				{
+					const FVector Outward(DX[d], DY[d], 0.f);
+					const FVector DoorLocal = CellToLocal(x, y) + Outward * HalfCell;
+					const bool bAlongX = (DX[d] != 0); // opening faces X: barrier thin in X, spanning Y
+					const FVector Size = bAlongX
+						? FVector(WallThickness, CellSize, WallHeight)
+						: FVector(CellSize, WallThickness, WallHeight);
+					Arena->AddDoorSlot(FTransform(FRotator::ZeroRotator, Xf.TransformPosition(DoorLocal)), Size);
+				}
+			}
 		}
 	}
 }
@@ -919,14 +943,6 @@ void ADungeonGenerator::SpawnReturnPortals()
 		Portal->SetTargetMapName(TownMapName);
 		Portal->SetActive(true);
 		SpawnedActors.Add(Portal);
-	}
-}
-
-void ADungeonGenerator::HandleBossDefeated(UHealthComponent* /*DeadComponent*/)
-{
-	if (BossReturnPortal)
-	{
-		BossReturnPortal->SetActive(true);
 	}
 }
 

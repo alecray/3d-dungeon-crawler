@@ -16,7 +16,7 @@ static const TCHAR* DartMeshPath = TEXT("/Game/Traps/SM_Dart.SM_Dart");
 static const TCHAR* PlateMeshPath = TEXT("/Game/Traps/SM_Pressure_Plate.SM_Pressure_Plate");
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
-static constexpr float CubeUnitCm = 100.f;
+static constexpr float TrapCubeUnitCm = 100.f;
 
 // Graybox dimensions (cm).
 static constexpr float SpikeTravel = 70.f;   // how far the spikes rise out of the floor
@@ -90,7 +90,7 @@ UStaticMeshComponent* ADungeonTrap::AddBox(USceneComponent* Parent, const FVecto
 		Box->SetStaticMesh(CubeMesh);
 	}
 	Box->SetRelativeLocation(Center);
-	Box->SetRelativeScale3D(SizeCm / CubeUnitCm);
+	Box->SetRelativeScale3D(SizeCm / TrapCubeUnitCm);
 	Parts.Add(Box);
 	return Box;
 }
@@ -134,7 +134,7 @@ void ADungeonTrap::BuildSpikeTrap()
 	if (UStaticMesh* BaseMesh = ResolveMesh(BaseMeshOverride, bPlate ? PlateMeshPath : SpikeMeshPath))
 	{
 		// Finished base mesh sits flush on the floor (collision off so it never blocks movement).
-		UStaticMeshComponent* Whole = AddBox(Root, FVector::ZeroVector, FVector(CubeUnitCm), /*bCollide*/ false);
+		UStaticMeshComponent* Whole = AddBox(Root, FVector::ZeroVector, FVector(TrapCubeUnitCm), /*bCollide*/ false);
 		Whole->SetStaticMesh(BaseMesh);
 		Whole->SetRelativeScale3D(FVector::OneVector);
 	}
@@ -166,7 +166,7 @@ void ADungeonTrap::BuildSpikeTrap()
 
 	if (UStaticMesh* SpikeMesh = ResolveMesh(SpikeMeshOverride, SpikeMeshPath))
 	{
-		UStaticMeshComponent* Whole = AddBox(SpikeGroup, FVector(0.f, 0.f, SpikeTravel * 0.5f), FVector(CubeUnitCm), false);
+		UStaticMeshComponent* Whole = AddBox(SpikeGroup, FVector(0.f, 0.f, SpikeTravel * 0.5f), FVector(TrapCubeUnitCm), false);
 		Whole->SetStaticMesh(SpikeMesh);
 		Whole->SetRelativeScale3D(FVector::OneVector);
 	}
@@ -204,7 +204,7 @@ void ADungeonTrap::BuildDartShooter()
 	// Launcher body mounted flush against the wall, facing +X (its local forward) into the open space.
 	if (UStaticMesh* BodyMesh = ResolveMesh(BaseMeshOverride, DartLauncherMeshPath))
 	{
-		UStaticMeshComponent* Whole = AddBox(Root, FVector(0.f, 0.f, MuzzleZ), FVector(CubeUnitCm), /*bCollide*/ true);
+		UStaticMeshComponent* Whole = AddBox(Root, FVector(0.f, 0.f, MuzzleZ), FVector(TrapCubeUnitCm), /*bCollide*/ true);
 		Whole->SetStaticMesh(BodyMesh);
 		Whole->SetRelativeScale3D(FVector::OneVector);
 	}
@@ -410,7 +410,7 @@ void ADungeonTrap::FireDart()
 		Streak->SetWorldLocation(Mid);
 		Streak->SetWorldRotation(Dir.Rotation());
 		// Long thin shaft along local X.
-		Streak->SetWorldScale3D(FVector(Length / CubeUnitCm, 0.05f, 0.05f));
+		Streak->SetWorldScale3D(FVector(Length / TrapCubeUnitCm, 0.05f, 0.05f));
 	}
 	Tracers.Add({ Streak, 0.09f });
 }
