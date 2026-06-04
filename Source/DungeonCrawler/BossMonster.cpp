@@ -3,6 +3,7 @@
 #include "Projectile.h"
 #include "BubbleHazard.h"
 #include "MonsterTypes.h"
+#include "BossSpawnVFX.h"
 
 #include "AIController.h"
 #include "Components/CapsuleComponent.h"
@@ -195,6 +196,21 @@ void ABossMonster::PlayIntro()
 	if (BodyRoot)
 	{
 		BodyRoot->SetRelativeScale3D(FVector(BodyScale * 0.2f));
+	}
+
+	// Dramatic code-driven spawn-in VFX at the boss's feet, lasting the intro (ground flare + energy
+	// pillar + rising shard swirl + debris ring).
+	if (UWorld* World = GetWorld())
+	{
+		FActorSpawnParameters P;
+		P.Owner = this;
+		P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		const float CapHalf = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.f;
+		const FVector FeetLoc = GetActorLocation() - FVector(0.f, 0.f, CapHalf);
+		if (ABossSpawnVFX* VFX = World->SpawnActor<ABossSpawnVFX>(ABossSpawnVFX::StaticClass(), FTransform(FeetLoc), P))
+		{
+			VFX->Configure(IntroDuration, FLinearColor(1.0f, 0.45f, 0.12f)); // hot amber summoning energy
+		}
 	}
 }
 

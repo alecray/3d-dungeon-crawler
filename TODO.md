@@ -40,6 +40,20 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
       restore the full fight unconditionally and delete the flag + its `Tick` guard + README note.
 - [ ] VERIFY IN PIE: intro camera framing, hold length, doors line up + actually block, input hands
       back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room + lintels.
+- [ ] Boss spawn-in **dissolve/materialize shader** (option B — the richer version of the code VFX that's
+      already in via `ABossSpawnVFX`). Needs a material asset (can't be done in pure C++), then a small
+      C++ hook to drive it. Steps:
+  1. Author a master material `M_BossDissolve` (or a Material Instance over the crab's base): add a
+     **`Dissolve`** scalar param (0..1) and an **`EdgeColor`** vector param (emissive). Sample a tiling
+     noise texture; `if (Noise < Dissolve) discard` via **Opacity Mask** (set Blend Mode = Masked). Drive
+     the emissive: a thin band where `Noise` is just above `Dissolve` glows `EdgeColor` (e.g.
+     `EdgeGlow = saturate(1 - abs(Noise - Dissolve)/EdgeWidth) * EdgeColor`), so the dissolve edge burns.
+  2. Assign it to `SK_Hermit_Crab_Boss` (all material slots).
+  3. In C++: in `ABossMonster::PlayIntro`/`UpdateIntro`, grab the mesh's material as a Dynamic Material
+     Instance (`GetMesh()->CreateDynamicMaterialInstance(slot)`) and animate `Dissolve` from 0→1 over the
+     intro (`SetScalarParameterValue("Dissolve", A)`), set `EdgeColor` to the summon tint. Boss "forms
+     into existence" with a glowing dissolve edge. Keep `ABossSpawnVFX` running alongside for the pillar/shards.
+  4. (optional) Reverse it on death for a dissolve-out.
 - [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam).
 - [ ] Swap graybox: hermit-crab model, real gate/portcullis door mesh, portal mesh.
 - [ ] Support multiple boss types (only one boss id today).
