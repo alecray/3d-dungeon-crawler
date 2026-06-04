@@ -174,15 +174,19 @@ void ABossArena::RunIntroCinematic(APawn* Player)
 	// Lock the player out for the duration of the cinematic.
 	Player->DisableInput(PC);
 
-	// Frame the boss straight-on, aimed at its CENTER (not above it), pulled back proportional to the
-	// boss's size so the whole creature fits regardless of how big it scales.
+	// Frame the boss straight-on. Keep the shot LOW and INSIDE the room: aim at a sensible mid-body height
+	// (capped so a huge boss doesn't drag the focus way up), pull back proportional to the boss but clamp
+	// to the room size so the camera never slides outside/over the walls, and only rise a little — earlier
+	// the height + pullback scaled with the boss and put the camera up above the level.
 	FVector ToPlayer = Player->GetActorLocation() - Boss->GetActorLocation();
 	ToPlayer.Z = 0.f;
 	ToPlayer.Normalize();
-	const float BossR = Boss->GetCapsuleComponent() ? Boss->GetCapsuleComponent()->GetScaledCapsuleRadius() : 120.f;
-	const float Dist = FMath::Max(480.f, BossR * 2.6f);
-	const FVector Focus = Boss->GetActorLocation(); // the boss's center
-	const FVector CamLoc = Focus + ToPlayer * Dist + FVector(0.f, 0.f, BossR * 0.4f); // slight high angle
+	const float HalfH = Boss->GetCapsuleComponent() ? Boss->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 100.f;
+	const float FloorZ = Boss->GetActorLocation().Z - HalfH;
+	const FVector Focus(Boss->GetActorLocation().X, Boss->GetActorLocation().Y, FloorZ + FMath::Min(HalfH, 200.f));
+	const float RoomMin = FMath::Min(RoomHalf.X, RoomHalf.Y);
+	const float Dist = FMath::Clamp(HalfH * 2.2f, 420.f, FMath::Max(450.f, RoomMin * 1.15f));
+	const FVector CamLoc = Focus + ToPlayer * Dist + FVector(0.f, 0.f, 70.f); // small, fixed rise
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;

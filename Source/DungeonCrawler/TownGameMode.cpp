@@ -32,10 +32,10 @@ void ATownGameMode::BuildWorld()
 
 	const FVector Fwd = StartRot.Vector();
 	FVector Right = FVector::CrossProduct(FVector::UpVector, Fwd).GetSafeNormal();
-	const FRotator FaceBack(0.f, StartRot.Yaw + 180.f, 0.f); // readout faces the approach
 
-	// Drops a station onto the floor at an offset (forward, sideways) from the player start.
-	auto SpawnStation = [&](UClass* Class, float FwdCm, float RightCm)
+	// Drops a station onto the floor at an offset (forward, sideways) from the player start, facing the
+	// approach (+ an optional extra yaw to orient a particular station).
+	auto SpawnStation = [&](UClass* Class, float FwdCm, float RightCm, float ExtraYaw)
 	{
 		const FVector Probe = StartLoc + Fwd * FwdCm + Right * RightCm + FVector(0.f, 0.f, 150.f);
 		FVector Loc(Probe.X, Probe.Y, StartLoc.Z - 88.f); // fallback ~floor
@@ -44,11 +44,12 @@ void ATownGameMode::BuildWorld()
 		{
 			Loc.Z = Hit.ImpactPoint.Z;
 		}
+		const FRotator Rot(0.f, StartRot.Yaw + 180.f + ExtraYaw, 0.f);
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		World->SpawnActor<AActor>(Class, FTransform(FaceBack, Loc), Params);
+		World->SpawnActor<AActor>(Class, FTransform(Rot, Loc), Params);
 	};
 
-	SpawnStation(ABlackjackTable::StaticClass(), 360.f, -250.f); // ahead-left
-	SpawnStation(AFishingHole::StaticClass(),    360.f,  250.f); // ahead-right
+	SpawnStation(ABlackjackTable::StaticClass(), 360.f, -250.f, /*ExtraYaw*/ 180.f); // ahead-left, flipped to face the player
+	SpawnStation(AFishingHole::StaticClass(),    360.f,  250.f, /*ExtraYaw*/ 0.f);   // ahead-right
 }

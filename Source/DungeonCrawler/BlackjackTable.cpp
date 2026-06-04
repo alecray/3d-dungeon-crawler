@@ -38,10 +38,12 @@ ABlackjackTable::ABlackjackTable()
 
 	StatusText3D = CreateDefaultSubobject<UTextRenderComponent>(TEXT("StatusText3D"));
 	StatusText3D->SetupAttachment(Root);
-	StatusText3D->SetRelativeLocation(FVector(0.f, 0.f, TableTopZ + 70.f));
+	// Sit the readout flat-ish just above the felt, centered between the card rows, so it's easy to read
+	// while you're looking down at the table (was floating too high overhead).
+	StatusText3D->SetRelativeLocation(FVector(0.f, 0.f, TableTopZ + 16.f));
 	StatusText3D->SetRelativeRotation(FRotator(0.f, 90.f, 0.f)); // face +Y (the approach side)
 	StatusText3D->SetHorizontalAlignment(EHTA_Center);
-	StatusText3D->SetWorldSize(22.f);
+	StatusText3D->SetWorldSize(16.f);
 	StatusText3D->SetTextRenderColor(FColor(255, 240, 180));
 	StatusText3D->SetText(FText::FromString(TEXT("Blackjack")));
 }
