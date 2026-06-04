@@ -114,6 +114,9 @@ private:
 	void SpitProjectiles();
 	void BubbleBurst();
 
+	/** True when nothing solid blocks the straight line from the boss to the player. */
+	bool HasLineOfSightToPlayer(AActor* Player) const;
+
 	/** Three cube "growths" revealed one-per-phase to show the boss morphing. */
 	UPROPERTY()
 	TArray<TObjectPtr<UStaticMeshComponent>> MorphParts;
@@ -135,4 +138,7 @@ private:
 	EMoveState MoveState = EMoveState::Scuttle;
 	float MoveTimer = 0.f;
 	float StrafeSign = 1.f;
+
+	/** True while we're steering directly (have line of sight); false while navmesh-pathing around cover. */
+	bool bUsingDirectMove = false;
 };

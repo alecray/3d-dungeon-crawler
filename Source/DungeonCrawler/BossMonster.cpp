@@ -3,6 +3,7 @@
 #include "Projectile.h"
 #include "BubbleHazard.h"
 
+#include "AIController.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -320,11 +321,45 @@ float ABossMonster::ApplyHitDamage(float BaseDamage, const FVector& FromLocation
 	return Health ? Health->ApplyDamage(Dmg) : 0.f;
 }
 
+bool ABossMonster::HasLineOfSightToPlayer(AActor* Player) const
+{
+	UWorld* World = GetWorld();
+	if (!World || !Player)
+	{
+		return false;
+	}
+
+	const FVector Start = GetActorLocation() + FVector(0.f, 0.f, 60.f);
+	const FVector End = Player->GetActorLocation();
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(BossLoS), /*bTraceComplex*/ false, this);
+	Params.AddIgnoredActor(Player);
+	// A blocking hit on anything other than the player (i.e. a wall) means no line of sight.
+	return !World->LineTraceTestByChannel(Start, End, ECC_Visibility, Params);
+}
+
 bool ABossMonster::TickCustomChase(float DeltaSeconds, APawn* Player, const FVector& DirToPlayer, float Dist)
 {
 	// Always face the player so the back weak point and forward lunges stay meaningful.
 	const FRotator Face(0.f, DirToPlayer.Rotation().Yaw, 0.f);
 	SetActorRotation(FMath::RInterpTo(GetActorRotation(), Face, DeltaSeconds, 7.f));
+
+	// Hybrid pathing: when a wall blocks the player, hand off to the base navmesh chase to route around
+	// it; only scuttle/lunge while we have a clear line of sight (the usual case in the open arena).
+	if (!HasLineOfSightToPlayer(Player))
+	{
+		bUsingDirectMove = false;
+		return false; // base AMonsterCharacter::Tick runs its navmesh MoveToActor chase
+	}
+	if (!bUsingDirectMove)
+	{
+		// Just regained sight: cancel any active path-follow so our direct steering takes over cleanly.
+		if (AAIController* AI = Cast<AAIController>(GetController()))
+		{
+			AI->StopMovement();
+		}
+		bUsingDirectMove = true;
+	}
 
 	const FVector Lateral = FVector::CrossProduct(FVector::UpVector, DirToPlayer).GetSafeNormal();
 	MoveTimer -= DeltaSeconds;
