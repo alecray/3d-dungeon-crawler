@@ -24,9 +24,10 @@ ABossMonster::ABossMonster()
 	BodyScale = 2.2f;          // applied to BodyRoot in AMonsterCharacter::BeginPlay
 	MonsterMaxHealth = 320.f;
 	AttackDamage = 135.f;       // a brutal hit (~75% of the 180 starting HP) — Dark-Souls punishing
-	AttackRange = 260.f;
+	AttackRange = 380.f;        // wide danger zone — you must DODGE out of it, a step back won't clear it
+                                // (the red telegraph disc matches this reach exactly)
 	AggroRange = 6000.f;       // notices the player anywhere in the big boss room
-	AttackCooldown = 1.6f;
+	AttackCooldown = 2.8f;      // clear recovery window between swings (was a spammy 1.6) — punish openings
 	AttackHitFrame = 20.f;      // the claw connects on frame 20 of the attack anim (dodgeable until then)
 	MoveSpeed = 430.f;          // closes on the player quickly (was a sluggish 280)
 	XPReward = 300;

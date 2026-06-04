@@ -5,6 +5,7 @@
 #include "DeathPoof.h"
 #include "DamageNumber.h"
 #include "ImpactBurst.h"
+#include "AttackTelegraph.h"
 
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h" // EPathFollowingRequestResult values
@@ -334,6 +335,20 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 			PendingDamage = AttackDamage;
 			PendingHitTime = Now + HitDelay;
 			bHitPending = true;
+
+			// Paint the danger zone on the floor: a red disc of the exact hit radius (Reach), centered on
+			// us, that flashes when the blow lands — dash out of it to dodge.
+			if (UWorld* World = GetWorld())
+			{
+				const float FloorZ = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+				const FVector TeleLoc(GetActorLocation().X, GetActorLocation().Y, FloorZ);
+				FActorSpawnParameters TP;
+				TP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				if (AAttackTelegraph* Tele = World->SpawnActor<AAttackTelegraph>(AAttackTelegraph::StaticClass(), FTransform(TeleLoc), TP))
+				{
+					Tele->Configure(Reach, HitDelay);
+				}
+			}
 		}
 		else if (UHealthComponent* PlayerHealth = Player->FindComponentByClass<UHealthComponent>())
 		{

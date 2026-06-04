@@ -251,13 +251,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float WalkSpeed = 450.f;
 
-	/** Speed during the dash burst (Shift). A short, committed lurch — a Dark-Souls-style dodge. */
+	/** Speed during the dash burst (Shift). A short, committed lurch — a Dark-Souls-style dodge. Tuned so
+	    the dash (~400cm) clears the boss's danger zone while a plain walk-back during the wind-up can't. */
 	UPROPERTY(EditAnywhere, Category = "Movement")
-	float DashSpeed = 1500.f;
+	float DashSpeed = 2000.f;
 
 	/** How long the dash burst lasts (s). Distance ≈ DashSpeed * DashDuration. */
 	UPROPERTY(EditAnywhere, Category = "Movement")
-	float DashDuration = 0.18f;
+	float DashDuration = 0.2f;
 
 	/** Minimum gap between dashes (s). */
 	UPROPERTY(EditAnywhere, Category = "Movement")
