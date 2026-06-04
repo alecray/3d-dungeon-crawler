@@ -22,6 +22,10 @@
 - [x] Room-type variety — generator tags rooms Treasure (extra guarded chests) / Ambush (bigger forced
       swarm) / Rest (safe: no monsters/traps) / Elite (one tough MakeElite mini-boss + chest) / Normal,
       each with a colored marker light. (Later: shrine/buff room, locked vaults, puzzle rooms.)
+- [ ] Adjust the death flow (DESIGN DECISION pending) — currently death keeps all progression and
+      reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
+      require a consumable "life scroll" to respawn (else lose the run / drop loot). Ties into run-stakes
+      + the town-portal difficulty/risk-reward idea in the backlog.
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
 - [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
 
