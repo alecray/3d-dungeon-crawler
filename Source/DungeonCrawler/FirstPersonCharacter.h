@@ -326,6 +326,10 @@ private:
 	float BobPhase = 0.f;   // advancing sway phase, in radians
 	float BobWeight = 0.f;  // 0 = idle (no sway), 1 = fully walking
 
+	/** Distance walked since the last footstep puff; a small dust burst spawns every FootstepInterval cm. */
+	float StepAccum = 0.f;
+	UPROPERTY(EditAnywhere, Category = "Feel") float FootstepInterval = 175.f;
+
 	float LastAttackTime = -1000.f;
 	bool bDead = false;
 	bool bNoClip = false;

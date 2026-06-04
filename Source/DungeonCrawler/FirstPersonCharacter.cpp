@@ -14,6 +14,7 @@
 #include "ShopNPC.h"
 #include "Projectile.h"
 #include "DeathPoof.h"
+#include "ImpactBurst.h"
 #include "HitCameraShake.h"
 #include "Misc/App.h"
 #include "EngineUtils.h" // TActorIterator
@@ -627,6 +628,31 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 	}
 
 	const float MaxSpeed = (Movement && Movement->MaxWalkSpeed > 1.f) ? Movement->MaxWalkSpeed : WalkSpeed;
+
+	// Footstep dust: a small puff at the feet every FootstepInterval cm walked on the ground.
+	if (bWalking && !bNoClip)
+	{
+		StepAccum += Speed2D * DeltaSeconds;
+		if (StepAccum >= FootstepInterval)
+		{
+			StepAccum = 0.f;
+			if (UWorld* World = GetWorld())
+			{
+				const float CapHalf = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 88.f;
+				const FVector Feet = GetActorLocation() - FVector(0.f, 0.f, CapHalf - 2.f);
+				FActorSpawnParameters P;
+				P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				if (AImpactBurst* Dust = World->SpawnActor<AImpactBurst>(AImpactBurst::StaticClass(), FTransform(Feet), P))
+				{
+					Dust->SetColor(FLinearColor(0.5f, 0.45f, 0.38f)); // dusty tan, kicked up underfoot
+				}
+			}
+		}
+	}
+	else
+	{
+		StepAccum = 0.f;
+	}
 
 	// Blend the sway in while walking and out while idle/airborne.
 	const float TargetWeight = bWalking ? 1.f : 0.f;
