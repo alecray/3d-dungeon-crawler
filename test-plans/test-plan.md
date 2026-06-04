@@ -1,133 +1,129 @@
 # Consolidated Test Plan
 
 Untested / unchecked work is up top (**TO TEST**); sections you've already passed are at the bottom
-(**PASSED**). **(NEW)** = added since the last pass and never run.
+(**PASSED**). **(NEW)** = added since the last revision and never run.
 
 **Setup**
 - Rebuild the editor target, open the project, **Play**.
 - The game boots to **L_Town**; the start menu appears first.
 - To test a fresh profile / first-time cinematics, delete `Saved/SaveGames/DungeonProfile.sav` first.
 - Kill crabs for XP / skill points. Enter the dungeon via the town portal.
-- Tip: use the **Dev Menu** (Esc → Dev Menu: God Mode, Reveal Map, Teleport Home) to test faster.
+- Tip: **Dev Menu** (Esc → Dev Menu) has **Teleport to Boss**, God Mode, Reveal Map, Teleport Home for fast testing.
 
 ---
 
 # TO TEST
 
-## 1. Boss encounter sequence
+## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
+- [ ] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.
+- [ ] It plays an **idle** animation standing still and a **walk** animation while moving/chasing.
+- [ ] It **stands on the floor** — not buried/sunk into the ground.
+- [ ] Expected gaps (not bugs): no attack/spawn anims yet, so no swing animation on hit and the intro
+      "rise" doesn't show on the crab (the camera/shake still play).
+
+## 2. Boss room + intro camera (UPDATED — now a normal room)
+- [ ] The boss room is just a **normal (big) room** like the others — single height, normal walls/doorways.
+      No double-height, no stacked-wall pillars, no weird bars.
+- [ ] **No floor traps** inside the boss arena.
+- [ ] The intro camera frames the boss roughly **straight-on** and **doesn't clip the ceiling**.
+
+## 3. Boss encounter sequence
 First-ever kill of the boss (fresh save):
-- [ ] Walking into the boss room triggers the encounter: **input locks**, the boss **spawns on the far
-      side opposite you**, facing you.
-- [ ] The **camera blends to frame the boss** with a **screen shake** while it plays its rise/roar
-      **spawn animation**, then blends back to you and control returns.
-- [ ] The **entrance doorways seal** with barriers that rise from the floor (you can't leave).
-Replays (same boss again):
-- [ ] Doors still seal and the boss still plays its spawn animation, but **no camera blend / no shake**.
-On death:
-- [ ] The sealed doors **sink back down**; the **return portal activates** near room center.
+- [ ] Walking in triggers it: **input locks**, the boss **spawns opposite you**, camera **blends to frame it**
+      with a **screen shake**, then blends back and control returns.
+- [ ] The **entrance doorways seal** with rising barriers (you can't leave).
+Replays / on death:
+- [ ] Replays: doors seal but **no camera blend / no shake**.
+- [ ] On death: doors **sink back down**; the **return portal activates**.
+- [ ] No "Phase 9" / multiple bosses — regenerating the dungeon no longer leaves old bosses around.
 
-## 2. Boss room — double-height + camera (NEW)
-- [ ] The boss room is **two blocks tall** (taller walls + raised ceiling).
-- [ ] Doorways into the room have a **lintel above the opening** — no gap/void visible above the door.
-- [ ] The intro camera is **straight-on and fairly level** and **doesn't clip the ceiling**.
+## 4. Boss fight mechanics
+- [ ] **Movement:** scuttles sideways / circles you, then **telegraphs + lunges**. Smooth, no jitter.
+- [ ] **Navmesh hand-off:** break line of sight behind a wall → it **paths around**, then resumes scuttling.
+- [ ] **Phases:** at ~66% and ~33% HP it buffs; a "PHASE 2/3" message shows (only ever 1→2→3).
+- [ ] **Back weak point (phase 1):** hits from behind deal **~2×** (bigger orange numbers); marker gone after p1.
+- [ ] **Projectiles** (3-bolt spread p2+, dodgeable), **ground slam**, **summon adds**, **bubble pools (p2-3)**,
+      **enrage (p3)**, **shell-retreat (p3, invulnerable for a few sec)**.
 
-## 3. Boss fight mechanics
-- [ ] **Movement:** the boss **scuttles sideways / circles** you, then **telegraphs (pauses) and lunges**. Smooth, no jitter.
-- [ ] **Navmesh hand-off:** break line of sight behind a wall → boss **paths around** it, then resumes scuttling.
-- [ ] **Phases:** at ~66% and ~33% HP it **morphs** + buffs; an on-screen "PHASE N" message shows.
-- [ ] **Back weak point (phase 1 only):** marker on its back; **hits from behind deal ~2×** (bigger orange numbers). Marker gone after p1.
-- [ ] **Projectiles:** spits a bolt (3-bolt spread p2+); **slow enough to dodge**, **damages you** on hit.
-- [ ] **Ground slam**, **summon adds (real crab types, p2+)**, **bubble pools (p2-3)**, **enrage (p3)**.
-- [ ] **Shell-retreat (p3):** tucks in — immobile + **invulnerable**, hits **clang off** for a few seconds, then re-emerges.
+## 5. Scenery — deliberate placement (NEW)
+- [ ] Each room feels **themed** (storage / dining / crypt / smithy / library) — props from one coherent set.
+- [ ] Furniture **lines the walls** flush + facing into the room (no random spin); the centre stays walkable.
+- [ ] **Corner stacks** — tight piles in corners; some **dining halls** have a **table ringed by stools**.
+- [ ] **Coffins lie flat along the wall** (rotated 90°, not jutting into the room).
+- [ ] **No scenery on traps**, and **no scenery spawning inside other scenery**.
+- [ ] Corridors have wall-hugging props that don't block the path.
+- [ ] (Known: the **weapon rack** still spawns tilted/sunk — asset pivot fix pending, on the art TODO.)
 
-## 4. Floating damage numbers (re-test — was reported missing, now bigger/brighter)
-- [ ] Hitting any enemy spawns a **floating number** of the damage; **big, bright gold**, drifts up and fades.
-- [ ] Numbers **face the camera** as you move.
-- [ ] **Weak-point / boosted hits** show **larger and orange**.
+## 6. VFX / "alive" pass (NEW)
+- [ ] **Impact sparks** — hitting an enemy throws a small burst of bits + a brief light flash (weak-point = orange).
+- [ ] **Ambient dust** — faint motes drift in the air and catch the torch light.
+- [ ] **Damage flash** — the screen pulses red the instant you take a hit.
+- [ ] **Level-up burst** — a gold poof erupts off you when you level up.
+- [ ] **Low-HP screen** — chromatic aberration + desaturation ramp up as health drops (on top of the red vignette).
+- [ ] **Sprint FOV** — the view widens a touch while sprinting.
+- [ ] **FPS holds** with all of it on (the dust is pooled; impacts are cheap).
 
-## 5. Dev menu (NEW)
-- [ ] **Esc → Dev Menu** opens a panel: No Clip / God Mode / Reveal Map / Kill Player / Teleport Home.
-- [ ] **No Clip** — fly through walls (label toggles ON/OFF); turning it off restores normal collision.
-- [ ] **God Mode** — invulnerable (label ON/OFF); enemies/traps/bubbles can't hurt you while on.
-- [ ] **Reveal Map** — fills in the entire minimap.
-- [ ] **Kill Player** — kills you even with God Mode on → death flow runs.
-- [ ] **Teleport Home** — fades to black and returns to town.
+## 7. Game feel / juice
+- [ ] Landing a **melee** hit produces a brief **hit-stop**; **camera kick** on hit, light recoil on ranged fire.
+- [ ] Enemies get **knocked back** (small hop) away from your hits.
+- [ ] None of it is nauseating / overlong (flag if hit-stop too long, kick too strong, dust too thick).
 
-## 6. Game feel / juice
-- [ ] Landing a **melee** hit produces a brief **hit-stop** — swings feel weighty.
-- [ ] **Camera kicks** on a melee hit; **lighter recoil** when firing ranged/mage.
-- [ ] Enemies get **knocked back** (with a small hop) away from your hits.
-- [ ] Below ~35% HP the **screen edges pulse red**, stronger as HP drops; clears when healed.
-- [ ] None of it is nauseating / overlong.
+## 8. Dev menu (NEW)
+- [ ] **Esc → Dev Menu**: No Clip / God Mode / Reveal Map / **Teleport to Boss** / Kill Player / Teleport Home.
+- [ ] **No Clip** fly through walls (ON/OFF label); **God Mode** invulnerable; **Reveal Map** fills the minimap.
+- [ ] **Teleport to Boss** drops you in the boss room; **Kill Player** kills you even in God Mode; **Teleport Home** → town.
 
-## 7. Traps
-- [ ] **Spike floors** in corridors rise/fall on a timer and **damage you when up**.
-- [ ] **Pressure plates** — stepping on one **telegraphs then erupts spikes once**, then re-arms.
-- [ ] **Dart shooters** fire a **dart streak across the passage**; **damages you** if it hits.
-- [ ] Traps appear in corridors (and occasionally rooms) but **not in the spawn room**.
+## 9. Shop & inventory (NEW)
+- [ ] Your **inventory shows "Gold: N"** (your own inventory screen, not the chest loot grid).
+- [ ] Opening the **shop closes the inventory and vice-versa** — they never overlap (shop has its own buy/sell/gold).
 
-## 8. Room-type variety
-- [x] Rooms flagged by a **colored marker light**: **gold = Treasure**, **red = Ambush**, **green = Rest**, **purple = Elite**.
-- [ ] **Treasure** = 2-3 chests + guards; **Rest** = no monsters/traps; **Ambush** = bigger swarm; **Elite** = one mini-boss + chest.
-- [ ] Elites are **tough but fair** (~4× a normal crab's HP).
+## 10. Traps
+- [ ] **Spike floors** rise/fall and damage you when up; **pressure plates** telegraph then erupt once;
+      **dart shooters** fire across the passage. Not in the spawn room or the boss room.
 
-## 9. Generation tuning (NEW)
-- [ ] Rooms are **noticeably bigger** than before.
-- [ ] Hallways are **shorter** (rooms connect to their nearest neighbor, not a long chain).
-- [ ] **More items / clutter** are distributed around rooms and corridors; more chests overall.
-- [ ] Hallway props **don't clip into the walls**.
+## 11. Room-type variety
+- [x] Rooms flagged by a **colored marker light**: gold = Treasure, red = Ambush, green = Rest, purple = Elite.
+- [ ] Treasure = 2-3 chests + guards; Rest = no monsters/traps; Ambush = bigger swarm; Elite = one tough mini-boss + chest.
 
-## 10. Props
-- [ ] Rooms are **busier** with clutter.
-- [ ] **Corridors have props** hugging the walls (don't block the path).
-- [ ] **Coffins always stand against a wall** (never free-standing mid-floor).
+## 12. Generation tuning
+- [ ] Rooms are **bigger**; hallways are **shorter** (nearest-neighbor); more chests; props don't clip walls.
 
-## 11. FPS counter (NEW)
+## 13. Skill tree (K) — declutter (NEW)
+- [ ] **K** opens Melee/Ranged/Mage columns + **Points: N**; each node is **one clean line** (name + rank),
+      and **hovering shows the full description in a tooltip** (no more overlapping text).
+- [ ] Allocate/lock/multi-rank works; passives + modifiers + **Q capstones** work; persists across relaunch.
+
+## 14. Floating damage numbers
+- [ ] Hitting an enemy spawns a **big bright gold** number that faces the camera and drifts up; weak-point = larger/orange.
+
+## 15. Melee stamina
+- [ ] A melee swing **drains stamina**; **out of stamina** = no swing. Skill cost-reduction also lowers melee cost.
+
+## 16. FPS counter
 - [ ] An **FPS counter** sits **top-right, below the minimap**, color-coded green / yellow (<60) / red (<30).
 
-## 12. Pause menu layout (NEW)
-- [ ] Esc menu reads cleanly — **not squished**, buttons are a proper height, and it's **wide enough**
-      that the Controls rows fit; Settings panel grows to fit (no clipping).
+## 17. Pause menu layout
+- [ ] Esc menu reads cleanly — not squished, proper button height, wide enough for the Controls rows.
 
-## 13. Melee stamina
-- [ ] A melee swing **drains stamina**; when **out of stamina** it **doesn't fire**.
-- [ ] Skill nodes that reduce stamina cost also reduce the melee cost.
+## 18. Item icons / Potions
+- [ ] Inventory + hotbar show **3D thumbnails** per item; the three start-room **potions** (red/blue/green) match their icons.
 
-## 14. Item icons
-- [ ] Inventory (**I**) / hotbar slots show a **3D thumbnail** per item on a transparent bg with rarity color behind.
-- [ ] Starting **Crossbow** shows its correct icon; icons well-framed.
+## 19. Interaction prompt + E
+- [ ] `[E] Open` on chests, `[E] Pick up` on ground items (no auto-collect), `[E] Close` on loot panes; dropped items show their mesh.
 
-## 15. Potions (shared mesh + recolor)
-- [ ] Three potions on the **start-room table**: Health (red), Mana (blue), Stamina (green); icons match.
+## 20. Paperdoll equipment
+- [ ] Drag to equip (mismatches rejected), click to unequip; bonuses apply + persist; chest view = grid only.
 
-## 16. Interaction prompt + E to pick up
-- [ ] Chest shows **`[E] Open`**; ground item shows **`[E] Pick up`** (no auto-collect); loot pane shows **`[E] Close`**.
-- [ ] Dropping an item spawns it with its real mesh; **E** picks it back up.
-
-## 17. Skill tree (K)
-- [ ] **K** opens Melee/Ranged/Mage columns + **Points: N**; allocate/lock/multi-rank logic works.
-- [ ] Passive bonuses (max HP/mana/stamina, damage) + modifiers (Frenzy, Bloodthirst, Split Shot, Rapid Reload) work.
-- [ ] **Capstones (Q):** Whirlwind / Volley / Arcane Nova; Q does nothing if locked/cooldown/unaffordable.
-- [ ] Allocations + effects **persist** across relaunch.
-
-## 18. Paperdoll equipment
-- [ ] Inventory shows an **Equipment** panel; drag to equip (mismatches rejected), click to unequip; bonuses apply + persist.
-- [ ] Chest loot view shows the grid only.
-
-## 19. Enemy pathing
+## 21. Enemy pathing
 - [ ] Crabs **path around walls/corners**, then close in and attack; no stutter. (Needs a full editor restart.)
 
-## 20. Town, shop & portals
-- [ ] Starts in **L_Town**; Portal (`[E] Enter`) loads a dungeon (with a fade); ShopNPC buys/sells.
-- [ ] Start-room return portal is flush on a wall; gold/inventory/equipment/skills survive transitions.
+## 22. Town, shop & portals
+- [ ] Starts in **L_Town**; Portal (`[E] Enter`) loads a dungeon with a fade; ShopNPC buys/sells; return portal flush on a wall;
+      gold/inventory/equipment/skills survive transitions.
 
-## 21. Art / feel pass
-- [ ] Chests = SK_Chest (open/close anims); torches face the room w/ warm light; portals = spinning cyan gate.
-- [ ] Crab death pops/tumbles/shrinks + poof; no bright Lumen band along wall tops.
-
-## 22. Regression
+## 23. Regression
 - [ ] HUD bars + level correct; sprint drains stamina; styles switch with weapon; chests loot; dungeon generates.
-- [ ] Inventory / hotbar / collection log / level / XP / gold persist across relaunch.
+- [ ] Inventory / hotbar / collection log / level / XP / gold persist across relaunch. No bright Lumen band on wall tops.
 
 ---
 
@@ -142,7 +138,8 @@ On death:
 ---
 
 ## Known / expected rough edges (not bugs)
-- Everything is **graybox** — the boss isn't a crab yet; doors/portal/traps/bubbles/room-markers are primitive.
+- Still graybox in places — doors/portal/traps/bubbles/room-markers are primitive shapes; the crab boss has
+  only idle/walk anims so far (no attack/spawn/death anims yet).
+- The **weapon-rack** prop spawns tilted/sunk (asset pivot fix is on the art TODO).
 - The start menu is an **overlay on the town map**, not a separate menu level.
-- The controls list is **read-only** (no rebinding yet).
-- Mage style still needs a weapon item to fully exercise.
+- The controls list is **read-only** (no rebinding yet); Mage style still needs a weapon item to fully exercise.
