@@ -167,7 +167,7 @@ protected:
 	TObjectPtr<UInputAction> AttackAction;
 
 	UPROPERTY()
-	TObjectPtr<UInputAction> SprintAction;
+	TObjectPtr<UInputAction> DashAction;
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> InteractAction;
@@ -239,24 +239,32 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	float AttackCooldown = 0.45f;
 
-	// ---- Movement / sprint ----
+	// ---- Movement / dash ----
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float WalkSpeed = 450.f;
 
+	/** Speed during the dash burst (Shift). A short, committed lurch — a Dark-Souls-style dodge. */
 	UPROPERTY(EditAnywhere, Category = "Movement")
-	float SprintSpeed = 720.f;
+	float DashSpeed = 1500.f;
 
-	/** Stamina drained per second while sprinting. */
+	/** How long the dash burst lasts (s). Distance ≈ DashSpeed * DashDuration. */
 	UPROPERTY(EditAnywhere, Category = "Movement")
-	float SprintStaminaPerSecond = 24.f;
+	float DashDuration = 0.18f;
+
+	/** Minimum gap between dashes (s). */
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float DashCooldown = 0.55f;
+
+	/** Stamina spent per dash. */
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float DashStaminaCost = 25.f;
 
 private:
 	// Input handlers
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Attack(const FInputActionValue& Value);
-	void StartSprint(const FInputActionValue& Value);
-	void StopSprint(const FInputActionValue& Value);
+	void Dash(const FInputActionValue& Value);
 	void Interact(const FInputActionValue& Value);
 	void ToggleInventory(const FInputActionValue& Value);
 	void ToggleCollectionLog(const FInputActionValue& Value);
@@ -312,10 +320,16 @@ private:
 
 	float LastAttackTime = -1000.f;
 	bool bDead = false;
-	bool bSprintHeld = false;
 	bool bNoClip = false;
 
-	// ---- Game-feel: sprint FOV kick + low-HP screen effect ----
+	// ---- Dash state ----
+	FVector DashDir = FVector::ZeroVector; // locked-in direction of the current dash
+	float DashTimeLeft = 0.f;              // remaining dash-burst time
+	float DashCooldownLeft = 0.f;          // remaining cooldown before the next dash
+	float DefaultGroundFriction = 8.f;     // captured in BeginPlay; restored after the dash glide
+	float DefaultBrakingWalk = 2048.f;
+
+	// ---- Game-feel: dash FOV kick + low-HP screen effect ----
 	UPROPERTY(EditAnywhere, Category = "Feel") float SprintFOVKick = 8.f;
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpThreshold = 0.4f;
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpFringe = 4.f;   // chromatic aberration at 0 HP

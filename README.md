@@ -12,7 +12,7 @@ graybox so Blender assets can drop in later without code changes.
 2. Open `DungeonCrawler.uproject` in Unreal Editor, then **Play**. The game mode builds the whole
    world at runtime — any empty level works; no map asset is needed.
 
-**Controls:** WASD to move, mouse to look, Shift to sprint, Space to jump, LMB to attack (melee swing
+**Controls:** WASD to move, mouse to look, Shift to dash/dodge (costs stamina), Space to jump, LMB to attack (melee swing
 / ranged bolt / spell depending on the equipped weapon), **I** for inventory, **C** for the collection
 log, **K** for the skill tree, **1–8** to select the hotbar slot (swaps the held weapon), **Q** to use
 your unlocked active ability, **E** to interact with chests / pickups / NPCs / portals, **Esc** for the

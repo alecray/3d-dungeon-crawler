@@ -107,6 +107,13 @@ void AFirstPersonCharacter::BeginPlay()
 
 	if (FirstPersonCamera) { BaseFOV = FirstPersonCamera->FieldOfView; }
 
+	// Remember the normal friction/braking so the dash can cut them for its glide and put them back.
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		DefaultGroundFriction = Movement->GroundFriction;
+		DefaultBrakingWalk = Movement->BrakingDecelerationWalking;
+	}
+
 	// Resolve the sword skeletal mesh + swing animation (editor assignment wins; else load by path).
 	if (!SwordSkeletalAsset)
 	{
@@ -576,26 +583,34 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 	const float Speed2D = GetVelocity().Size2D();
 	const bool bWalking = Movement && !Movement->IsFalling() && Speed2D > 10.f;
 
-	// Sprint: drain stamina while held + moving on the ground; stop when it runs out.
-	const bool bSprinting = bSprintHeld && bWalking && Stamina && Stamina->GetCurrent() > 1.f;
-	if (Stamina)
-	{
-		Stamina->SetRegenPaused(bSprinting);
-		if (bSprinting)
-		{
-			Stamina->Drain(SprintStaminaPerSecond * DeltaSeconds);
-		}
-	}
+	// Dash: tick the cooldown, and while a dash burst is active keep speed high + friction cut so it
+	// glides the full distance; when it ends, restore normal walking.
+	if (DashCooldownLeft > 0.f) { DashCooldownLeft = FMath::Max(0.f, DashCooldownLeft - DeltaSeconds); }
+	const bool bDashing = DashTimeLeft > 0.f;
 	if (Movement)
 	{
-		Movement->MaxWalkSpeed = bSprinting ? SprintSpeed : WalkSpeed;
+		if (bDashing)
+		{
+			DashTimeLeft = FMath::Max(0.f, DashTimeLeft - DeltaSeconds);
+			Movement->MaxWalkSpeed = DashSpeed;
+			if (DashTimeLeft <= 0.f)
+			{
+				// Burst over: restore friction/braking so the player decelerates to a normal walk.
+				Movement->GroundFriction = DefaultGroundFriction;
+				Movement->BrakingDecelerationWalking = DefaultBrakingWalk;
+			}
+		}
+		else
+		{
+			Movement->MaxWalkSpeed = WalkSpeed;
+		}
 	}
 
-	// Game feel: ease the FOV out a touch while sprinting; ramp chromatic aberration + desaturation as
+	// Game feel: ease the FOV out a touch during the dash; ramp chromatic aberration + desaturation as
 	// health drops (layered on the low-health vignette). Both are near-free.
 	if (FirstPersonCamera)
 	{
-		const float TargetFOV = BaseFOV + (bSprinting ? SprintFOVKick : 0.f);
+		const float TargetFOV = BaseFOV + (bDashing ? SprintFOVKick : 0.f);
 		FirstPersonCamera->SetFieldOfView(FMath::FInterpTo(FirstPersonCamera->FieldOfView, TargetFOV, DeltaSeconds, 8.f));
 
 		const float Pct = Health ? Health->GetHealthPercent() : 1.f;
@@ -654,8 +669,8 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	AttackAction = NewObject<UInputAction>(this, TEXT("AttackAction"));
 	AttackAction->ValueType = EInputActionValueType::Boolean;
 
-	SprintAction = NewObject<UInputAction>(this, TEXT("SprintAction"));
-	SprintAction->ValueType = EInputActionValueType::Boolean;
+	DashAction = NewObject<UInputAction>(this, TEXT("DashAction"));
+	DashAction->ValueType = EInputActionValueType::Boolean;
 
 	InteractAction = NewObject<UInputAction>(this, TEXT("InteractAction"));
 	InteractAction->ValueType = EInputActionValueType::Boolean;
@@ -699,8 +714,8 @@ void AFirstPersonCharacter::EnsureInputAssets()
 	// Attack (left mouse button).
 	DefaultMappingContext->MapKey(AttackAction, EKeys::LeftMouseButton);
 
-	// Sprint (Left Shift).
-	DefaultMappingContext->MapKey(SprintAction, EKeys::LeftShift);
+	// Dash (Left Shift).
+	DefaultMappingContext->MapKey(DashAction, EKeys::LeftShift);
 
 	// Interact (E), Inventory (I), Collection log (C).
 	DefaultMappingContext->MapKey(InteractAction, EKeys::E);
@@ -759,8 +774,7 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Attack);
-		EIC->BindAction(SprintAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::StartSprint);
-		EIC->BindAction(SprintAction, ETriggerEvent::Completed, this, &AFirstPersonCharacter::StopSprint);
+		EIC->BindAction(DashAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Dash);
 		EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Interact);
 		EIC->BindAction(InventoryToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleInventory);
 		EIC->BindAction(CollectionToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleCollectionLog);
@@ -776,14 +790,43 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	}
 }
 
-void AFirstPersonCharacter::StartSprint(const FInputActionValue& /*Value*/)
+void AFirstPersonCharacter::Dash(const FInputActionValue& /*Value*/)
 {
-	bSprintHeld = true;
-}
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	if (!Movement || bDead || bNoClip)
+	{
+		return;
+	}
+	// Ground-only, respect the cooldown, and require stamina (the dash is a committed, costed move).
+	if (Movement->IsFalling() || DashTimeLeft > 0.f || DashCooldownLeft > 0.f)
+	{
+		return;
+	}
+	if (!Stamina || Stamina->GetCurrent() < DashStaminaCost)
+	{
+		return; // TODO: insufficient-stamina feedback cue (see TODO.md)
+	}
 
-void AFirstPersonCharacter::StopSprint(const FInputActionValue& /*Value*/)
-{
-	bSprintHeld = false;
+	// Dash where you're moving; if standing still, dash the way you're facing.
+	FVector Dir = GetVelocity();
+	Dir.Z = 0.f;
+	if (!Dir.Normalize())
+	{
+		const FRotator Yaw(0.f, GetControlRotation().Yaw, 0.f);
+		Dir = FRotationMatrix(Yaw).GetUnitAxis(EAxis::X);
+	}
+	DashDir = Dir;
+
+	// Launch + cut friction/braking for the burst window so it glides the full distance, then restore.
+	Movement->GroundFriction = 0.f;
+	Movement->BrakingDecelerationWalking = 0.f;
+	Movement->MaxWalkSpeed = DashSpeed;
+	LaunchCharacter(DashDir * DashSpeed, /*bXYOverride*/ true, /*bZOverride*/ false);
+
+	DashTimeLeft = DashDuration;
+	DashCooldownLeft = DashCooldown;
+	Stamina->Drain(DashStaminaCost);
+	Stamina->SetRegenPaused(false);
 }
 
 void AFirstPersonCharacter::Move(const FInputActionValue& Value)

@@ -188,7 +188,7 @@ bool UPauseMenuWidget::Initialize()
 	AddControlRow(TEXT("W  A  S  D"),       TEXT("Move"));
 	AddControlRow(TEXT("Mouse"),            TEXT("Look"));
 	AddControlRow(TEXT("Space"),            TEXT("Jump"));
-	AddControlRow(TEXT("Left Shift (hold)"),TEXT("Sprint"));
+	AddControlRow(TEXT("Left Shift"),       TEXT("Dash / dodge (costs stamina)"));
 	AddControlRow(TEXT("Left Mouse"),       TEXT("Attack"));
 	AddControlRow(TEXT("Q"),                TEXT("Use Ability"));
 	AddControlRow(TEXT("1 - 8"),            TEXT("Hotbar slots (use / equip)"));
