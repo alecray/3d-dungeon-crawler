@@ -9,6 +9,7 @@
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
+#include "Bonfire.h"
 #include "ItemPickup.h"
 #include "Portal.h"
 #include "ShopNPC.h"
@@ -368,6 +369,10 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 				PC->OpenShop(NPC);
 			}
 		}
+		else if (ABonfire* Fire = Cast<ABonfire>(Hit.GetActor()))
+		{
+			Fire->Rest(this); // full heal + refill + checkpoint save
+		}
 		else if (APortal* Portal = Cast<APortal>(Hit.GetActor()))
 		{
 			if (Portal->IsActive() && !Portal->GetTargetMapName().IsNone())
@@ -424,6 +429,10 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		if (Cast<AShopNPC>(Hit.GetActor()))
 		{
 			return TEXT("Shop");
+		}
+		if (Cast<ABonfire>(Hit.GetActor()))
+		{
+			return TEXT("Rest");
 		}
 		if (const APortal* Portal = Cast<APortal>(Hit.GetActor()))
 		{

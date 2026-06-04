@@ -100,7 +100,9 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] Destructible props — smash barrels/crates/pots for coins/loot + a debris burst (classic crawler feel).
 - [ ] Mimics — a chest variant that's secretly a monster; snaps at you when opened.
 - [ ] Shrines / altars — interact for a random blessing (or a gamble: buff vs. curse). Pairs with run-stakes.
-- [ ] Rest / campfire at Rest rooms — interact to heal / brief buff / checkpoint.
+- [x] Rest / campfire at Rest rooms — `ABonfire` (graybox stone base + flickering flame/light); interact
+      to **fully heal + refill mana/stamina + checkpoint-save** (Dark-Souls bonfire). Reusable. (Later:
+      use it as the death-respawn point + a brief buff.)
 - [ ] Aggro + stealth backstab — enemies notice by line-of-sight/noise; unaware/behind hits deal bonus damage.
 - [ ] Summon / companion — a temporary graybox ally (skill or item) that fights alongside you.
 - [ ] Bestiary — monster compendium that fills in as you kill each type (sibling to the collection log).
@@ -184,6 +186,7 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 - dog
 - monkey
 - snake
+- squirrel
 
 ---
 

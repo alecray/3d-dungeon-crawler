@@ -56,6 +56,7 @@ note: skill tree still needs more padding, you have plenty of screen real-estate
 - [ ] **Player melee** lands **partway through the swing**, not on the first frame.
 - [ ] **Damage numbers** are big/bright and pop when you hit an enemy (easy to see).
 - [ ] **Skill tree (K)** is **bigger with more padding** — not cramped in the corner.
+- [ ] **Bonfire** in Rest rooms (green-lit rooms): a flickering flame on a stone base; `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
 
 ## 1. Hermit-crab boss — skeletal mesh + anims (NEW)
 - [x] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.

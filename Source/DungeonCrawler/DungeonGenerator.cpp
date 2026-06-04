@@ -8,6 +8,7 @@
 #include "Portal.h"
 #include "DungeonTrap.h"
 #include "BossArena.h"
+#include "Bonfire.h"
 #include "HealthComponent.h"
 
 #include "Engine/PointLight.h"
@@ -366,6 +367,16 @@ void ADungeonGenerator::DecorateRooms()
 				C->SetCastShadows(false);
 			}
 			SpawnedActors.Add(Light);
+		}
+
+		// Rest rooms get a bonfire — interact to fully heal + refill + checkpoint (Dark-Souls style).
+		if (Rooms[i].Type == ERoomType::Rest)
+		{
+			const FVector FireLoc = GetRoomCenterWorld(i);
+			if (ABonfire* Fire = World->SpawnActor<ABonfire>(ABonfire::StaticClass(), FTransform(FireLoc), Params))
+			{
+				SpawnedActors.Add(Fire);
+			}
 		}
 	}
 }

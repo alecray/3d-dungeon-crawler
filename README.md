@@ -81,6 +81,7 @@ World & generation:
 
 - [x] Dungeon traps — spike floors, pressure plates, wall-mounted dart shooters (graybox, mesh-swappable)
 - [x] Room-type variety — Treasure / Ambush / Rest / Elite / Normal rooms, each with a colored marker light
+- [x] Bonfire rest points in Rest rooms — interact (E) to fully heal + refill mana/stamina + checkpoint-save
 - [x] Deliberate, themed scenery — per-room décor themes, furniture lined against walls, corner stacks,
       dining sets; scenery avoids traps and never overlaps other scenery
 - [x] Bigger rooms + shorter (nearest-neighbor) corridors; atmospheric volumetric fog
