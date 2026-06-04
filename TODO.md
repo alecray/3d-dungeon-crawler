@@ -117,6 +117,17 @@ Remaining (batch 3):
 - [ ] More event bursts — pickup sparkle + boss phase-transition shockwave + screen flash.
 - [ ] Trap telegraph glow before spikes pop; enemy spawn/death dissolve effects.
 
+### Niagara VFX upgrade (art pass — replaces the code-driven graybox effects)
+The current effects spawn plain meshes + lights from C++ and animate them by hand (cheap, asset-free,
+diff-friendly, but boxy). Once we're doing the art pass, author proper **Niagara systems** (editor assets)
+and swap them in where these code effects fire — soft textured sprites, GPU particle counts, ribbons, etc.
+Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-Niagara behind a flag).
+- [ ] Niagara replacements for: impact spark bursts (`AImpactBurst`), ambient dust (`AAmbientDust`),
+      death poof (`ADeathPoof`), level-up burst, loot beams (`AItemPickup`), **boss spawn-in**
+      (`ABossSpawnVFX` — pairs with the dissolve shader option B above), and the batch-3 effects above.
+- [ ] Add the Niagara plugin/module dependency and a small helper to spawn a system at a transform with
+      a tint param, so each call site is a one-liner.
+
 ## Engine / Settings
 
 - [ ] Resolve the "Missing Project Settings" editor warning — enable Shader Model 6 (SM6) and/or set
