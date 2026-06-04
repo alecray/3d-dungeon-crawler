@@ -10,6 +10,7 @@
 #include "ItemTypes.h"
 
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Camera/CameraActor.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -150,17 +151,10 @@ void ABossArena::StartEncounter(APawn* Player)
 		ReturnPortal->SetActive(false);
 	}
 
-	// --- The boss always plays its spawn/intro animation. ---
+	// --- The boss always plays its spawn/intro animation + the camera/shake cinematic, every time
+	//     (no longer gated on a first-time-per-boss save flag — replays get the full intro too). ---
 	Boss->PlayIntro();
-
-	// --- Cinematic only the first time the player ever fights this boss type. ---
-	UDungeonGameInstance* GI = GetGameInstance<UDungeonGameInstance>();
-	const bool bFirstTime = !GI || !GI->HasSeenBossIntro(Boss->GetBossId());
-	if (bFirstTime)
-	{
-		if (GI) { GI->MarkBossIntroSeen(Boss->GetBossId()); }
-		RunIntroCinematic(Player);
-	}
+	RunIntroCinematic(Player);
 }
 
 void ABossArena::RunIntroCinematic(APawn* Player)
@@ -175,13 +169,15 @@ void ABossArena::RunIntroCinematic(APawn* Player)
 	// Lock the player out for the duration of the cinematic.
 	Player->DisableInput(PC);
 
-	// Frame the boss roughly straight-on (near eye level, only slightly raised) so the shot reads cleanly
-	// and the camera doesn't clip the ceiling.
+	// Frame the boss straight-on, aimed at its CENTER (not above it), pulled back proportional to the
+	// boss's size so the whole creature fits regardless of how big it scales.
 	FVector ToPlayer = Player->GetActorLocation() - Boss->GetActorLocation();
 	ToPlayer.Z = 0.f;
 	ToPlayer.Normalize();
-	const FVector Focus = Boss->GetActorLocation() + FVector(0.f, 0.f, 80.f);
-	const FVector CamLoc = Focus + ToPlayer * 430.f + FVector(0.f, 0.f, 45.f);
+	const float BossR = Boss->GetCapsuleComponent() ? Boss->GetCapsuleComponent()->GetScaledCapsuleRadius() : 120.f;
+	const float Dist = FMath::Max(480.f, BossR * 2.6f);
+	const FVector Focus = Boss->GetActorLocation(); // the boss's center
+	const FVector CamLoc = Focus + ToPlayer * Dist + FVector(0.f, 0.f, BossR * 0.4f); // slight high angle
 
 	FActorSpawnParameters Params;
 	Params.Owner = this;
@@ -240,8 +236,14 @@ void ABossArena::FinishCinematic()
 
 void ABossArena::OnBossDefeated(UHealthComponent* /*DeadComponent*/)
 {
-	// Where the boss fell — loot drops here.
-	const FVector DeathLoc = IsValid(Boss) ? Boss->GetActorLocation() : RoomCenter;
+	// Where the boss fell — loot drops here, at FLOOR level (the boss's origin is at its capsule centre,
+	// which for the big crab is high up; dropping there put the loot in the ceiling).
+	FVector DeathLoc = RoomCenter;
+	if (IsValid(Boss))
+	{
+		const float CapHalf = Boss->GetCapsuleComponent() ? Boss->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.f;
+		DeathLoc = Boss->GetActorLocation() - FVector(0.f, 0.f, CapHalf);
+	}
 
 	// Open the entrance doors.
 	for (ABossDoor* Door : Doors)
