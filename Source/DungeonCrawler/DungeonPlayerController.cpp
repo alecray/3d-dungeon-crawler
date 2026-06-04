@@ -187,6 +187,7 @@ void ADungeonPlayerController::ToggleInventory()
 	}
 	else
 	{
+		if (IsShopOpen()) { CloseShop(); } // don't stack the inventory on top of the shop
 		if (!InventoryWidget)
 		{
 			InventoryWidget = CreateWidget<UInventoryWidget>(this, InventoryWidgetClass);
@@ -288,6 +289,11 @@ void ADungeonPlayerController::OpenShop(AShopNPC* NPC)
 	if (!NPC)
 	{
 		return;
+	}
+	// The shop has its own buy + sell lists, so close the standalone inventory to avoid overlapping panels.
+	if (InventoryWidget && InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromParent();
 	}
 	if (UShopWidget* ExistingShop = Cast<UShopWidget>(ShopWidget))
 	{

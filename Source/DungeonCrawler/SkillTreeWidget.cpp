@@ -46,7 +46,7 @@ bool USkillTreeWidget::Initialize()
 		PS->SetAnchors(FAnchors(0.5f, 0.5f));
 		PS->SetAlignment(FVector2D(0.5f, 0.5f));
 		PS->SetPosition(FVector2D::ZeroVector);
-		PS->SetSize(FVector2D(660.f, 480.f));
+		PS->SetSize(FVector2D(760.f, 540.f));
 	}
 
 	UVerticalBox* Outer = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Outer"));
@@ -93,10 +93,12 @@ bool USkillTreeWidget::Initialize()
 			UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>();
 			Label->SetJustification(ETextJustify::Center);
 			Btn->AddChild(Label);
+				// Full description lives in the hover tooltip so the buttons stay one clean line each.
+				Btn->SetToolTipText(FText::FromString(Node->Description));
 
 			if (UVerticalBoxSlot* BS = Cast<UVerticalBoxSlot>(Col->AddChildToVerticalBox(Btn)))
 			{
-				BS->SetPadding(FMargin(0.f, 6.f));
+				BS->SetPadding(FMargin(0.f, 5.f));
 			}
 
 			USkillNodeClickProxy* Proxy = NewObject<USkillNodeClickProxy>(this);
@@ -172,7 +174,7 @@ void USkillTreeWidget::Refresh()
 		if (UTextBlock* Label = NodeLabels[i])
 		{
 			Label->SetText(FText::FromString(FString::Printf(
-				TEXT("%s  %d/%d\n%s"), *Node.DisplayName, Rank, Node.MaxRank, *Node.Description)));
+				TEXT("%s  %d/%d"), *Node.DisplayName, Rank, Node.MaxRank))); // description is in the tooltip
 
 			// Allocated = green, available = white, locked/maxed = gray.
 			const FLinearColor TextColor = bMaxed ? FLinearColor(0.55f, 0.9f, 0.55f)

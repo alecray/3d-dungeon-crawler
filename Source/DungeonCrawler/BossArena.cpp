@@ -36,11 +36,13 @@ void ABossArena::Configure(TSubclassOf<ABossMonster> InBossClass, const FVector&
 	RoomCenter = RoomCenterWorld;
 	RoomHalf = RoomHalfXY;
 
-	// Sit the trigger over the room, a little inside the walls so the player is well inside when it fires.
+	// Sit the trigger over the middle of the room so the player is WELL inside (clear of the entrance
+	// doorway) before the fight starts and the door seals behind them — otherwise the rising door can
+	// catch the player on the threshold and lock them out.
 	SetActorLocation(RoomCenter + FVector(0.f, 0.f, 200.f));
 	if (Trigger)
 	{
-		Trigger->SetBoxExtent(FVector(FMath::Max(100.f, RoomHalf.X * 0.85f), FMath::Max(100.f, RoomHalf.Y * 0.85f), 250.f));
+		Trigger->SetBoxExtent(FVector(FMath::Max(100.f, RoomHalf.X * 0.55f), FMath::Max(100.f, RoomHalf.Y * 0.55f), 250.f));
 	}
 }
 

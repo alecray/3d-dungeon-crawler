@@ -146,6 +146,7 @@ void ADungeonGenerator::Generate()
 	PlaceBossRoom();
 	AssignRoomTypes();
 	CarveCorridors();
+	FindBossEntrance();
 	BuildGeometry();
 	ScatterProps();
 	ScatterMonsters();
@@ -178,6 +179,7 @@ void ADungeonGenerator::ClearLayout()
 
 	Rooms.Reset();
 	BossRoomIndex = INDEX_NONE;
+	BossDoorX = BossDoorY = BossDoorDir = INDEX_NONE;
 
 	Cells.Init(ECell::Empty, GridWidth * GridHeight);
 }
@@ -320,6 +322,42 @@ void ADungeonGenerator::AssignRoomTypes()
 		else if (R < 0.40f) { Rooms[i].Type = ERoomType::Rest; }
 		else if (R < 0.48f) { Rooms[i].Type = ERoomType::Elite; }
 		else                { Rooms[i].Type = ERoomType::Normal; } // ~52%
+	}
+}
+
+void ADungeonGenerator::FindBossEntrance()
+{
+	BossDoorX = BossDoorY = BossDoorDir = INDEX_NONE;
+	if (!Rooms.IsValidIndex(BossRoomIndex))
+	{
+		return;
+	}
+
+	// Pick the first boss-room perimeter cell that borders a corridor — that's the single entrance; every
+	// other perimeter edge gets sealed solid (BuildGeometry) so the arena is fully enclosed. Any such cell
+	// is reachable since all corridors form one connected network.
+	static const int32 DX[4] = { 1, -1, 0, 0 };
+	static const int32 DY[4] = { 0, 0, 1, -1 };
+	const FDungeonRoom& BR = Rooms[BossRoomIndex];
+	for (int32 y = BR.Y; y < BR.Y + BR.H; ++y)
+	{
+		for (int32 x = BR.X; x < BR.X + BR.W; ++x)
+		{
+			if (CellAt(x, y) != ECell::Room)
+			{
+				continue;
+			}
+			for (int32 d = 0; d < 4; ++d)
+			{
+				if (CellAt(x + DX[d], y + DY[d]) == ECell::Corridor)
+				{
+					BossDoorX = x;
+					BossDoorY = y;
+					BossDoorDir = d;
+					return;
+				}
+			}
+		}
 	}
 }
 
@@ -547,37 +585,62 @@ void ADungeonGenerator::BuildGeometry()
 					FVector(CellSize, CellSize, SlabThickness));
 			}
 
-			// Cube-wall geometry (used when there's no custom wall mesh): embed into both slabs so no
-			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting).
-			const float WallTall = CellCeil + 2.f * SlabThickness;
-			const float WallZ = CellCeil * 0.5f;
-			// Above a boss-room doorway, a lintel caps the gap from the corridor's lower ceiling up to the
-			// taller boss ceiling so you don't see into the void above the opening.
-			const float LintelH = CellCeil - WallHeight;
-			const float LintelZ = (WallHeight + CellCeil) * 0.5f;
+			// Cube-wall geometry (embed into both slabs so no wall face is coplanar with the floor/ceiling).
+			static const int32 DX4[4] = { 1, -1, 0, 0 };
+			static const int32 DY4[4] = { 0, 0, 1, -1 };
+			const float WallZ = WallHeight * 0.5f;
+			const float WallTall = WallHeight + 2.f * SlabThickness;
 
-			// Builds the wall for one edge. Solid (non-floor) edges get a full-height wall; a boss-room
-			// edge that opens onto a normal-height floor cell gets just the lintel band above the doorway.
-			auto EdgeWall = [&](int32 nx, int32 ny, const FVector& EdgeOff, bool bRunAlongX, bool bFlip)
+			// Adds one wall course (a cube band) on an edge spanning Z [Bottom, Top].
+			auto Course = [&](const FVector& EdgeOff, bool bRunAlongX, float Bottom, float Top)
 			{
-				const FVector Size = bRunAlongX ? FVector(WallSpan, WallThickness, WallTall) : FVector(WallThickness, WallSpan, WallTall);
-				if (!IsFloor(nx, ny))
-				{
-					// Tall boss walls fall back to cube tiles (the custom wall mesh is authored single-height).
-					if (bCustomWall && !bBoss) { AddWall(C + EdgeOff, bRunAlongX, bFlip); }
-					else { AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, WallZ), Size); }
-				}
-				else if (bBoss && !IsBossRoomCell(nx, ny) && LintelH > 1.f)
-				{
-					const FVector LintelSize = bRunAlongX ? FVector(WallSpan, WallThickness, LintelH) : FVector(WallThickness, WallSpan, LintelH);
-					AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, LintelZ), LintelSize);
-				}
+				const float H = Top - Bottom;
+				const FVector Size = bRunAlongX ? FVector(WallSpan, WallThickness, H) : FVector(WallThickness, WallSpan, H);
+				AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, (Bottom + Top) * 0.5f), Size);
 			};
 
-			EdgeWall(x + 1, y, FVector(HalfCell, 0.f, 0.f),  /*bRunAlongX*/ false, (y & 1) != 0);
-			EdgeWall(x - 1, y, FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) == 0);
-			EdgeWall(x, y + 1, FVector(0.f, HalfCell, 0.f),  /*bRunAlongX*/ true,  (x & 1) != 0);
-			EdgeWall(x, y - 1, FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true,  (x & 1) == 0);
+			auto EdgeWall = [&](int32 d, const FVector& EdgeOff, bool bRunAlongX, bool bFlip)
+			{
+				const int32 nx = x + DX4[d];
+				const int32 ny = y + DY4[d];
+
+				if (!bBoss)
+				{
+					// Normal cell: a single-course wall only where it borders a non-floor cell.
+					if (!IsFloor(nx, ny))
+					{
+						if (bCustomWall) { AddWall(C + EdgeOff, bRunAlongX, bFlip); }
+						else
+						{
+							const FVector Size = bRunAlongX ? FVector(WallSpan, WallThickness, WallTall) : FVector(WallThickness, WallSpan, WallTall);
+							AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, WallZ), Size);
+						}
+					}
+					return;
+				}
+
+				// Boss room: skip edges between two boss cells (interior). Seal every perimeter edge solid
+				// with TWO STACKED courses + a seam ledge, except the single chosen entrance (open doorway
+				// with just the upper course as a lintel).
+				if (IsBossRoomCell(nx, ny))
+				{
+					return;
+				}
+				const bool bEntrance = (x == BossDoorX && y == BossDoorY && d == BossDoorDir);
+				if (!bEntrance)
+				{
+					Course(EdgeOff, bRunAlongX, -SlabThickness, WallHeight); // lower course
+					// Seam ledge at the join so it reads as two stacked walls, not one tall wall.
+					const FVector Ledge = bRunAlongX ? FVector(WallSpan, WallThickness + 28.f, 22.f) : FVector(WallThickness + 28.f, WallSpan, 22.f);
+					AddTile(WallISM, C + EdgeOff + FVector(0.f, 0.f, WallHeight), Ledge);
+				}
+				Course(EdgeOff, bRunAlongX, WallHeight, CellCeil + SlabThickness); // upper course (lintel at the entrance)
+			};
+
+			EdgeWall(0, FVector(HalfCell, 0.f, 0.f),  /*bRunAlongX*/ false, (y & 1) != 0);
+			EdgeWall(1, FVector(-HalfCell, 0.f, 0.f), /*bRunAlongX*/ false, (y & 1) == 0);
+			EdgeWall(2, FVector(0.f, HalfCell, 0.f),  /*bRunAlongX*/ true,  (x & 1) != 0);
+			EdgeWall(3, FVector(0.f, -HalfCell, 0.f), /*bRunAlongX*/ true,  (x & 1) == 0);
 		}
 	}
 }
@@ -1018,34 +1081,20 @@ void ADungeonGenerator::SetupBossEncounter()
 	if (!PClass) { PClass = APortal::StaticClass(); }
 	Arena->Configure(BossClass, RoomCenter, RoomHalf, PClass, TownMapName);
 
-	// Register a sealing barrier at every doorway on the boss room's perimeter (a room cell whose
-	// neighbour is a corridor — each such opening is exactly one cell wide).
-	const FTransform Xf = GetActorTransform();
-	const float HalfCell = CellSize * 0.5f;
-	static const int32 DX[4] = { 1, -1, 0, 0 };
-	static const int32 DY[4] = { 0, 0, 1, -1 };
-	for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
+	// Seal just the single boss-room entrance (the rest of the perimeter is built solid in BuildGeometry).
+	if (BossDoorDir >= 0)
 	{
-		for (int32 x = Room.X; x < Room.X + Room.W; ++x)
-		{
-			if (CellAt(x, y) != ECell::Room)
-			{
-				continue;
-			}
-			for (int32 d = 0; d < 4; ++d)
-			{
-				if (CellAt(x + DX[d], y + DY[d]) == ECell::Corridor)
-				{
-					const FVector Outward(DX[d], DY[d], 0.f);
-					const FVector DoorLocal = CellToLocal(x, y) + Outward * HalfCell;
-					const bool bAlongX = (DX[d] != 0); // opening faces X: barrier thin in X, spanning Y
-					const FVector Size = bAlongX
-						? FVector(WallThickness, CellSize, WallHeight)
-						: FVector(CellSize, WallThickness, WallHeight);
-					Arena->AddDoorSlot(FTransform(FRotator::ZeroRotator, Xf.TransformPosition(DoorLocal)), Size);
-				}
-			}
-		}
+		static const int32 DX[4] = { 1, -1, 0, 0 };
+		static const int32 DY[4] = { 0, 0, 1, -1 };
+		const FTransform Xf = GetActorTransform();
+		const float HalfCell = CellSize * 0.5f;
+		const FVector Outward(DX[BossDoorDir], DY[BossDoorDir], 0.f);
+		const FVector DoorLocal = CellToLocal(BossDoorX, BossDoorY) + Outward * HalfCell;
+		const bool bAlongX = (DX[BossDoorDir] != 0); // opening faces X: barrier thin in X, spanning Y
+		const FVector Size = bAlongX
+			? FVector(WallThickness, CellSize, WallHeight)
+			: FVector(CellSize, WallThickness, WallHeight);
+		Arena->AddDoorSlot(FTransform(FRotator::ZeroRotator, Xf.TransformPosition(DoorLocal)), Size);
 	}
 }
 

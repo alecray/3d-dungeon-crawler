@@ -41,10 +41,13 @@ private:
 	void RefreshAll(UInventoryComponent* Changed = nullptr);
 	void BuildEquipmentPanel();
 	void RefreshEquipment();
+	/** Updates the gold readout (shown only on the player's own inventory screen). */
+	void RefreshGold();
 
 	UPROPERTY() TObjectPtr<UBorder> Panel;
 	UPROPERTY() TObjectPtr<UHorizontalBox> Row;
 	UPROPERTY() TObjectPtr<UTextBlock> TitleText;
+	UPROPERTY() TObjectPtr<UTextBlock> GoldText;
 	UPROPERTY() TObjectPtr<UUniformGridPanel> Grid;
 	UPROPERTY() TArray<TObjectPtr<UInventorySlotWidget>> SlotWidgets;
 	UPROPERTY() TObjectPtr<UCanvasPanel> EquipCanvas;

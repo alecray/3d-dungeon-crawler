@@ -54,6 +54,12 @@ bool UInventoryWidget::Initialize()
 	TitleText->SetText(FText::FromString(TEXT("Inventory")));
 	Column->AddChild(TitleText);
 
+	// Gold readout (only shown on the player's own inventory, not the chest loot grid).
+	GoldText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("GoldText"));
+	GoldText->SetText(FText::FromString(TEXT("Gold: 0")));
+	GoldText->SetVisibility(ESlateVisibility::Collapsed);
+	Column->AddChild(GoldText);
+
 	Grid = WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass(), TEXT("Grid"));
 	Grid->SetSlotPadding(FMargin(3.f));
 	Column->AddChild(Grid);
@@ -73,6 +79,7 @@ void UInventoryWidget::SetShowEquipment(bool bShow)
 		EquipSection->SetVisibility(bShow ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 	RefreshEquipment();
+	RefreshGold();
 }
 
 void UInventoryWidget::BuildEquipmentPanel()
@@ -160,6 +167,7 @@ void UInventoryWidget::NativeConstruct()
 			SetInventory(Player->GetInventoryComponent(), TEXT("Inventory"));
 		}
 	}
+	RefreshGold();
 }
 
 void UInventoryWidget::NativeDestruct()
@@ -251,4 +259,22 @@ void UInventoryWidget::RefreshAll(UInventoryComponent* /*Changed*/)
 			SlotW->Refresh();
 		}
 	}
+	RefreshGold();
+}
+
+void UInventoryWidget::RefreshGold()
+{
+	if (!GoldText)
+	{
+		return;
+	}
+	// Gold only makes sense on the player's own inventory screen (the chest loot grid reuses this widget).
+	if (!bShowEquipment)
+	{
+		GoldText->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+	GoldText->SetVisibility(ESlateVisibility::Visible);
+	const int32 Gold = (Cast<AFirstPersonCharacter>(GetOwningPlayerPawn())) ? Cast<AFirstPersonCharacter>(GetOwningPlayerPawn())->GetGold() : 0;
+	GoldText->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d"), Gold)));
 }

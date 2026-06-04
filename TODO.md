@@ -51,6 +51,7 @@
 - [ ] Loot rarity tiers + procedural affixes (rolled item stats: +damage, +crit, resistances, etc.)
 - [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
 - [ ] FTUE for controls — first-run onboarding surfacing movement/attack/interact/abilities/inventory.
+- [ ] Fishing mechanic in the town — a relaxing side activity (cast/reel minigame, catch table, maybe sell/cook the catch).
 - [ ] Dungeon-select menu on the town portal — lists dungeons/bosses you've cleared; replay at the same
       or harder difficulty tiers for greater reward potential, with the risk of losing everything in the
       run (high-stakes mode). Pairs with run-stakes / meta-progression.
