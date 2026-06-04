@@ -83,6 +83,8 @@ Next / not yet done:
 
 - [x] Controls in settings — full controls reference (every binding) in the pause→Settings panel,
       scrollable key→action list. (Later: live rebinding.)
+- [ ] Rebindable controls — let the player change key bindings from the settings menu (click a row,
+      press a new key); persist the remaps in the save profile and apply to the Enhanced Input mappings.
 - [x] Start screen — graybox main menu (title + Start/Quit) shown at launch over the boot map
       (opaque, once per session). Start fades in to play; Quit exits.
 - [x] Scene transitions — black camera fades on every level travel (portal town<->dungeon, death
