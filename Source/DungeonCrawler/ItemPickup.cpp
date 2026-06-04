@@ -5,6 +5,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Texture.h"
@@ -40,6 +41,23 @@ AItemPickup::AItemPickup()
 	SkelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SkelMesh->SetVisibility(false);
 
+	// Rarity loot beam (a thin glowing pillar + a colored light); off until Configure() knows the rarity.
+	Beam = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Beam"));
+	Beam->SetupAttachment(Trigger);
+	Beam->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Beam->SetCastShadow(false);
+	if (UStaticMesh* Cyl = Cast<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cylinder.Cylinder")).TryLoad()))
+	{
+		Beam->SetStaticMesh(Cyl);
+	}
+	Beam->SetVisibility(false);
+
+	BeamLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("BeamLight"));
+	BeamLight->SetupAttachment(Trigger);
+	BeamLight->SetCastShadows(false);
+	BeamLight->SetRelativeLocation(FVector(0.f, 0.f, 60.f));
+	BeamLight->SetIntensity(0.f);
+
 	Display = Mesh; // graybox cube until Configure() swaps in the item's real mesh
 }
 
@@ -53,6 +71,31 @@ void AItemPickup::Configure(FName InItemId, int32 InCount)
 		return;
 	}
 	const FItemDef& Def = ItemDatabase::Get(ItemId);
+
+	// Rarity loot beam: color it by rarity; rarer drops get a taller, wider, brighter pillar so they
+	// read across the room. (The engine cylinder is 100cm tall / 50cm radius, pivot at its center.)
+	{
+		const int32 R = FMath::Clamp((int32)Def.Rarity, 0, 4); // Common(0) .. Legendary(4)
+		const FLinearColor Col = RarityColor(Def.Rarity);
+		const float HeightScale = 2.4f + R * 0.5f;   // ~240cm .. ~440cm tall
+		const float WidthScale = 0.10f + R * 0.02f;  // thin pillar, a touch fatter when rarer
+		if (Beam)
+		{
+			Beam->SetVisibility(true);
+			Beam->SetRelativeScale3D(FVector(WidthScale, WidthScale, HeightScale));
+			Beam->SetRelativeLocation(FVector(0.f, 0.f, HeightScale * 50.f)); // base near the ground
+			if (UMaterialInstanceDynamic* MID = Beam->CreateAndSetMaterialInstanceDynamic(0))
+			{
+				MID->SetVectorParameterValue(TEXT("Color"), Col);
+			}
+		}
+		if (BeamLight)
+		{
+			BeamLight->SetLightColor(Col);
+			BeamLight->SetIntensity(1800.f + R * 1400.f);
+			BeamLight->SetAttenuationRadius(190.f + R * 70.f);
+		}
+	}
 
 	// Prefer the item's real icon mesh (so dropped/displayed items look like the item, not a cube).
 	UStaticMesh* StaticIcon = !Def.IconStaticMeshPath.IsEmpty()

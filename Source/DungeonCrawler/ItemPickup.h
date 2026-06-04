@@ -7,6 +7,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class USkeletalMeshComponent;
+class UPointLightComponent;
 
 /** A dropped item in the world (graybox). Auto-picks-up when a pawn with an inventory overlaps it. */
 UCLASS()
@@ -35,6 +36,14 @@ protected:
 	// Used when the item's icon is a skeletal mesh (e.g. potions, weapons); hidden otherwise.
 	UPROPERTY(VisibleAnywhere, Category = "Pickup")
 	TObjectPtr<USkeletalMeshComponent> SkelMesh;
+
+	// Rarity loot beam: a colored pillar + glow rising off the drop. Hidden until Configure() sets the
+	// rarity color (taller/brighter for rarer items).
+	UPROPERTY(VisibleAnywhere, Category = "Pickup")
+	TObjectPtr<UStaticMeshComponent> Beam;
+
+	UPROPERTY(VisibleAnywhere, Category = "Pickup")
+	TObjectPtr<UPointLightComponent> BeamLight;
 
 private:
 	/** The component currently displaying the item (Mesh or SkelMesh), spun in Tick. */

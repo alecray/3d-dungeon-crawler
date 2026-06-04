@@ -56,6 +56,97 @@ FString ItemTypeName(EItemType Type)
 	}
 }
 
+FString DamageTypeName(EDamageType Type)
+{
+	switch (Type)
+	{
+	case EDamageType::Fire:      return TEXT("Fire");
+	case EDamageType::Frost:     return TEXT("Frost");
+	case EDamageType::Lightning: return TEXT("Lightning");
+	case EDamageType::Poison:    return TEXT("Poison");
+	case EDamageType::Arcane:    return TEXT("Arcane");
+	default:                     return TEXT("Physical");
+	}
+}
+
+// ---- Affixes (named item modifiers) --------------------------------------------------------------
+// SCAFFOLDING: a small starter table so the naming pipeline is exercisable now. Expand later; the
+// remaining wiring (rolling onto drops, applying bonuses in combat) is tracked in TODO.md.
+namespace AffixDatabase
+{
+	static FItemAffix MakeAffix(const TCHAR* Id, const TCHAR* Fragment, bool bSuffix, EItemRarity MinRarity,
+		EDamageType Dmg, float DmgAmount, float MeleeMult = 0.f)
+	{
+		FItemAffix A;
+		A.Id = Id;
+		A.NameFragment = Fragment;
+		A.bSuffix = bSuffix;
+		A.MinRarity = MinRarity;
+		A.Bonuses.BonusDamageType = Dmg;
+		A.Bonuses.FlatBonusDamage = DmgAmount;
+		A.Bonuses.MeleeMult = MeleeMult;
+		return A;
+	}
+
+	const TArray<FItemAffix>& All()
+	{
+		static const TArray<FItemAffix> Affixes = {
+			MakeAffix(TEXT("inferno"),   TEXT("of the Inferno"), /*suffix*/ true,  EItemRarity::Uncommon, EDamageType::Fire,      12.f),
+			MakeAffix(TEXT("frost"),     TEXT("of Frost"),       /*suffix*/ true,  EItemRarity::Uncommon, EDamageType::Frost,     9.f),
+			MakeAffix(TEXT("storm"),     TEXT("of the Storm"),   /*suffix*/ true,  EItemRarity::Rare,     EDamageType::Lightning, 15.f),
+			MakeAffix(TEXT("venom"),     TEXT("of Venom"),       /*suffix*/ true,  EItemRarity::Uncommon, EDamageType::Poison,    7.f),
+			MakeAffix(TEXT("flaming"),   TEXT("Flaming"),        /*prefix*/ false, EItemRarity::Uncommon, EDamageType::Fire,      8.f),
+			MakeAffix(TEXT("savage"),    TEXT("Savage"),         /*prefix*/ false, EItemRarity::Rare,     EDamageType::Physical,  0.f, /*melee*/ 0.15f),
+		};
+		return Affixes;
+	}
+
+	const FItemAffix* Find(FName Id)
+	{
+		if (Id.IsNone()) { return nullptr; }
+		for (const FItemAffix& A : All()) { if (A.Id == Id) { return &A; } }
+		return nullptr;
+	}
+
+	FName RollAffix(FRandomStream& Rng, EItemRarity ItemRarity)
+	{
+		TArray<FName> Eligible;
+		for (const FItemAffix& A : All())
+		{
+			if ((uint8)ItemRarity >= (uint8)A.MinRarity) { Eligible.Add(A.Id); }
+		}
+		return Eligible.Num() > 0 ? Eligible[Rng.RandRange(0, Eligible.Num() - 1)] : NAME_None;
+	}
+}
+
+FString ComposeItemName(const FString& BaseName, const TArray<FName>& AffixIds)
+{
+	// One prefix + one suffix at most; the first of each in the list wins.
+	FString Prefix, Suffix;
+	for (const FName& Id : AffixIds)
+	{
+		const FItemAffix* A = AffixDatabase::Find(Id);
+		if (!A) { continue; }
+		if (A->bSuffix) { if (Suffix.IsEmpty()) { Suffix = A->NameFragment; } }
+		else            { if (Prefix.IsEmpty()) { Prefix = A->NameFragment; } }
+	}
+
+	FString Name = BaseName;
+	if (!Prefix.IsEmpty()) { Name = Prefix + TEXT(" ") + Name; }
+	if (!Suffix.IsEmpty()) { Name = Name + TEXT(" ") + Suffix; }
+	return Name;
+}
+
+FItemBonuses ComposeItemBonuses(const FItemBonuses& BaseBonuses, const TArray<FName>& AffixIds)
+{
+	FItemBonuses Total = BaseBonuses;
+	for (const FName& Id : AffixIds)
+	{
+		if (const FItemAffix* A = AffixDatabase::Find(Id)) { Total.Add(A->Bonuses); }
+	}
+	return Total;
+}
+
 namespace ItemDatabase
 {
 	static TArray<FItemDef> BuildItems()

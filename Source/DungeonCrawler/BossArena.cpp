@@ -6,6 +6,8 @@
 #include "BossHealthBarWidget.h"
 #include "HealthComponent.h"
 #include "DungeonGameInstance.h"
+#include "ItemPickup.h"
+#include "ItemTypes.h"
 
 #include "Components/BoxComponent.h"
 #include "Camera/CameraActor.h"
@@ -57,6 +59,7 @@ void ABossArena::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	// the generator), so destroy them here — otherwise a dungeon regenerate leaves orphaned bosses around.
 	if (Boss) { Boss->Destroy(); }
 	for (ABossDoor* Door : Doors) { if (Door) { Door->Destroy(); } }
+	for (AItemPickup* Drop : LootDrops) { if (Drop) { Drop->Destroy(); } }
 	if (ReturnPortal) { ReturnPortal->Destroy(); }
 	if (IntroCamera) { IntroCamera->Destroy(); }
 	if (HealthBar) { HealthBar->RemoveFromParent(); HealthBar = nullptr; }
@@ -237,18 +240,83 @@ void ABossArena::FinishCinematic()
 
 void ABossArena::OnBossDefeated(UHealthComponent* /*DeadComponent*/)
 {
-	// Open the entrance doors and turn on the return portal.
+	// Where the boss fell — loot drops here.
+	const FVector DeathLoc = IsValid(Boss) ? Boss->GetActorLocation() : RoomCenter;
+
+	// Open the entrance doors.
 	for (ABossDoor* Door : Doors)
 	{
 		if (Door) { Door->Open(); }
 	}
+
+	// Scatter the boss's loot at the kill site.
+	DropBossLoot(DeathLoc);
+
+	// Activate the return portal AWAY from the loot: drop it at whichever back corner of the room is
+	// farthest from where the boss died, so the reward and the exit don't pile up on the same spot. (The
+	// portal was hidden while dormant, so repositioning it now causes no visible pop.)
 	if (ReturnPortal)
 	{
+		FVector Best = RoomCenter;
+		float BestDistSq = -1.f;
+		for (int32 sx = -1; sx <= 1; sx += 2)
+		{
+			for (int32 sy = -1; sy <= 1; sy += 2)
+			{
+				const FVector Cand = RoomCenter + FVector(sx * RoomHalf.X * 0.6f, sy * RoomHalf.Y * 0.6f, 0.f);
+				const float D = FVector::DistSquared2D(Cand, DeathLoc);
+				if (D > BestDistSq) { BestDistSq = D; Best = Cand; }
+			}
+		}
+		ReturnPortal->SetActorLocation(FVector(Best.X, Best.Y, RoomCenter.Z + 60.f));
 		ReturnPortal->SetActive(true);
 	}
+
 	if (HealthBar)
 	{
 		HealthBar->RemoveFromParent();
 		HealthBar = nullptr;
+	}
+}
+
+void ABossArena::DropBossLoot(const FVector& DeathLoc)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	FRandomStream Rng(FMath::Rand());
+	const int32 Drops = Rng.RandRange(3, 5);
+	for (int32 i = 0; i < Drops; ++i)
+	{
+		// Boss loot is "best of 2" rolls so it skews a little better than ordinary chest loot.
+		FName ItemId = ItemDatabase::RollRandomItem(Rng);
+		const FName Alt = ItemDatabase::RollRandomItem(Rng);
+		if (ItemId.IsNone() || (!Alt.IsNone() && ItemDatabase::Get(Alt).Rarity > ItemDatabase::Get(ItemId).Rarity))
+		{
+			ItemId = Alt;
+		}
+		if (ItemId.IsNone())
+		{
+			continue;
+		}
+
+		// Scatter in a ring around the kill site.
+		const float Ang = Rng.FRandRange(0.f, 2.f * PI);
+		const float Rad = Rng.FRandRange(70.f, 230.f);
+		const FVector Loc = DeathLoc + FVector(FMath::Cos(Ang) * Rad, FMath::Sin(Ang) * Rad, 30.f);
+
+		if (AItemPickup* Pickup = World->SpawnActor<AItemPickup>(AItemPickup::StaticClass(), FTransform(Loc), Params))
+		{
+			const int32 Count = (ItemDatabase::Get(ItemId).MaxStack > 1) ? Rng.RandRange(1, 3) : 1;
+			Pickup->Configure(ItemId, Count);
+			LootDrops.Add(Pickup);
+		}
 	}
 }

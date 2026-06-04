@@ -11,6 +11,7 @@ class APortal;
 class ACameraActor;
 class UHealthComponent;
 class UBossHealthBarWidget;
+class AItemPickup;
 
 /**
  * Drives a boss-room encounter. Spawned and configured by ADungeonGenerator over the boss room. When
@@ -57,7 +58,11 @@ private:
 	struct FDoorSlot { FTransform Xf; FVector Size; };
 	TArray<FDoorSlot> DoorSlots;
 
+	/** Rolls + scatters the boss's loot drops at DeathLoc; each pickup carries a rarity beam. */
+	void DropBossLoot(const FVector& DeathLoc);
+
 	UPROPERTY() TArray<TObjectPtr<ABossDoor>> Doors;
+	UPROPERTY() TArray<TObjectPtr<AItemPickup>> LootDrops;
 	UPROPERTY() TObjectPtr<ABossMonster> Boss;
 	UPROPERTY() TObjectPtr<APortal> ReturnPortal;
 	UPROPERTY() TObjectPtr<ACameraActor> IntroCamera;

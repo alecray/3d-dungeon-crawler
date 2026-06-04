@@ -69,6 +69,11 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
       shielded/flanker (so encounters are about positioning + threat, not just trading hits).
 - [ ] Status effects (poison, burn, freeze, stun, bleed) on weapons/abilities/enemies
 - [ ] Loot rarity tiers + procedural affixes (rolled item stats: +damage, +crit, resistances, etc.)
+  - Scaffolding done: `EDamageType`, `FItemAffix` + `AffixDatabase` (starter table incl. "of the Inferno"),
+    `ComposeItemName`/`ComposeItemBonuses`, per-instance `FInventorySlot::Affixes`, elemental fields on
+    `FItemBonuses`. **Still to wire:** roll affixes onto drops (in `AItemPickup::Configure` / boss loot),
+    don't stack instances with differing affixes (`UInventoryComponent::AddItem`), apply
+    `FlatBonusDamage`/`BonusDamageType` in combat, and show the composed name + affixes in tooltips/UI.
 - [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
 - [ ] FTUE for controls — first-run onboarding surfacing movement/attack/interact/abilities/inventory.
 - [ ] Fishing mechanic in the town — a relaxing side activity (cast/reel minigame, catch table, maybe sell/cook the catch).
@@ -83,7 +88,8 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] Summon / companion — a temporary graybox ally (skill or item) that fights alongside you.
 - [ ] Bestiary — monster compendium that fills in as you kill each type (sibling to the collection log).
 - [ ] Item durability + repair (gold sink), and/or gem socketing / runes for gear customization.
-- [ ] Loot beams + rarity feedback + auto-loot — drops emit a colored light beam; juicy pickups.
+- [x] Loot beams — every dropped item emits a rarity-colored pillar + glow (taller/brighter for rarer);
+      the boss drops a handful of rolled items on death. (Still TODO: rarity feedback on chest loot + auto-loot.)
 
 ## Aesthetics / VFX (code-driven, no imported art needed)
 
