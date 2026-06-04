@@ -4,6 +4,11 @@
 
 ---
 
+## Notes / reminders
+- [ ] checkout rtk-ai
+
+---
+
 # OPEN
 
 ## Gameplay
