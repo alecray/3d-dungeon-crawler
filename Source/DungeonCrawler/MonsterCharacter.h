@@ -95,6 +95,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Monster")
 	float KnockbackStrength = 280.f;
 
+	/** Damage multiplier for a hit landing from behind the monster (backstab). */
+	UPROPERTY(EditAnywhere, Category = "Monster")
+	float BackstabMultiplier = 1.8f;
+
 	/** How long the hit-react pop lasts after taking damage (s). */
 	UPROPERTY(EditAnywhere, Category = "Monster")
 	float HitReactDuration = 0.18f;

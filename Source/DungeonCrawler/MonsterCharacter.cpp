@@ -409,8 +409,17 @@ void AMonsterCharacter::PlayAttackAnim()
 
 float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)
 {
-	// Base monsters have no weak points; clear the flag and apply the damage straight through.
+	// Backstab: a strike landing from BEHIND the monster deals bonus damage. Flagged like a weak-point hit
+	// so it shows the bigger orange number + spark, rewarding flanking (Dark-Souls style).
 	bLastHitWeak = false;
+	FVector ToAttacker = FromLocation - GetActorLocation();
+	ToAttacker.Z = 0.f;
+	if (ToAttacker.Normalize() && FVector::DotProduct(GetActorForwardVector(), ToAttacker) < -0.3f)
+	{
+		BaseDamage *= BackstabMultiplier;
+		bLastHitWeak = true;
+	}
+
 	const float Dealt = Health ? Health->ApplyDamage(BaseDamage) : 0.f;
 
 	// Juice: knock the monster back away from where the hit came from (small upward hop).
