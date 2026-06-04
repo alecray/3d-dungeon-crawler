@@ -16,6 +16,8 @@
 #include "LowHealthVignetteWidget.h"
 #include "FpsCounterWidget.h"
 #include "DungeonGameInstance.h"
+#include "DungeonGenerator.h"
+#include "EngineUtils.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCameraManager.h"
 #include "GameFramework/Pawn.h"
@@ -164,6 +166,25 @@ void ADungeonPlayerController::DevRevealMap()
 void ADungeonPlayerController::DevTeleportHome()
 {
 	FadeToBlackAndTravel(TEXT("L_Town"));
+}
+
+void ADungeonPlayerController::DevTeleportToBoss()
+{
+	UWorld* World = GetWorld();
+	APawn* P = GetPawn();
+	if (!World || !P)
+	{
+		return;
+	}
+	for (TActorIterator<ADungeonGenerator> It(World); It; ++It)
+	{
+		if (It->HasBossRoom())
+		{
+			const FVector Loc = It->GetBossRoomCenterWorld() + FVector(0.f, 0.f, 120.f);
+			P->SetActorLocation(Loc, /*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+			return;
+		}
+	}
 }
 
 UInventoryComponent* ADungeonPlayerController::GetPlayerInventory() const

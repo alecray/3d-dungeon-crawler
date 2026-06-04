@@ -12,6 +12,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "Engine/StaticMesh.h"
+#include "UObject/ConstructorHelpers.h"
 
 ABossMonster::ABossMonster()
 {
@@ -36,6 +38,17 @@ ABossMonster::ABossMonster()
 	// Bright marker on the back (-X) flagging the phase-1 weak point; shown only during phase 1.
 	BackWeakMesh = AddBox(TEXT("BackWeakPoint"), FVector(-32.f, 0.f, 55.f), FVector(20.f, 46.f, 46.f));
 
+	// Imported hermit-crab body mesh (replaces the graybox cubes when it loads). Attached to the capsule
+	// so it isn't affected by the graybox hit-react/intro BodyRoot scaling.
+	CrabMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrabMesh"));
+	CrabMesh->SetupAttachment(GetCapsuleComponent());
+	CrabMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CrabFinder(TEXT("/Game/Enemies/hermit-crab-boss.hermit-crab-boss"));
+	if (CrabFinder.Succeeded())
+	{
+		CrabMesh->SetStaticMesh(CrabFinder.Object);
+	}
+
 	// Face the player (not the movement direction) so the back weak point and lunges stay meaningful.
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 
@@ -48,6 +61,27 @@ void ABossMonster::BeginPlay()
 	Super::BeginPlay();
 
 	BaseMoveSpeed = MoveSpeed;
+
+	// If the imported crab mesh loaded, hide the graybox cubes and fit the crab to the capsule.
+	if (CrabMesh && CrabMesh->GetStaticMesh())
+	{
+		if (BodyRoot)
+		{
+			BodyRoot->SetHiddenInGame(true, /*bPropagateToChildren*/ true); // hides body + morphs + weak marker
+		}
+		const FBoxSphereBounds B = CrabMesh->GetStaticMesh()->GetBounds();
+		const FVector Size = B.BoxExtent * 2.f;
+		const float CapHalf = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+		const float CapR = GetCapsuleComponent()->GetScaledCapsuleRadius();
+		const float FitW = (2.f * CapR) / FMath::Max(1.f, FMath::Max(Size.X, Size.Y));
+		const float FitH = (2.f * CapHalf) / FMath::Max(1.f, Size.Z);
+		const float S = FMath::Max(0.05f, FMath::Min(FitW, FitH));
+		CrabMesh->SetRelativeScale3D(FVector(S));
+		CrabMesh->SetRelativeRotation(FRotator(0.f, CrabMeshYaw, 0.f));
+		// Drop so the bottom of the mesh bounds rests on the capsule base.
+		const float BottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
+		CrabMesh->SetRelativeLocation(FVector(0.f, 0.f, -CapHalf - BottomZ));
+	}
 
 	// Hide every growth, then reveal phase 1's.
 	for (UStaticMeshComponent* Part : MorphParts)

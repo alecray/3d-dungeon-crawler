@@ -153,6 +153,14 @@ private:
 	UPROPERTY()
 	TObjectPtr<UStaticMeshComponent> BackWeakMesh;
 
+	/** Imported hermit-crab body mesh; when valid it replaces the graybox cubes. */
+	UPROPERTY(VisibleAnywhere, Category = "Boss")
+	TObjectPtr<UStaticMeshComponent> CrabMesh;
+
+	/** Yaw applied to the crab mesh so its forward faces the actor's forward (tweak per imported asset). */
+	UPROPERTY(EditAnywhere, Category = "Boss")
+	float CrabMeshYaw = -90.f;
+
 	int32 CurrentPhase = 0;
 	float NextSpecialTime = 0.f;
 	float EnrageEndTime = 0.f;

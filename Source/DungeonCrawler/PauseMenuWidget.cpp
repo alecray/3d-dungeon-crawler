@@ -242,9 +242,10 @@ bool UPauseMenuWidget::Initialize()
 	UTextBlock* Throwaway = nullptr;
 	MakeDevButton(TEXT("No Clip: OFF"),  NoClipText )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevNoClip);
 	MakeDevButton(TEXT("God Mode: OFF"), GodModeText)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevGodMode);
-	MakeDevButton(TEXT("Reveal Map"),    Throwaway  )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevReveal);
-	MakeDevButton(TEXT("Kill Player"),   Throwaway  )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevKill);
-	MakeDevButton(TEXT("Teleport Home"), Throwaway  )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevHome);
+	MakeDevButton(TEXT("Reveal Map"),       Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevReveal);
+	MakeDevButton(TEXT("Teleport to Boss"), Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevBoss);
+	MakeDevButton(TEXT("Kill Player"),      Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevKill);
+	MakeDevButton(TEXT("Teleport Home"),    Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevHome);
 	NoClipLabel = NoClipText;
 	GodModeLabel = GodModeText;
 
@@ -341,6 +342,15 @@ void UPauseMenuWidget::OnDevHome()
 	{
 		PC->ClosePauseMenu(); // unpause so the fade/travel timer runs
 		PC->DevTeleportHome();
+	}
+}
+
+void UPauseMenuWidget::OnDevBoss()
+{
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
+	{
+		PC->DevTeleportToBoss();
+		PC->ClosePauseMenu();
 	}
 }
 

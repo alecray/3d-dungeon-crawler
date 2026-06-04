@@ -65,6 +65,11 @@ public:
 
 	int32 GetRoomCount() const { return Rooms.Num(); }
 
+	/** True once a boss room has been placed. */
+	bool HasBossRoom() const { return BossRoomIndex != INDEX_NONE; }
+	/** World-space center of the boss room (floor level), or actor location if none. */
+	FVector GetBossRoomCenterWorld() const { return GetRoomCenterWorld(BossRoomIndex); }
+
 	// ---- Minimap read API ----
 	int32 GetGridWidth() const { return GridWidth; }
 	int32 GetGridHeight() const { return GridHeight; }

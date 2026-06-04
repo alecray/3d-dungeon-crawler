@@ -52,6 +52,7 @@ public:
 	// Dev menu helpers (invoked from the pause menu's Dev panel).
 	void DevRevealMap();
 	void DevTeleportHome();
+	void DevTeleportToBoss();
 
 protected:
 	virtual void BeginPlay() override;

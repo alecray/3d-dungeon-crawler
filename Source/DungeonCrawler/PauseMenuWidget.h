@@ -38,6 +38,7 @@ private:
 	UFUNCTION() void OnDevReveal();
 	UFUNCTION() void OnDevKill();
 	UFUNCTION() void OnDevHome();
+	UFUNCTION() void OnDevBoss();
 
 	AFirstPersonCharacter* GetPlayer() const;
 	UDungeonGameInstance* GetGI() const;
