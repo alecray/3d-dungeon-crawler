@@ -637,7 +637,12 @@ void ADungeonGenerator::ScatterProps()
 	auto SpawnWallProp = [&](EPropType Type, int32 x, int32 y, const FVector& Outward, float Scale)
 	{
 		const FVector Loc = Xf.TransformPosition(CellToLocal(x, y)) + Outward * (HalfCell - 55.f);
-		SpawnProp(Type, Loc, (-Outward).Rotation(), Scale);
+		FRotator Rot = (-Outward).Rotation();
+		if (Type == EPropType::Coffin)
+		{
+			Rot.Yaw += 90.f; // lay the coffin's long side flat along the wall, not jutting into the room
+		}
+		SpawnProp(Type, Loc, Rot, Scale);
 	};
 
 	// Skip room 0 so the player's spawn room stays clear.
