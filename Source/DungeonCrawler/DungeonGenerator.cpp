@@ -1253,7 +1253,7 @@ void ADungeonGenerator::PlaceWallTorch(const FVector& CellLocal, const FVector& 
 	// back to a fixed nub height for the graybox.
 	float FlameZ = TorchZ + 34.f; // graybox flame-nub tip
 	float Scale = 1.f;
-	FBoxSphereBounds B;
+	FBoxSphereBounds B(ForceInitToZero);
 	const bool bHaveMesh = (TorchMesh && TorchISM);
 	if (bHaveMesh)
 	{
