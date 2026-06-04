@@ -498,13 +498,14 @@ void ADungeonGenerator::BuildGeometry()
 
 	// Places one custom wall instance centered on an edge midpoint, bottom embedded at -WallEmbed (so
 	// it overlaps floor and ceiling), length running along X or Y. bFlip adds 180° yaw for variety.
-	auto AddWall = [&](const FVector& EdgeMid, bool bRunAlongX, bool bFlip)
+	// ZOff lifts the whole piece (used to stack a second identical course for the double-height boss room).
+	auto AddWall = [&](const FVector& EdgeMid, bool bRunAlongX, bool bFlip, float ZOff)
 	{
 		float Yaw = bRunAlongX ? (bWallLenAlongX ? 0.f : 90.f) : (bWallLenAlongX ? 90.f : 0.f);
 		if (bFlip) { Yaw += 180.f; }
 		const FRotator Rot(0.f, Yaw, 0.f);
 		const FVector CRot = Rot.RotateVector(WallBox.GetCenter() * WallScale);
-		const FVector Loc(EdgeMid.X - CRot.X, EdgeMid.Y - CRot.Y, -WallBox.Min.Z * WallScale.Z - WallEmbed);
+		const FVector Loc(EdgeMid.X - CRot.X, EdgeMid.Y - CRot.Y, -WallBox.Min.Z * WallScale.Z - WallEmbed + ZOff);
 		WallISM->AddInstance(FTransform(Rot, Loc, WallScale), /*bWorldSpace*/ false);
 	};
 
@@ -549,12 +550,10 @@ void ADungeonGenerator::BuildGeometry()
 			}
 
 			// Cube-wall geometry (used when there's no custom wall mesh): embed into both slabs so no
-			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting). Boss walls are
-			// twice as tall; where its tall wall meets a normal-height doorway, a plain lintel caps the gap.
-			const float WallTall = CellCeil + 2.f * SlabThickness;
-			const float WallZ = CellCeil * 0.5f;
-			const float LintelH = CellCeil - WallHeight;          // 0 for normal rooms
-			const float LintelZ = (WallHeight + CellCeil) * 0.5f;
+			// wall face is coplanar with floor-top/ceiling-bottom (avoids z-fighting). One normal-height
+			// piece — the boss room stacks a second identical one on top (see the per-course loop below).
+			const float WallTall = WallHeight + 2.f * SlabThickness;
+			const float WallZ = WallHeight * 0.5f;
 
 			static const int32 EX[4] = { 1, -1, 0, 0 };
 			static const int32 EY[4] = { 0, 0, 1, -1 };
@@ -562,25 +561,27 @@ void ADungeonGenerator::BuildGeometry()
 			const bool ERunX[4] = { false, false, true, true };
 			const bool EFlip[4] = { (y & 1) != 0, (y & 1) == 0, (x & 1) != 0, (x & 1) == 0 };
 
+			// Boss room is two walls high: build the normal wall course, then stack one more identical
+			// course on top. The lower course only walls solid edges (doorways stay open); the upper course
+			// walls every edge that leaves the room (solid walls AND above doorways) so the top is a closed
+			// ring — exactly the same wall pieces, just stacked, with the ceiling already raised to match.
+			const int32 Courses = bBoss ? 2 : 1;
 			for (int32 d = 0; d < 4; ++d)
 			{
 				const int32 nx = x + EX[d];
 				const int32 ny = y + EY[d];
-				if (!IsFloor(nx, ny))
+				for (int32 c = 0; c < Courses; ++c)
 				{
-					// Solid wall on this edge (tall boss walls use cube tiles; the custom mesh is single-height).
-					if (bCustomWall && !bBoss) { AddWall(C + EOff[d], ERunX[d], EFlip[d]); }
+					const bool bWantWall = (c == 0) ? !IsFloor(nx, ny) : !IsBossRoomCell(nx, ny);
+					if (!bWantWall) { continue; }
+
+					const float ZOff = c * WallHeight;
+					if (bCustomWall) { AddWall(C + EOff[d], ERunX[d], EFlip[d], ZOff); }
 					else
 					{
 						const FVector Size = ERunX[d] ? FVector(WallSpan, WallThickness, WallTall) : FVector(WallThickness, WallSpan, WallTall);
-						AddTile(WallISM, C + EOff[d] + FVector(0.f, 0.f, WallZ), Size);
+						AddTile(WallISM, C + EOff[d] + FVector(0.f, 0.f, WallZ + ZOff), Size);
 					}
-				}
-				else if (bBoss && !IsBossRoomCell(nx, ny) && LintelH > 1.f)
-				{
-					// Boss doorway onto a normal-height corridor: cap the gap above the opening.
-					const FVector LSize = ERunX[d] ? FVector(WallSpan, WallThickness, LintelH) : FVector(WallThickness, WallSpan, LintelH);
-					AddTile(WallISM, C + EOff[d] + FVector(0.f, 0.f, LintelZ), LSize);
 				}
 			}
 		}
