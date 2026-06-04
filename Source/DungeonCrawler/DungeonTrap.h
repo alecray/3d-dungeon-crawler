@@ -8,6 +8,7 @@ class USceneComponent;
 class UStaticMeshComponent;
 class UBoxComponent;
 class UStaticMesh;
+class UPointLightComponent;
 
 /** The kinds of hazard the dungeon can scatter. */
 UENUM(BlueprintType)
@@ -117,6 +118,8 @@ private:
 	/** Applies damage to any pawn currently inside the hazard footprint (on the DamageInterval cadence). */
 	void DamageOverlappers();
 	void FireDart();
+	/** 0..1 imminence of the hazard, used to drive the telegraph warning glow (1 = about to fire / live). */
+	float ComputeTelegraphAlpha() const;
 	/** Moves the spike group so its tips sit Alpha of the way out of the floor (0 = hidden, 1 = full). */
 	void SetSpikeExtension(float Alpha);
 	void SetPlateDepressed(bool bDown);
@@ -126,6 +129,7 @@ private:
 	UPROPERTY() TObjectPtr<USceneComponent> Plate;      // pressure plate that depresses
 	UPROPERTY() TObjectPtr<USceneComponent> Muzzle;     // dart spawn point
 	UPROPERTY() TObjectPtr<UBoxComponent> Trigger;      // hazard footprint / step volume
+	UPROPERTY() TObjectPtr<UPointLightComponent> WarnLight; // telegraph glow before the hazard fires
 	UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Parts;
 	UPROPERTY() TObjectPtr<UStaticMesh> CubeMesh;
 

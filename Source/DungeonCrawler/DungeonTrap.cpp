@@ -4,6 +4,7 @@
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/PointLightComponent.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/World.h"
 #include "UObject/ConstructorHelpers.h"
@@ -58,6 +59,40 @@ void ADungeonTrap::BeginPlay()
 	FireTimer = FMath::FRandRange(0.f, DartInterval);
 	StateTimer = FMath::FRandRange(0.f, FMath::Max(0.01f, SpikeDownTime));
 	State = EState::Idle;
+
+	// Telegraph warning glow: a red point light over the hazard that brightens just before it fires.
+	WarnLight = NewObject<UPointLightComponent>(this);
+	WarnLight->SetupAttachment(Root);
+	WarnLight->RegisterComponent();
+	WarnLight->SetRelativeLocation(FVector(0.f, 0.f, TrapType == ETrapType::DartShooter ? MuzzleZ : 55.f));
+	WarnLight->SetLightColor(FLinearColor(1.f, 0.18f, 0.1f)); // danger red
+	WarnLight->SetCastShadows(false);
+	WarnLight->SetAttenuationRadius(260.f);
+	WarnLight->SetIntensity(0.f);
+}
+
+float ADungeonTrap::ComputeTelegraphAlpha() const
+{
+	// Warning lead time before the spikes pop / dart fires.
+	const float WarnLead = 0.55f;
+	switch (TrapType)
+	{
+	case ETrapType::SpikeFloor:
+		if (State == EState::Rising || State == EState::Raised) { return 1.f; }
+		if (State == EState::Idle) // ramp up over the last WarnLead seconds before it rises
+		{
+			return FMath::Clamp((StateTimer - (SpikeDownTime - WarnLead)) / WarnLead, 0.f, 1.f);
+		}
+		return 0.f;
+	case ETrapType::PressurePlate:
+		// Flash during the telegraph delay and while the spikes are live.
+		if (State == EState::Telegraph) { return FMath::Clamp(StateTimer / FMath::Max(0.05f, PlateTelegraph), 0.f, 1.f); }
+		return (State == EState::Rising || State == EState::Raised) ? 1.f : 0.f;
+	case ETrapType::DartShooter:
+		return (FireTimer < WarnLead) ? FMath::Clamp(1.f - FireTimer / WarnLead, 0.f, 1.f) : 0.f;
+	default:
+		return 0.f;
+	}
 }
 
 UStaticMesh* ADungeonTrap::ResolveMesh(UStaticMesh* Override, const TCHAR* SoftPath) const
@@ -251,6 +286,14 @@ void ADungeonTrap::Tick(float DeltaSeconds)
 	case ETrapType::PressurePlate: TickPressurePlate(DeltaSeconds); break;
 	case ETrapType::DartShooter:   TickDartShooter(DeltaSeconds); break;
 	default: break;
+	}
+
+	// Drive the telegraph glow: brighten as the hazard nears firing, with a quick pulse for menace.
+	if (WarnLight)
+	{
+		const float Alpha = ComputeTelegraphAlpha();
+		const float Pulse = 0.7f + 0.3f * FMath::Sin(GetWorld()->GetTimeSeconds() * 16.f);
+		WarnLight->SetIntensity(Alpha * 2600.f * Pulse);
 	}
 
 	TickTracers(DeltaSeconds);
