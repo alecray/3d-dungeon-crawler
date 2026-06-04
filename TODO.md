@@ -63,6 +63,9 @@
 
 ## Art / VFX
 
+- [ ] Fix the weapon-rack asset (SM_Weapon_Rack) — it spawns tilted + sunk into the floor; set it upright
+      with its pivot/origin at the base. Then audit all other props' pivots (origin at base, upright) so
+      nothing floats or clips into the floor when placed.
 - [ ] Chest model and opening animation
 - [ ] Vendor / shop model (currently graybox) — shopkeeper stall / counter
 - [ ] Portal model (currently a code-built procedural "energy gate") — proper portal mesh/frame
