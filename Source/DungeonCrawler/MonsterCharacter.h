@@ -130,6 +130,9 @@ protected:
 	/** Set by ApplyHitDamage when the last hit struck a weak point — drives the damage-number styling. */
 	bool bLastHitWeak = false;
 
+	/** When true, the attack path prints an on-screen confirmation each swing (boss anim debugging). */
+	bool bLogAttackAnim = false;
+
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;
 
@@ -151,8 +154,6 @@ private:
 	void PlayAttackAnim();
 
 	bool bUsingSkeletalBody = false;
-	/** When true, the attack anim path prints an on-screen confirmation each swing (boss anim debugging). */
-	bool bLogAttackAnim = false;
 	float AttackAnimEndTime = 0.f;
 	float LastAttackTime = -1000.f;
 	float HitReactTimeLeft = 0.f;
