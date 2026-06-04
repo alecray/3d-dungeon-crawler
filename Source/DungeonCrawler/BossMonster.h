@@ -165,7 +165,7 @@ private:
 	FString IdleAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Idle.A_Hermit_Crab_Boss_Idle");
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString RunAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Run.A_Hermit_Crab_Boss_Run");
+	FString RunAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Walk.A_Hermit_Crab_Boss_Walk");
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	FString AttackAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Attack.A_Hermit_Crab_Boss_Attack");
