@@ -30,7 +30,8 @@ enum class EEquipKind : uint8
 {
 	None,
 	Sword,    // melee
-	Crossbow  // ranged
+	Crossbow, // ranged
+	Staff     // mage (spell projectiles, costs mana)
 };
 
 /** Paperdoll equipment slot an item fits into (armor/accessories). None = not equipment. */

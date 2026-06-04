@@ -12,8 +12,9 @@
       reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
       require a consumable "life scroll" to respawn (else lose the run / drop loot). Ties into run-stakes
       + the town-portal difficulty/risk-reward idea in the backlog.
-- [ ] Mage weapon — add a staff/wand item so the Mage combat style can be equipped and fully exercised
-      (currently mage works only via abilities; no weapon item exists).
+- [x] Mage weapon — added `Wand` ("Apprentice Wand") + `Staff` ("Oak Staff") items with `EEquipKind::Staff`;
+      equipping one sets the **Mage** style (spell bolts cost mana). Held-mesh swap-in point at
+      `/Game/Weapons/Staff/SK_Staff` (graybox/hidden until art lands). They roll in the loot pool.
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
 
 ## Boss — next

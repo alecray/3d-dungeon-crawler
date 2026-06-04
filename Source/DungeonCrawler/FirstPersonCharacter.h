@@ -116,6 +116,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<UAnimSequence> CrossbowShootAnim;
 
+	/** Optional staff/wand skeletal mesh (equipping a Staff item swaps to it; null = no held mesh yet). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<USkeletalMesh> StaffSkeletalAsset;
+
 	// ---- Ranged / mage ----
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TSubclassOf<AProjectile> ProjectileClass;

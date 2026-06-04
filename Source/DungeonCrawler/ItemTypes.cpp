@@ -174,6 +174,9 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("Sword"),        TEXT("Sword"),         EItemType::Weapon,     EItemRarity::Common,   1, 40, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("Crossbow"),     TEXT("Crossbow"),      EItemType::Weapon,     EItemRarity::Uncommon, 1, 80, EEquipKind::Crossbow));
 		Items.Add(MakeItem(TEXT("IronSword"),    TEXT("Iron Sword"),    EItemType::Weapon,     EItemRarity::Uncommon, 1, 60, EEquipKind::Sword));
+		// Mage weapons — equipping one sets the Mage style (spell bolts cost mana).
+		Items.Add(MakeItem(TEXT("Wand"),         TEXT("Apprentice Wand"),EItemType::Weapon,    EItemRarity::Common,   1, 45, EEquipKind::Staff));
+		Items.Add(MakeItem(TEXT("Staff"),        TEXT("Oak Staff"),     EItemType::Weapon,     EItemRarity::Uncommon, 1, 90, EEquipKind::Staff));
 		Items.Add(MakeItem(TEXT("LeatherArmor"), TEXT("Leather Armor"), EItemType::Armor,      EItemRarity::Uncommon, 1, 55));
 		Items.Add(MakeItem(TEXT("RubyGem"),      TEXT("Ruby Gem"),      EItemType::Treasure,   EItemRarity::Rare,     5, 120));
 		Items.Add(MakeItem(TEXT("RunedBlade"),   TEXT("Runed Blade"),   EItemType::Weapon,     EItemRarity::Epic,     1, 400, EEquipKind::Sword));

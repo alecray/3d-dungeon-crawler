@@ -133,6 +133,11 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		CrossbowShootAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/A_Crossbow_Shoot.A_Crossbow_Shoot")).TryLoad());
 	}
+	if (!StaffSkeletalAsset)
+	{
+		// Conventional path; absent for now (graybox), so the mage just has no held mesh until art lands.
+		StaffSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/SK_Staff.SK_Staff")).TryLoad());
+	}
 
 	if (Health)
 	{
@@ -303,6 +308,11 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 		SwordMesh->SetSkeletalMesh(CrossbowSkeletalAsset);
 		SwordMesh->SetVisibility(CrossbowSkeletalAsset != nullptr);
 		CurrentStyle = ECombatStyle::Ranged;
+		break;
+	case EEquipKind::Staff:
+		SwordMesh->SetSkeletalMesh(StaffSkeletalAsset);
+		SwordMesh->SetVisibility(StaffSkeletalAsset != nullptr); // graybox: hidden until a staff mesh exists
+		CurrentStyle = ECombatStyle::Mage;
 		break;
 	default:
 		SwordMesh->SetVisibility(false); // nothing equippable in the active slot
