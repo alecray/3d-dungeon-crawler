@@ -33,6 +33,37 @@
 - [ ] Crafting / enchanting / item upgrades (sinks for materials + gold)
 - [ ] More consumables beyond potions (scrolls, food, buff items)
 
+## Boss — status & next
+
+Done (graybox, all in C++, swaps to the hermit-crab model later):
+- [x] Encounter flow: spawn-on-entry opposite the player, entrance doors seal (open on death),
+      return portal activates on death.
+- [x] Intro: camera focus + screen shake + rise/roar spawn animation on the FIRST kill of a boss id
+      (persisted in save profile); replays play only the spawn animation.
+- [x] 3 phases (health thresholds) with morph reveals + stat buffs.
+- [x] Specials: ground slam, summon adds, enrage burst, projectile volley (3-spread p2+), bubble pools (p2-3).
+- [x] Movement: crab scuttle + telegraphed lunge; hybrid navmesh (paths around cover when LoS blocked).
+- [x] Phase-1 back weak point (2x damage from behind, marker hidden after p1).
+
+Next / not yet done:
+- [ ] VERIFY IN PIE: intro camera framing, ~1.8s hold length, doors line up + actually block, input
+      hands back cleanly, boss scuttles/lunges without jitter at the LoS hand-off.
+- [ ] Shell-retreat mechanic (phase 3): tuck in = temporary invuln, must wait it out / hit weak spot.
+- [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam); burrow & resurface.
+- [ ] Boss health bar UI (dedicated boss bar, distinct from the player HUD).
+- [ ] Tune projectile speed (currently 2600 — fast); theme the summoned adds.
+- [ ] Swap graybox: hermit-crab model, real gate/portcullis door mesh, portal mesh.
+- [ ] Support multiple boss types (only one boss id today).
+
+## Flow / UX
+
+- [x] Start screen — graybox main menu (title + Start/Quit) shown at launch over the boot map
+      (opaque, once per session). Start fades in to play; Quit exits.
+- [x] Scene transitions — black camera fades on every level travel (portal town<->dungeon, death
+      restart) via DungeonPlayerController FadeToBlackAndTravel + fade-in on arrival.
+  - Later: a dedicated main-menu level (needs an empty .umap authored in-editor; then point the
+    GameMode/GameDefaultMap at it instead of overlaying the boot map).
+
 ## Engine / Settings
 
 - [ ] Resolve the "Missing Project Settings" editor warning — enable Shader Model 6 (SM6) and/or set

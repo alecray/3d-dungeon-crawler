@@ -344,7 +344,14 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 			if (Portal->IsActive() && !Portal->GetTargetMapName().IsNone())
 			{
 				SaveNow(); // carry gold/inventory/stats across the level load
-				UGameplayStatics::OpenLevel(this, Portal->GetTargetMapName());
+				if (PC)
+				{
+					PC->FadeToBlackAndTravel(Portal->GetTargetMapName());
+				}
+				else
+				{
+					UGameplayStatics::OpenLevel(this, Portal->GetTargetMapName());
+				}
 			}
 		}
 	}
@@ -895,7 +902,14 @@ void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 			{
 				// GetCurrentLevelName strips the PIE prefix so the reload works in-editor too.
 				const FString LevelName = UGameplayStatics::GetCurrentLevelName(W, /*bRemovePrefixString*/ true);
-				UGameplayStatics::OpenLevel(W, FName(*LevelName));
+				if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
+				{
+					PC->FadeToBlackAndTravel(FName(*LevelName)); // fade out, then reload for a fresh run
+				}
+				else
+				{
+					UGameplayStatics::OpenLevel(W, FName(*LevelName));
+				}
 			}
 		});
 		FTimerHandle ReopenHandle;

@@ -12,7 +12,12 @@
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
+#include "MainMenuWidget.h"
+#include "DungeonGameInstance.h"
 #include "Blueprint/UserWidget.h"
+#include "Camera/PlayerCameraManager.h"
+#include "GameFramework/Pawn.h"
+#include "TimerManager.h"
 
 ADungeonPlayerController::ADungeonPlayerController()
 {
@@ -42,6 +47,96 @@ void ADungeonPlayerController::BeginPlay()
 		{
 			Minimap->AddToViewport(1);
 		}
+
+		// First load of the session shows the start menu over the boot map; later loads (entering the
+		// dungeon, returning to town, death restart) just fade in from black.
+		UDungeonGameInstance* GI = GetGameInstance<UDungeonGameInstance>();
+		if (GI && !GI->IsSessionStarted())
+		{
+			ShowMainMenu();
+		}
+		else
+		{
+			FadeFromBlack();
+		}
+	}
+}
+
+void ADungeonPlayerController::ShowMainMenu()
+{
+	if (MainMenuWidget)
+	{
+		return;
+	}
+	MainMenuWidget = CreateWidget<UMainMenuWidget>(this, UMainMenuWidget::StaticClass());
+	if (MainMenuWidget)
+	{
+		MainMenuWidget->AddToViewport(100); // above all gameplay UI
+	}
+
+	// Hold the camera black behind the menu so dismissing it reveals the world with a clean fade.
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->StartCameraFade(1.f, 1.f, 0.f, FLinearColor::Black, false, /*bHoldWhenFinished*/ true);
+	}
+
+	bShowMouseCursor = true;
+	SetInputMode(FInputModeUIOnly());
+	if (APawn* P = GetPawn())
+	{
+		P->DisableInput(this); // freeze the player until they press Start
+	}
+}
+
+void ADungeonPlayerController::StartGameFromMenu()
+{
+	if (UDungeonGameInstance* GI = GetGameInstance<UDungeonGameInstance>())
+	{
+		GI->SetSessionStarted();
+	}
+	if (MainMenuWidget)
+	{
+		MainMenuWidget->RemoveFromParent();
+		MainMenuWidget = nullptr;
+	}
+
+	bShowMouseCursor = false;
+	SetInputMode(FInputModeGameOnly());
+	if (APawn* P = GetPawn())
+	{
+		P->EnableInput(this);
+	}
+	FadeFromBlack(0.6f);
+}
+
+void ADungeonPlayerController::FadeFromBlack(float Duration)
+{
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->StartCameraFade(1.f, 0.f, Duration, FLinearColor::Black, false, /*bHoldWhenFinished*/ false);
+	}
+}
+
+void ADungeonPlayerController::FadeToBlackAndTravel(FName Map, float Duration)
+{
+	if (Map.IsNone() || !PendingTravelMap.IsNone())
+	{
+		return; // already traveling
+	}
+	PendingTravelMap = Map;
+
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->StartCameraFade(0.f, 1.f, Duration, FLinearColor::Black, false, /*bHoldWhenFinished*/ true);
+	}
+	GetWorldTimerManager().SetTimer(TravelTimer, this, &ADungeonPlayerController::DoPendingTravel, FMath::Max(0.05f, Duration), false);
+}
+
+void ADungeonPlayerController::DoPendingTravel()
+{
+	if (!PendingTravelMap.IsNone())
+	{
+		UGameplayStatics::OpenLevel(this, PendingTravelMap);
 	}
 }
 

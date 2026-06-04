@@ -72,9 +72,15 @@ public:
 
 	bool HasProfile() const { return Profile.bInitialized; }
 
+	/** Per-session (not saved): true once the start menu has been dismissed, so it only shows on boot. */
+	bool IsSessionStarted() const { return bSessionStarted; }
+	void SetSessionStarted() { bSessionStarted = true; }
+
 protected:
 	UPROPERTY()
 	FPlayerProfile Profile;
+
+	bool bSessionStarted = false;
 
 	static const TCHAR* SlotName() { return TEXT("DungeonProfile"); }
 };

@@ -42,6 +42,12 @@ public:
 	void CloseShop();
 	bool IsShopOpen() const;
 
+	/** Start-menu Start button: dismiss the menu, hand back control, and fade in from black. */
+	void StartGameFromMenu();
+
+	/** Fade the screen to black over Duration (s), then open Map — the standard scene transition. */
+	void FadeToBlackAndTravel(FName Map, float Duration = 0.45f);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -57,6 +63,17 @@ protected:
 private:
 	void UpdateInputMode();
 	UInventoryComponent* GetPlayerInventory() const;
+
+	/** Shows the start menu over the boot map and freezes the player until Start is pressed. */
+	void ShowMainMenu();
+	/** Fades the camera in from black (e.g. on arriving in a level). */
+	void FadeFromBlack(float Duration = 0.5f);
+	/** Timer callback: performs the deferred OpenLevel after the fade-to-black. */
+	void DoPendingTravel();
+
+	UPROPERTY() TObjectPtr<UUserWidget> MainMenuWidget;
+	FName PendingTravelMap;
+	FTimerHandle TravelTimer;
 
 	UPROPERTY() TObjectPtr<UUserWidget> HUDWidget;
 	UPROPERTY() TObjectPtr<UInventoryWidget> InventoryWidget;
