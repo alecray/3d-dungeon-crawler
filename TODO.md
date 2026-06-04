@@ -1,28 +1,13 @@
 # TODO
 
+> Open / untested work is up top. Completed items are in **Done** at the bottom.
+
+---
+
+# OPEN
+
 ## Gameplay
 
-
-- [x] Boss encounter sequence — boss spawns on room entry opposite the player; entrance doors seal for
-      the fight (open on death); first-ever kill of a boss type plays a camera-focus + screen-shake +
-      intro cinematic (persisted per boss id), replays just do the spawn animation.
-- [x] Boss fight depth — crab-like scuttle + telegraphed lunge movement, player-targeting projectile
-      volley (3-spread in phase 2+), phase-1 back weak point (2x dmg from behind, marked + auto-hidden
-      after p1), and phase-2/3 bubble-pool hazards (ABubbleHazard). Reuses existing phase/special system.
-- [x] Floating damage numbers — world-space 3D text on every hit to an enemy; weak-point hits show
-      bigger/orange (ADamageNumber, billboards to camera, arcs up + shrinks out).
-- [x] Improve enemy pathing (runtime navmesh + MoveTo so enemies path around walls instead of steering straight)
-- [x] Dungeon traps — graybox spike floors (periodic), pressure plates (step-triggered spikes), and
-      wall-mounted dart shooters. Scattered in corridors + occasional room cells via ADungeonTrap;
-      mesh swap-in points (BaseMeshOverride/SpikeMeshOverride/DartMeshOverride + /Game/Traps paths).
-- [x] Weapon usage costs stamina — melee now spends stamina (reducible by skills) like ranged/mage;
-      the swing is gated when out of stamina. MeleeStaminaCost on the character.
-- [x] Dev menu (Esc → Dev Menu) — No Clip, God Mode (toggle), Reveal Map, Kill Player, Teleport Home.
-- [x] Game juice pass — hit-stop on connecting melee, camera kick on melee hit + ranged fire
-      (UHitCameraShake), enemy knockback on player hits, and a pulsing low-health red vignette.
-- [x] Room-type variety — generator tags rooms Treasure (extra guarded chests) / Ambush (bigger forced
-      swarm) / Rest (safe: no monsters/traps) / Elite (one tough MakeElite mini-boss + chest) / Normal,
-      each with a colored marker light. (Later: shrine/buff room, locked vaults, puzzle rooms.)
 - [ ] Adjust the death flow (DESIGN DECISION pending) — currently death keeps all progression and
       reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
       require a consumable "life scroll" to respawn (else lose the run / drop loot). Ties into run-stakes
@@ -30,7 +15,22 @@
 - [ ] Mage weapon — add a staff/wand item so the Mage combat style can be equipped and fully exercised
       (currently mage works only via abilities; no weapon item exists).
 - [ ] Trophy cases — placeable displays (e.g. in town) where players can show off items earned from the collection log
-- [x] Make potions pick up on E press, not automatically (interact-to-collect instead of overlap auto-pickup)
+
+## Boss — next
+
+- [ ] VERIFY IN PIE: intro camera framing, hold length, doors line up + actually block, input hands
+      back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room + lintels.
+- [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam).
+- [ ] Swap graybox: hermit-crab model, real gate/portcullis door mesh, portal mesh.
+- [ ] Support multiple boss types (only one boss id today).
+- [ ] (later) Burrow & resurface — boss digs under, re-emerges near the player (not for this boss).
+
+## Flow / UX
+
+- [ ] Rebindable controls — let the player change key bindings from the settings menu (click a row,
+      press a new key); persist the remaps in the save profile and apply to the Enhanced Input mappings.
+- [ ] (later) Dedicated main-menu level — needs an empty .umap authored in-editor; then point the
+      GameMode/GameDefaultMap at it instead of overlaying the boot map.
 
 ## RPG depth (genre features not yet implemented)
 
@@ -55,46 +55,6 @@
       or harder difficulty tiers for greater reward potential, with the risk of losing everything in the
       run (high-stakes mode). Pairs with run-stakes / meta-progression.
 
-## Boss — status & next
-
-Done (graybox, all in C++, swaps to the hermit-crab model later):
-- [x] Encounter flow: spawn-on-entry opposite the player, entrance doors seal (open on death),
-      return portal activates on death.
-- [x] Intro: camera focus + screen shake + rise/roar spawn animation on the FIRST kill of a boss id
-      (persisted in save profile); replays play only the spawn animation.
-- [x] 3 phases (health thresholds) with morph reveals + stat buffs.
-- [x] Specials: ground slam, summon adds, enrage burst, projectile volley (3-spread p2+), bubble pools (p2-3).
-- [x] Movement: crab scuttle + telegraphed lunge; hybrid navmesh (paths around cover when LoS blocked).
-- [x] Phase-1 back weak point (2x damage from behind, marker hidden after p1).
-
-Next / not yet done:
-- [ ] VERIFY IN PIE: intro camera framing, ~1.8s hold length, doors line up + actually block, input
-      hands back cleanly, boss scuttles/lunges without jitter at the LoS hand-off.
-- [x] Shell-retreat mechanic (phase 3): tucks in = immobile + invulnerable (hits clang off) for
-      ShellRetreatDuration, then re-emerges. In the phase-3 special pool.
-- [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam).
-- [x] Boss health bar UI — dedicated top-center red bar (UBossHealthBarWidget) shown for the fight,
-      removed on death; labelled from the boss id.
-- [x] Tuned projectile speed (boss bolts now 1500, dodgeable) + summoned adds get a real monster type.
-- [ ] Swap graybox: hermit-crab model, real gate/portcullis door mesh, portal mesh.
-- [ ] Support multiple boss types (only one boss id today).
-
-### Future boss mechanic ideas (later)
-- [ ] Burrow & resurface — boss digs under, re-emerges near the player (not for this boss).
-
-## Flow / UX
-
-- [x] Controls in settings — full controls reference (every binding) in the pause→Settings panel,
-      scrollable key→action list. (Later: live rebinding.)
-- [ ] Rebindable controls — let the player change key bindings from the settings menu (click a row,
-      press a new key); persist the remaps in the save profile and apply to the Enhanced Input mappings.
-- [x] Start screen — graybox main menu (title + Start/Quit) shown at launch over the boot map
-      (opaque, once per session). Start fades in to play; Quit exits.
-- [x] Scene transitions — black camera fades on every level travel (portal town<->dungeon, death
-      restart) via DungeonPlayerController FadeToBlackAndTravel + fade-in on arrival.
-  - Later: a dedicated main-menu level (needs an empty .umap authored in-editor; then point the
-    GameMode/GameDefaultMap at it instead of overlaying the boot map).
-
 ## Engine / Settings
 
 - [ ] Resolve the "Missing Project Settings" editor warning — enable Shader Model 6 (SM6) and/or set
@@ -105,30 +65,25 @@ Next / not yet done:
 - [ ] Chest model and opening animation
 - [ ] Vendor / shop model (currently graybox) — shopkeeper stall / counter
 - [ ] Portal model (currently a code-built procedural "energy gate") — proper portal mesh/frame
-- [x] Dungeon fog (atmospheric volumetric/height fog for mood + depth)
 - [ ] Scenery props — clutter scattered on the floor and on top of tables/surfaces:
-  - Floor:
   - Tabletop: candles & candlesticks, plates/bowls, mugs/tankards, bottles & flasks,
     books/scrolls, quill + inkpot, food (bread, cheese, apple), coin stacks, gems,
     potion vials, maps/parchment, dice, knives, small pouches
 
-- [x] in generation now: barrel, pots, bucket, rocks (random scale), bones, anvil, coffin, mushrooms
-  (random scale) as floor clutter; weapon racks against walls; banners flanking doorways.
-
-models to make later:
-- sacks
-- broken pottery shards
-- hay piles
-- candelabra/floor candlesticks
-- lantern
-- chains
-- cobwebs
-- rugs/carpets
-- statues
-- gravestones
-- cage (idk what happened here it wouldnt import, blend has been started)
-- ladder
-- coin/treasure piles
+  models to make later:
+  - sacks
+  - broken pottery shards
+  - hay piles
+  - candelabra/floor candlesticks
+  - lantern
+  - chains
+  - cobwebs
+  - rugs/carpets
+  - statues
+  - gravestones
+  - cage (idk what happened here it wouldnt import, blend has been started)
+  - ladder
+  - coin/treasure piles
 
 ## UI
 
@@ -141,7 +96,6 @@ models to make later:
 
 - [ ] Ambient music (dungeon background track; later boss-fight / town variants)
 
-
 ## Monster ideas
 - eel
 - manta ray / sting ray
@@ -151,3 +105,35 @@ models to make later:
 - dog
 - monkey
 - snake
+
+---
+
+# DONE
+
+## Gameplay / combat
+- [x] Boss encounter sequence — spawn-on-entry opposite the player; entrance doors seal (open on death);
+      first-ever kill plays a camera-focus + screen-shake + intro cinematic (persisted per boss id).
+- [x] Boss fight depth — scuttle + telegraphed lunge, hybrid navmesh, projectile volley (3-spread p2+),
+      phase-1 back weak point, phase-2/3 bubble pools, shell-retreat (p3), 3 phases + specials.
+- [x] Boss health bar — dedicated top-center red bar, labelled from the boss id, removed on death.
+- [x] Boss room built double-height (taller walls + raised ceiling + doorway lintels); intro camera
+      moved straight-on/lower (no ceiling clip). Projectile speed tuned; summoned adds get a real type.
+- [x] Floating damage numbers — world-space 3D text; weak-point hits bigger/orange; big & bright.
+- [x] Improve enemy pathing (runtime navmesh + MoveTo).
+- [x] Dungeon traps — spike floors, pressure plates, dart shooters (ADungeonTrap).
+- [x] Room-type variety — Treasure / Ambush / Rest / Elite / Normal, each with a colored marker light.
+- [x] Weapon usage costs stamina (melee now spends stamina, gated when empty).
+- [x] Game juice — hit-stop, camera kick, enemy knockback, low-health vignette.
+- [x] Dev menu (Esc → Dev Menu) — No Clip, God Mode, Reveal Map, Kill Player, Teleport Home.
+- [x] Potions pick up on E press (interact-to-collect).
+
+## Flow / UX
+- [x] Start screen — graybox main menu (Start/Quit) over the boot map, once per session.
+- [x] Scene transitions — black camera fades on every level travel + fade-in on arrival.
+- [x] Controls in settings — full scrollable controls reference in the pause→Settings panel.
+
+## Generation / art
+- [x] Bigger rooms + shorter (nearest-neighbor) hallways + denser props/chests + wall props no longer clip.
+- [x] Dungeon fog (atmospheric volumetric/height fog).
+- [x] In generation: barrel, pots, bucket, rocks, bones, anvil, coffin, mushrooms as clutter;
+      weapon racks against walls; banners flanking doorways.
