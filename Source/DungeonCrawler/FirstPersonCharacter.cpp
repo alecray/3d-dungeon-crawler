@@ -105,6 +105,8 @@ void AFirstPersonCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (FirstPersonCamera) { BaseFOV = FirstPersonCamera->FieldOfView; }
+
 	// Resolve the sword skeletal mesh + swing animation (editor assignment wins; else load by path).
 	if (!SwordSkeletalAsset)
 	{
@@ -570,6 +572,24 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 	if (Movement)
 	{
 		Movement->MaxWalkSpeed = bSprinting ? SprintSpeed : WalkSpeed;
+	}
+
+	// Game feel: ease the FOV out a touch while sprinting; ramp chromatic aberration + desaturation as
+	// health drops (layered on the low-health vignette). Both are near-free.
+	if (FirstPersonCamera)
+	{
+		const float TargetFOV = BaseFOV + (bSprinting ? SprintFOVKick : 0.f);
+		FirstPersonCamera->SetFieldOfView(FMath::FInterpTo(FirstPersonCamera->FieldOfView, TargetFOV, DeltaSeconds, 8.f));
+
+		const float Pct = Health ? Health->GetHealthPercent() : 1.f;
+		const float Danger = (LowHpThreshold > 0.f) ? FMath::Clamp((LowHpThreshold - Pct) / LowHpThreshold, 0.f, 1.f) : 0.f;
+		FPostProcessSettings& PP = FirstPersonCamera->PostProcessSettings;
+		PP.bOverride_SceneFringeIntensity = true;
+		PP.SceneFringeIntensity = Danger * LowHpFringe;
+		PP.bOverride_ColorSaturation = true;
+		const float Sat = 1.f - Danger * LowHpDesat;
+		PP.ColorSaturation = FVector4(Sat, Sat, Sat, 1.f);
+		FirstPersonCamera->PostProcessBlendWeight = 1.f;
 	}
 
 	const float MaxSpeed = (Movement && Movement->MaxWalkSpeed > 1.f) ? Movement->MaxWalkSpeed : WalkSpeed;

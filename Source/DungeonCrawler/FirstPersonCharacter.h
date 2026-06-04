@@ -314,6 +314,13 @@ private:
 	bool bDead = false;
 	bool bSprintHeld = false;
 	bool bNoClip = false;
+
+	// ---- Game-feel: sprint FOV kick + low-HP screen effect ----
+	UPROPERTY(EditAnywhere, Category = "Feel") float SprintFOVKick = 8.f;
+	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpThreshold = 0.4f;
+	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpFringe = 4.f;   // chromatic aberration at 0 HP
+	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpDesat = 0.5f;   // desaturation at 0 HP
+	float BaseFOV = 90.f;
 	ECombatStyle CurrentStyle = ECombatStyle::Melee;
 
 	/** Player gold (persisted in the profile). */

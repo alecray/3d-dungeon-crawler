@@ -4,6 +4,7 @@
 #include "MonsterTypes.h"
 #include "DeathPoof.h"
 #include "DamageNumber.h"
+#include "ImpactBurst.h"
 
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h" // EPathFollowingRequestResult values
@@ -338,17 +339,24 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 {
 	HitReactTimeLeft = HitReactDuration; // kick off the pop
 
-	// Floating damage number above the monster.
+	// Floating damage number above the monster + a quick impact spark at the body.
 	if (Amount > 0.f)
 	{
 		if (UWorld* World = GetWorld())
 		{
-			const FVector Loc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() + 60.f);
 			FActorSpawnParameters P;
 			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			if (ADamageNumber* Num = World->SpawnActor<ADamageNumber>(ADamageNumber::StaticClass(), FTransform(Loc), P))
+
+			const FVector NumberLoc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() + 60.f);
+			if (ADamageNumber* Num = World->SpawnActor<ADamageNumber>(ADamageNumber::StaticClass(), FTransform(NumberLoc), P))
 			{
 				Num->Init(Amount, bLastHitWeak);
+			}
+
+			const FVector ImpactLoc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() * 0.5f);
+			if (AImpactBurst* Burst = World->SpawnActor<AImpactBurst>(AImpactBurst::StaticClass(), FTransform(ImpactLoc), P))
+			{
+				Burst->SetColor(bLastHitWeak ? FLinearColor(1.f, 0.5f, 0.1f) : FLinearColor(1.f, 0.95f, 0.6f));
 			}
 		}
 	}
