@@ -113,13 +113,24 @@ protected:
 	float SlabThickness = 20.f;
 
 	// ---- Props ----
-	/** Chance [0..1] that any given interior room cell receives a furniture prop. */
+	/** Chance [0..1] that any given interior room cell receives a lone (scattered) furniture prop. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0", ClampMax = "1"))
-	float PropFillChance = 0.36f;
+	float PropFillChance = 0.14f;
 
 	/** Chance [0..1] that any given corridor cell receives a wall-hugging prop. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0", ClampMax = "1"))
 	float CorridorPropChance = 0.18f;
+
+	/** Furniture clusters (piles) per interior room cell — more = more clumps scattered around. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "0"))
+	float PropClusterDensity = 0.14f;
+
+	/** Number of props piled into each cluster. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "1"))
+	int32 ClusterPropsMin = 3;
+
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Props", meta = (ClampMin = "1"))
+	int32 ClusterPropsMax = 6;
 
 	// ---- Monsters ----
 	/** Monster class to spawn in groups (defaults to AMonsterCharacter). */

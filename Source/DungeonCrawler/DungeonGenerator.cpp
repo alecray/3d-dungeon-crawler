@@ -678,6 +678,31 @@ void ADungeonGenerator::ScatterProps()
 			}
 		}
 
+		// --- Prop clusters: clumps of furniture piled tightly together for a lived-in look ---
+		const int32 InteriorCells = FMath::Max(0, Room.W - 2) * FMath::Max(0, Room.H - 2);
+		const int32 NumClusters = FMath::RoundToInt(InteriorCells * PropClusterDensity);
+		const float ClusterRadius = CellSize * 0.55f; // props pile within roughly one cell of the center
+		for (int32 c = 0; c < NumClusters; ++c)
+		{
+			const int32 ccx = Rng.RandRange(Room.X + 1, Room.X + Room.W - 2);
+			const int32 ccy = Rng.RandRange(Room.Y + 1, Room.Y + Room.H - 2);
+			const FVector ClusterCenter = Xf.TransformPosition(CellToLocal(ccx, ccy));
+
+			// Each cluster favours one "primary" prop type so it reads as a coherent pile (a stack of
+			// barrels, a heap of crates), with the occasional odd item mixed in.
+			const EPropType Primary = FloorProps[Rng.RandRange(0, NumFloor - 1)];
+			const int32 Count = Rng.RandRange(FMath::Min(ClusterPropsMin, ClusterPropsMax), FMath::Max(ClusterPropsMin, ClusterPropsMax));
+			for (int32 p = 0; p < Count; ++p)
+			{
+				const EPropType Type = (Rng.FRand() < 0.7f) ? Primary : FloorProps[Rng.RandRange(0, NumFloor - 1)];
+				const float Scale = (Type == EPropType::Rocks || Type == EPropType::Mushrooms)
+					? Rng.FRandRange(0.6f, 1.4f) : 1.f;
+				const FVector Offset(Rng.FRandRange(-ClusterRadius, ClusterRadius), Rng.FRandRange(-ClusterRadius, ClusterRadius), 0.f);
+				const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
+				SpawnProp(Type, ClusterCenter + Offset, Rot, Scale);
+			}
+		}
+
 		// --- Wall-mounted weapon racks + banners flanking doorways (whole room incl. perimeter) ---
 		for (int32 y = Room.Y; y < Room.Y + Room.H; ++y)
 		{
