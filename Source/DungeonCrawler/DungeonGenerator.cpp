@@ -147,10 +147,10 @@ void ADungeonGenerator::Generate()
 	AssignRoomTypes();
 	CarveCorridors();
 	BuildGeometry();
+	ScatterTraps();   // before props so scenery can avoid trap cells
 	ScatterProps();
 	ScatterMonsters();
 	ScatterChests();
-	ScatterTraps();
 	DecorateRooms();
 	SetupBossEncounter();
 	SpawnReturnPortals();
@@ -178,6 +178,7 @@ void ADungeonGenerator::ClearLayout()
 
 	Rooms.Reset();
 	BossRoomIndex = INDEX_NONE;
+	TrapCells.Reset();
 
 	Cells.Init(ECell::Empty, GridWidth * GridHeight);
 }
@@ -604,14 +605,33 @@ void ADungeonGenerator::ScatterProps()
 	const float WallFurnitureChance = 0.34f; // chance a wall-adjacent floor cell gets theme furniture
 	const float CornerStackChance = 0.6f;    // chance each room corner gets a prop stack
 
+	TArray<FVector> PlacedPropLocs;                 // every placed prop, for overlap avoidance
+	const float MinPropDistSq = 75.f * 75.f;        // scenery can sit close but not inside each other
+
 	auto SpawnProp = [&](EPropType Type, const FVector& WorldLoc, const FRotator& Rot, float Scale)
 	{
+		// Don't drop scenery onto a trap cell.
+		int32 cx, cy;
+		if (WorldToCell(WorldLoc, cx, cy) && TrapCells.Contains(Idx(cx, cy)))
+		{
+			return;
+		}
+		// Don't overlap another piece of scenery.
+		for (const FVector& Placed : PlacedPropLocs)
+		{
+			if (FVector::DistSquared2D(Placed, WorldLoc) < MinPropDistSq)
+			{
+				return;
+			}
+		}
+
 		if (ADungeonProp* Prop = World->SpawnActor<ADungeonProp>(
 			ADungeonProp::StaticClass(), FTransform(Rot, WorldLoc), Params))
 		{
 			Prop->Configure(Type);
 			if (!FMath::IsNearlyEqual(Scale, 1.f)) { Prop->SetActorScale3D(FVector(Scale)); }
 			SpawnedActors.Add(Prop);
+			PlacedPropLocs.Add(WorldLoc);
 		}
 	};
 
@@ -955,6 +975,9 @@ void ADungeonGenerator::ScatterTraps()
 		{
 			Trap->Configure(Type);
 			SpawnedActors.Add(Trap);
+			// Record the cell so scenery placement avoids spawning on top of the trap.
+			int32 cx, cy;
+			if (WorldToCell(WorldLoc, cx, cy)) { TrapCells.Add(Idx(cx, cy)); }
 		}
 	};
 

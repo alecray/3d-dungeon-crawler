@@ -259,6 +259,9 @@ private:
 	TArray<ECell> Cells;
 	FRandomStream Rng;
 
+	/** Cells that contain a trap — scenery placement avoids them (populated by ScatterTraps). */
+	TSet<int32> TrapCells;
+
 	// Grid helpers
 	bool InBounds(int32 X, int32 Y) const { return X >= 0 && Y >= 0 && X < GridWidth && Y < GridHeight; }
 	int32 Idx(int32 X, int32 Y) const { return Y * GridWidth + X; }
