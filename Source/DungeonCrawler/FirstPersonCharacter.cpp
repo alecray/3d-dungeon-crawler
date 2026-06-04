@@ -10,6 +10,7 @@
 #include "MonsterCharacter.h"
 #include "LootChest.h"
 #include "Bonfire.h"
+#include "BlackjackTable.h"
 #include "CharacterClass.h"
 #include "HealthComponent.h"
 #include "ResourceComponent.h"
@@ -412,6 +413,10 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 		{
 			Fire->Rest(this); // full heal + refill + checkpoint save
 		}
+		else if (ABlackjackTable* Table = Cast<ABlackjackTable>(Hit.GetActor()))
+		{
+			Table->Play(this); // opens the blackjack UI
+		}
 		else if (APortal* Portal = Cast<APortal>(Hit.GetActor()))
 		{
 			if (Portal->IsActive() && !Portal->GetTargetMapName().IsNone())
@@ -472,6 +477,10 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		if (Cast<ABonfire>(Hit.GetActor()))
 		{
 			return TEXT("Rest");
+		}
+		if (Cast<ABlackjackTable>(Hit.GetActor()))
+		{
+			return TEXT("Play Blackjack");
 		}
 		if (const APortal* Portal = Cast<APortal>(Hit.GetActor()))
 		{
