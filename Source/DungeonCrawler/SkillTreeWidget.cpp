@@ -40,13 +40,13 @@ bool USkillTreeWidget::Initialize()
 	// Centered dark panel.
 	UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
 	Panel->SetBrushColor(FLinearColor(0.04f, 0.04f, 0.06f, 0.94f));
-	Panel->SetPadding(FMargin(18.f));
+	Panel->SetPadding(FMargin(40.f));
 	if (UCanvasPanelSlot* PS = Root->AddChildToCanvas(Panel))
 	{
 		PS->SetAnchors(FAnchors(0.5f, 0.5f));
 		PS->SetAlignment(FVector2D(0.5f, 0.5f));
 		PS->SetPosition(FVector2D::ZeroVector);
-		PS->SetSize(FVector2D(760.f, 540.f));
+		PS->SetSize(FVector2D(1180.f, 800.f));
 	}
 
 	UVerticalBox* Outer = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Outer"));
@@ -55,13 +55,18 @@ bool USkillTreeWidget::Initialize()
 	// Header with the points counter.
 	PointsText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PointsText"));
 	PointsText->SetText(FText::FromString(TEXT("Skill Tree")));
+	{
+		FSlateFontInfo F = PointsText->GetFont();
+		F.Size = 22;
+		PointsText->SetFont(F);
+	}
 	Outer->AddChildToVerticalBox(PointsText);
 
 	// Three branch columns side by side.
 	UHorizontalBox* Columns = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Columns"));
 	if (UVerticalBoxSlot* CS = Cast<UVerticalBoxSlot>(Outer->AddChildToVerticalBox(Columns)))
 	{
-		CS->SetPadding(FMargin(0.f, 12.f, 0.f, 0.f));
+		CS->SetPadding(FMargin(0.f, 24.f, 0.f, 0.f));
 	}
 
 	const ESkillBranch Branches[] = { ESkillBranch::Melee, ESkillBranch::Ranged, ESkillBranch::Mage };
@@ -70,14 +75,22 @@ bool USkillTreeWidget::Initialize()
 		UVerticalBox* Col = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		if (UHorizontalBoxSlot* HS = Cast<UHorizontalBoxSlot>(Columns->AddChildToHorizontalBox(Col)))
 		{
-			HS->SetPadding(FMargin(8.f, 0.f));
+			HS->SetPadding(FMargin(18.f, 0.f));
 			HS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		}
 
 		UTextBlock* Heading = WidgetTree->ConstructWidget<UTextBlock>();
 		Heading->SetText(FText::FromString(SkillDatabase::BranchName(Branch)));
 		Heading->SetJustification(ETextJustify::Center);
-		Col->AddChildToVerticalBox(Heading);
+		{
+			FSlateFontInfo F = Heading->GetFont();
+			F.Size = 18;
+			Heading->SetFont(F);
+		}
+		if (UVerticalBoxSlot* HdS = Cast<UVerticalBoxSlot>(Col->AddChildToVerticalBox(Heading)))
+		{
+			HdS->SetPadding(FMargin(0.f, 0.f, 0.f, 12.f));
+		}
 
 		// Nodes in this branch, ordered by tier.
 		TArray<const FSkillNode*> BranchNodes;
@@ -98,7 +111,7 @@ bool USkillTreeWidget::Initialize()
 
 			if (UVerticalBoxSlot* BS = Cast<UVerticalBoxSlot>(Col->AddChildToVerticalBox(Btn)))
 			{
-				BS->SetPadding(FMargin(0.f, 5.f));
+				BS->SetPadding(FMargin(2.f, 9.f));
 			}
 
 			USkillNodeClickProxy* Proxy = NewObject<USkillNodeClickProxy>(this);

@@ -445,9 +445,16 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 			}
 
 			const FVector ImpactLoc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() * 0.5f);
-			if (AImpactBurst* Burst = World->SpawnActor<AImpactBurst>(AImpactBurst::StaticClass(), FTransform(ImpactLoc), P))
+			// Dark-Souls-y hit spray: a small spurt of dark blood bits with almost no light flash (the old
+			// bright warm flash read as cartoony). Deferred so the config + color land before BeginPlay.
+			if (AImpactBurst* Burst = World->SpawnActorDeferred<AImpactBurst>(
+				AImpactBurst::StaticClass(), FTransform(ImpactLoc), this, nullptr,
+				ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 			{
-				Burst->SetColor(bLastHitWeak ? FLinearColor(1.f, 0.5f, 0.1f) : FLinearColor(1.f, 0.95f, 0.6f));
+				Burst->Configure(/*Count*/ 6, /*Speed*/ 320.f, /*BitScale*/ 0.06f, /*Life*/ 0.32f,
+					/*FlashIntensity*/ bLastHitWeak ? 700.f : 220.f, /*FlashRadius*/ 160.f);
+				Burst->SetColor(bLastHitWeak ? FLinearColor(0.7f, 0.18f, 0.04f) : FLinearColor(0.45f, 0.06f, 0.05f)); // dark blood
+				UGameplayStatics::FinishSpawningActor(Burst, FTransform(ImpactLoc));
 			}
 		}
 	}

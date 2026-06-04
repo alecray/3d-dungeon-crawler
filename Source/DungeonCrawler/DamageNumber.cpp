@@ -23,9 +23,9 @@ void ADamageNumber::Init(float Amount, bool bWeakPoint)
 	if (Text)
 	{
 		Text->SetText(FText::AsNumber(Rounded));
-		// Bright, unlit, big enough to read through the dungeon's fog at combat range.
-		Text->SetTextRenderColor(bWeakPoint ? FColor(255, 140, 0) : FColor(255, 240, 120));
-		Text->SetWorldSize(bWeakPoint ? 160.f : 110.f);
+		// Big, bright, unlit so it pops through the dark/fog at combat range.
+		Text->SetTextRenderColor(bWeakPoint ? FColor(255, 130, 0) : FColor(255, 250, 200));
+		Text->SetWorldSize(bWeakPoint ? 240.f : 165.f);
 	}
 
 	// Face the camera immediately so it's never edge-on / mirrored on the first frame.
@@ -35,8 +35,8 @@ void ADamageNumber::Init(float Amount, bool bWeakPoint)
 	}
 
 	// Drift up in a small arc with a little sideways scatter so stacked hits don't perfectly overlap.
-	Velocity = FVector(FMath::FRandRange(-45.f, 45.f), FMath::FRandRange(-45.f, 45.f), 200.f);
-	MaxLife = 1.0f;
+	Velocity = FVector(FMath::FRandRange(-45.f, 45.f), FMath::FRandRange(-45.f, 45.f), 230.f);
+	MaxLife = 1.5f; // lingers longer so it's easy to read
 }
 
 void ADamageNumber::Tick(float DeltaSeconds)
@@ -55,10 +55,12 @@ void ADamageNumber::Tick(float DeltaSeconds)
 		SetActorRotation(FRotator(0.f, Cam->GetCameraRotation().Yaw + 180.f, 0.f));
 	}
 
-	// Shrink out over the final third.
-	if (Text && A > 0.66f)
+	// Punchy pop on spawn, hold, then shrink out over the final third.
+	if (Text)
 	{
-		const float S = FMath::GetMappedRangeValueClamped(FVector2D(0.66f, 1.f), FVector2D(1.f, 0.f), A);
+		float S = 1.f;
+		if (A < 0.12f)        { S = FMath::Lerp(1.7f, 1.f, A / 0.12f); } // overshoot then settle
+		else if (A > 0.66f)   { S = FMath::GetMappedRangeValueClamped(FVector2D(0.66f, 1.f), FVector2D(1.f, 0.f), A); }
 		Text->SetWorldScale3D(FVector(S));
 	}
 

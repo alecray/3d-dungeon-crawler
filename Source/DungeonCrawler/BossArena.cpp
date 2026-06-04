@@ -129,10 +129,15 @@ void ABossArena::StartEncounter(APawn* Player)
 		}
 	}
 
-	// --- Seal the entrance doors. ---
+	// --- Seal the entrance doors. Spawn with AlwaysSpawn (NOT the boss's AdjustIfPossible params): the
+	//     door cube starts overlapping the floor/walls, so "adjust" would shove it off the doorway and it
+	//     would never seal. ---
+	FActorSpawnParameters DoorParams;
+	DoorParams.Owner = this;
+	DoorParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	for (const FDoorSlot& Slot : DoorSlots)
 	{
-		if (ABossDoor* Door = World->SpawnActor<ABossDoor>(ABossDoor::StaticClass(), Slot.Xf, Params))
+		if (ABossDoor* Door = World->SpawnActor<ABossDoor>(ABossDoor::StaticClass(), Slot.Xf, DoorParams))
 		{
 			Door->Init(Slot.Size);
 			Door->Seal();

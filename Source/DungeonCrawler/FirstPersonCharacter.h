@@ -298,6 +298,9 @@ private:
 	void EquipActiveHotbarItem();
 
 	void MeleeAttack();
+	/** The actual swing hit (sweep + damage), fired on a timer partway through the swing animation. */
+	void DoMeleeHit();
+	FTimerHandle MeleeHitTimer;
 
 	/** Briefly slows global time for impact "hit-stop" (restored after Duration real seconds). */
 	void TriggerHitStop(float Duration = 0.055f, float Dilation = 0.04f);

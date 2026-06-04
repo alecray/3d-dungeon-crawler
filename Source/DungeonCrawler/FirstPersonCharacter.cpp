@@ -961,6 +961,19 @@ void AFirstPersonCharacter::MeleeAttack()
 		SwordMesh->PlayAnimation(SwingAnim, /*bLooping*/ false);
 	}
 
+	// Land the blow partway through the swing (not on the first frame) so the hit reads WITH the animation.
+	const float HitDelay = SwingAnim ? FMath::Clamp(SwingAnim->GetPlayLength() * 0.45f, 0.05f, 0.6f) : 0.18f;
+	World->GetTimerManager().SetTimer(MeleeHitTimer, this, &AFirstPersonCharacter::DoMeleeHit, HitDelay, false);
+}
+
+void AFirstPersonCharacter::DoMeleeHit()
+{
+	UWorld* World = GetWorld();
+	if (!World || !FirstPersonCamera || bDead)
+	{
+		return;
+	}
+
 	// Sphere-sweep forward from the camera and damage every monster caught in the swing.
 	const FVector Start = FirstPersonCamera->GetComponentLocation();
 	const FVector End = Start + FirstPersonCamera->GetForwardVector() * AttackRange;
