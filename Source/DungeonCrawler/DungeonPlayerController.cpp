@@ -14,6 +14,7 @@
 #include "FirstPersonCharacter.h"
 #include "MainMenuWidget.h"
 #include "LowHealthVignetteWidget.h"
+#include "FpsCounterWidget.h"
 #include "DungeonGameInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "Camera/PlayerCameraManager.h"
@@ -52,6 +53,11 @@ void ADungeonPlayerController::BeginPlay()
 		if (ULowHealthVignetteWidget* Vignette = CreateWidget<ULowHealthVignetteWidget>(this, ULowHealthVignetteWidget::StaticClass()))
 		{
 			Vignette->AddToViewport(2);
+		}
+		// FPS counter, top-right under the minimap.
+		if (UFpsCounterWidget* Fps = CreateWidget<UFpsCounterWidget>(this, UFpsCounterWidget::StaticClass()))
+		{
+			Fps->AddToViewport(1);
 		}
 
 		// First load of the session shows the start menu over the boot map; later loads (entering the
