@@ -61,6 +61,10 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 
 ## Flow / UX
 
+- [ ] Insufficient-resource feedback — when the player tries an ability/action but lacks the stamina (or
+      mana) for it, give a clear "can't do that" cue instead of nothing happening: e.g. a denial sound, a
+      quick red flash/shake of the stamina (or mana) bar, and/or a brief on-screen "Not enough stamina"
+      message. Covers melee swings, sprint, and Q abilities.
 - [ ] Rebindable controls — let the player change key bindings from the settings menu (click a row,
       press a new key); persist the remaps in the save profile and apply to the Enhanced Input mappings.
 - [ ] (later) Dedicated main-menu level — needs an empty .umap authored in-editor; then point the
