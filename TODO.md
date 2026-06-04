@@ -98,7 +98,10 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
     `FlatBonusDamage`/`BonusDamageType` in combat, and show the composed name + affixes in tooltips/UI.
 - [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
 - [ ] FTUE for controls — first-run onboarding surfacing movement/attack/interact/abilities/inventory.
-- [ ] Fishing mechanic in the town — a relaxing side activity (cast/reel minigame, catch table, maybe sell/cook the catch).
+- [~] Fishing mechanic in the town — **prototyped** (`AFishingHole`): cast with E, the bobber shakes after
+      a random wait, reel (E) within the window to land a **random fish** (weighted catch table → inventory;
+      Golden Carp is the rare prize, Old Boot the junk). 3D graybox water/bobber/fish with swap-in points
+      (user is doing the models). Still TODO: real models, SFX, maybe sell/cook the catch, tune timing/feel.
 - [ ] **Portal difficulty-select screen** — interacting with the town portal pops up a screen to pick the
       dungeon + **difficulty tier**. Higher tiers = tougher enemies/boss + better rewards. A tier is only
       **unlocked once you've killed that dungeon's boss** at the previous tier (so you ramp up by clearing).

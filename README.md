@@ -155,6 +155,8 @@ Flow / UX:
 - `ABonfire` — a Rest-room rest point: `[E]` to fully heal, refill mana/stamina, and checkpoint-save.
 - `ABlackjackTable` + `UBlackjackWidget` — a town minigame (prototype): a 3D card table; bet gold vs a
   dealer with the rules engine in the table, cards dealt as 3D meshes, and a slim on-screen control bar.
+- `AFishingHole` — a town minigame (prototype): cast with `[E]`, reel when the bobber shakes to land a
+  random fish (weighted catch table → inventory). Graybox water/bobber/fish with mesh swap-in points.
 - `CharacterClass.h` — the starting-archetype loadouts (Warrior/Ranger/Mage: a stat spread + a weapon).
 - `ADungeonTrap` (spike floor / pressure plate / dart shooter) + `ABubbleHazard` — graybox hazards with
   mesh swap-in points; the generator tags rooms with a type (`ERoomType`) and a décor theme for

@@ -11,6 +11,7 @@
 #include "LootChest.h"
 #include "Bonfire.h"
 #include "BlackjackTable.h"
+#include "FishingHole.h"
 #include "CharacterClass.h"
 #include "HealthComponent.h"
 #include "ResourceComponent.h"
@@ -417,6 +418,10 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 		{
 			Table->Play(this); // opens the blackjack UI
 		}
+		else if (AFishingHole* Hole = Cast<AFishingHole>(Hit.GetActor()))
+		{
+			Hole->Interact(this); // cast / reel
+		}
 		else if (APortal* Portal = Cast<APortal>(Hit.GetActor()))
 		{
 			if (Portal->IsActive() && !Portal->GetTargetMapName().IsNone())
@@ -481,6 +486,10 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		if (Cast<ABlackjackTable>(Hit.GetActor()))
 		{
 			return TEXT("Play Blackjack");
+		}
+		if (const AFishingHole* Hole = Cast<AFishingHole>(Hit.GetActor()))
+		{
+			return Hole->GetPrompt();
 		}
 		if (const APortal* Portal = Cast<APortal>(Hit.GetActor()))
 		{

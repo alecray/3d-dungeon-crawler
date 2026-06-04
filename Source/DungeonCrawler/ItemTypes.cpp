@@ -191,6 +191,15 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("RubyRing"),      TEXT("Ruby Ring"),      EItemType::Treasure, EItemRarity::Rare,  1, 80));
 		Items.Add(MakeItem(TEXT("IronRing"),      TEXT("Iron Ring"),      EItemType::Treasure, EItemRarity::Uncommon, 1, 45));
 
+		// Fish (caught at the town fishing hole; stack + sell).
+		Items.Add(MakeItem(TEXT("Minnow"),      TEXT("Minnow"),       EItemType::Material, EItemRarity::Common,    20, 3));
+		Items.Add(MakeItem(TEXT("Sardine"),     TEXT("Sardine"),      EItemType::Material, EItemRarity::Common,    20, 4));
+		Items.Add(MakeItem(TEXT("Trout"),       TEXT("Trout"),        EItemType::Material, EItemRarity::Uncommon,  20, 10));
+		Items.Add(MakeItem(TEXT("Bass"),        TEXT("Bass"),         EItemType::Material, EItemRarity::Uncommon,  20, 14));
+		Items.Add(MakeItem(TEXT("Pike"),        TEXT("Pike"),         EItemType::Material, EItemRarity::Rare,      20, 30));
+		Items.Add(MakeItem(TEXT("GoldenCarp"),  TEXT("Golden Carp"),  EItemType::Treasure, EItemRarity::Epic,      5, 120));
+		Items.Add(MakeItem(TEXT("OldBoot"),     TEXT("Old Boot"),     EItemType::Material, EItemRarity::Common,    20, 1)); // junk catch
+
 		// Equipment slot + stat bonuses (applied while equipped).
 		auto SetEquip = [&Items](const TCHAR* Id, EEquipSlot Slot, const FItemBonuses& Bonuses)
 		{

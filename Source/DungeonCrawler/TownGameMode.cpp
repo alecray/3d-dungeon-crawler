@@ -1,5 +1,6 @@
 #include "TownGameMode.h"
 #include "BlackjackTable.h"
+#include "FishingHole.h"
 
 #include "EngineUtils.h"                 // TActorIterator
 #include "GameFramework/PlayerStart.h"
@@ -12,8 +13,8 @@ void ATownGameMode::BuildWorld()
 	EnsureLighting();
 	EnsurePostProcess();
 
-	// Prototype: code-spawn a 3D blackjack table near the player start so it's reachable without editing
-	// the map. Reposition it in L_Town later (and drop this spawn) once it has a permanent home.
+	// Prototype: code-spawn the town minigame stations near the player start so they're reachable without
+	// editing the map. Reposition them in L_Town later (and drop these spawns) once they have homes.
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -29,18 +30,25 @@ void ATownGameMode::BuildWorld()
 		break;
 	}
 
-	// A few metres in front of the player start, then dropped onto the floor.
-	const FVector Ahead = StartLoc + StartRot.Vector() * 360.f + FVector(0.f, 0.f, 150.f);
-	FVector TableLoc(Ahead.X, Ahead.Y, StartLoc.Z - 88.f); // fallback ~floor
-	FHitResult Hit;
-	if (World->LineTraceSingleByChannel(Hit, Ahead, Ahead - FVector(0.f, 0.f, 1000.f), ECC_Visibility))
-	{
-		TableLoc.Z = Hit.ImpactPoint.Z;
-	}
+	const FVector Fwd = StartRot.Vector();
+	FVector Right = FVector::CrossProduct(FVector::UpVector, Fwd).GetSafeNormal();
+	const FRotator FaceBack(0.f, StartRot.Yaw + 180.f, 0.f); // readout faces the approach
 
-	// Face the table back toward the player start so its readout faces the approach.
-	const FRotator TableRot(0.f, StartRot.Yaw + 180.f, 0.f);
-	FActorSpawnParameters Params;
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	World->SpawnActor<ABlackjackTable>(ABlackjackTable::StaticClass(), FTransform(TableRot, TableLoc), Params);
+	// Drops a station onto the floor at an offset (forward, sideways) from the player start.
+	auto SpawnStation = [&](UClass* Class, float FwdCm, float RightCm)
+	{
+		const FVector Probe = StartLoc + Fwd * FwdCm + Right * RightCm + FVector(0.f, 0.f, 150.f);
+		FVector Loc(Probe.X, Probe.Y, StartLoc.Z - 88.f); // fallback ~floor
+		FHitResult Hit;
+		if (World->LineTraceSingleByChannel(Hit, Probe, Probe - FVector(0.f, 0.f, 1000.f), ECC_Visibility))
+		{
+			Loc.Z = Hit.ImpactPoint.Z;
+		}
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		World->SpawnActor<AActor>(Class, FTransform(FaceBack, Loc), Params);
+	};
+
+	SpawnStation(ABlackjackTable::StaticClass(), 360.f, -250.f); // ahead-left
+	SpawnStation(AFishingHole::StaticClass(),    360.f,  250.f); // ahead-right
 }
