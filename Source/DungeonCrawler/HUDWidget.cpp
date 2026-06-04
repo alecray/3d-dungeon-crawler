@@ -93,12 +93,15 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 			HealthBar->SetPercent(H->GetHealthPercent());
 		}
 	}
+	// A denied action flashes the matching bar toward red, fading back to its normal color.
+	static const FLinearColor DenyColor(1.f, 0.18f, 0.12f);
 	if (ManaBar)
 	{
 		if (const UResourceComponent* M = Player->GetManaComponent())
 		{
 			ManaBar->SetPercent(M->GetPercent());
 		}
+		ManaBar->SetFillColorAndOpacity(FMath::Lerp(FLinearColor(0.2f, 0.4f, 0.95f), DenyColor, Player->GetManaDenyFlash()));
 	}
 	if (StaminaBar)
 	{
@@ -106,6 +109,7 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		{
 			StaminaBar->SetPercent(S->GetPercent());
 		}
+		StaminaBar->SetFillColorAndOpacity(FMath::Lerp(FLinearColor(0.3f, 0.8f, 0.3f), DenyColor, Player->GetStaminaDenyFlash()));
 	}
 	if (LevelText)
 	{

@@ -586,6 +586,8 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 	// Dash: tick the cooldown, and while a dash burst is active keep speed high + friction cut so it
 	// glides the full distance; when it ends, restore normal walking.
 	if (DashCooldownLeft > 0.f) { DashCooldownLeft = FMath::Max(0.f, DashCooldownLeft - DeltaSeconds); }
+	if (StaminaDenyFlashLeft > 0.f) { StaminaDenyFlashLeft = FMath::Max(0.f, StaminaDenyFlashLeft - DeltaSeconds); }
+	if (ManaDenyFlashLeft > 0.f) { ManaDenyFlashLeft = FMath::Max(0.f, ManaDenyFlashLeft - DeltaSeconds); }
 	const bool bDashing = DashTimeLeft > 0.f;
 	if (Movement)
 	{
@@ -790,6 +792,9 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	}
 }
 
+void AFirstPersonCharacter::FlagStaminaDenied() { StaminaDenyFlashLeft = ResourceDenyFlashDuration; }
+void AFirstPersonCharacter::FlagManaDenied()    { ManaDenyFlashLeft = ResourceDenyFlashDuration; }
+
 void AFirstPersonCharacter::Dash(const FInputActionValue& /*Value*/)
 {
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -804,7 +809,8 @@ void AFirstPersonCharacter::Dash(const FInputActionValue& /*Value*/)
 	}
 	if (!Stamina || Stamina->GetCurrent() < DashStaminaCost)
 	{
-		return; // TODO: insufficient-stamina feedback cue (see TODO.md)
+		FlagStaminaDenied(); // can't dash — flash the stamina bar
+		return;
 	}
 
 	// Dash where you're moving; if standing still, dash the way you're facing.
@@ -884,6 +890,7 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 			if (SwordMesh && CrossbowShootAnim) { SwordMesh->PlayAnimation(CrossbowShootAnim, false); }
 			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), Mods.ExtraProjectiles);
 		}
+		else { FlagStaminaDenied(); }
 		break;
 
 	case ECombatStyle::Mage:
@@ -893,6 +900,7 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 			LastAttackTime = Now;
 			FireProjectile(ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f), Mods.ExtraProjectiles);
 		}
+		else { FlagManaDenied(); }
 		break;
 
 	case ECombatStyle::Melee:
@@ -900,6 +908,7 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		// Melee swing: costs stamina (reducible), gating the swing when too tired — same as ranged/mage.
 		if (Stamina && !Stamina->Spend(MeleeStaminaCost * (1.f - FMath::Clamp(Mods.StaminaCostPct, 0.f, 0.8f))))
 		{
+			FlagStaminaDenied();
 			break; // out of stamina: no swing this press
 		}
 		LastAttackTime = Now;

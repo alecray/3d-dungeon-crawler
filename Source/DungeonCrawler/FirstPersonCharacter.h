@@ -63,6 +63,14 @@ public:
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
 
+	// ---- Insufficient-resource feedback (HUD polls these to flash the bar red) ----
+	/** Call when an action is denied for lack of stamina / mana — flashes the matching bar. */
+	void FlagStaminaDenied();
+	void FlagManaDenied();
+	/** 0 = no flash, 1 = just denied (decays). Read by the HUD to tint the bar. */
+	float GetStaminaDenyFlash() const { return StaminaDenyFlashLeft / FMath::Max(0.01f, ResourceDenyFlashDuration); }
+	float GetManaDenyFlash() const { return ManaDenyFlashLeft / FMath::Max(0.01f, ResourceDenyFlashDuration); }
+
 	// ---- Gold (shop) ----
 	int32 GetGold() const { return Gold; }
 	void AddGold(int32 Amount);          // adds (clamped >= 0) and saves
@@ -321,6 +329,11 @@ private:
 	float LastAttackTime = -1000.f;
 	bool bDead = false;
 	bool bNoClip = false;
+
+	// ---- Insufficient-resource feedback ----
+	UPROPERTY(EditAnywhere, Category = "Feel") float ResourceDenyFlashDuration = 0.4f;
+	float StaminaDenyFlashLeft = 0.f;
+	float ManaDenyFlashLeft = 0.f;
 
 	// ---- Dash state ----
 	FVector DashDir = FVector::ZeroVector; // locked-in direction of the current dash
