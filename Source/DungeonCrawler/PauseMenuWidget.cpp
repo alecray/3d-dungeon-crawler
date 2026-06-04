@@ -58,7 +58,7 @@ bool UPauseMenuWidget::Initialize()
 	// Fixed width, auto height: the panel wraps however tall its content is, so adding the controls list
 	// can't compress or clip the rest of the menu.
 	USizeBox* PanelSizer = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("PanelSizer"));
-	PanelSizer->SetWidthOverride(460.f);
+	PanelSizer->SetWidthOverride(620.f);
 	Panel->SetContent(PanelSizer);
 
 	UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Box"));
