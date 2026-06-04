@@ -18,6 +18,25 @@
 
 ## Boss — next
 
+### Boss animations needed (hermit crab)
+Hooked up in code via the anim paths on `ABossMonster` (idle/walk/attack auto-load; the rest need a
+code hook once the clip exists). **Currently in-engine: Idle, Walk, Attack only.** While the missing
+ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: phase 1, no specials).
+- [x] **Idle** — `A_Hermit_Crab_Boss_Idle`
+- [x] **Walk** — `A_Hermit_Crab_Boss_Walk` (used for scuttle + lunge movement)
+- [x] **Attack** — `A_Hermit_Crab_Boss_Attack` (plays on the standard melee swing)
+- [ ] **Spawn / intro** — rise + roar when the encounter starts (replaces the graybox scale-up "morph").
+- [ ] **Death** — collapse/flip when killed (currently just the DeathPoof + dissolve).
+- [ ] **Hit-react / flinch** — quick recoil when damaged (currently the cube hit-react pop).
+- [ ] (specials, only once `bAbilitiesEnabled` is turned back on)
+  - [ ] **Lunge / charge** wind-up + dash tell (telegraph before the dash).
+  - [ ] **Ground slam** raise + slam.
+  - [ ] **Projectile volley** cast.
+  - [ ] **Summon adds** cast.
+  - [ ] **Shell-retreat** tuck-in + emerge (phase 3).
+  - [ ] **Enrage** roar (phase 3).
+
+- [ ] Re-enable the full fight — flip `bAbilitiesEnabled` back on once the anims above are in.
 - [ ] VERIFY IN PIE: intro camera framing, hold length, doors line up + actually block, input hands
       back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room + lintels.
 - [ ] Pincer-sweep cone telegraph (replace/augment the radius-only slam).
