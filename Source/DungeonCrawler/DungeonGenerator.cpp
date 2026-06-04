@@ -963,9 +963,9 @@ void ADungeonGenerator::ScatterTraps()
 	for (int32 i = 1; i < Rooms.Num(); ++i)
 	{
 		const FDungeonRoom& Room = Rooms[i];
-		if (Room.Type == ERoomType::Rest)
+		if (Room.Type == ERoomType::Rest || i == BossRoomIndex)
 		{
-			continue; // safe room — no traps
+			continue; // safe room / boss arena — no traps (and the boss shouldn't take trap damage)
 		}
 		for (int32 y = Room.Y + 1; y < Room.Y + Room.H - 1; ++y)
 		{
