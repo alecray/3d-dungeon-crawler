@@ -448,6 +448,12 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		return FString();
 	}
 
+	// Seated at the blackjack table: no world prompt (you leave via the on-screen Leave button).
+	if (bBlackjackActive)
+	{
+		return FString();
+	}
+
 	// A loot pane or shop already open: E closes it.
 	if (const ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
 	{
@@ -664,9 +670,20 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 			Movement->MaxWalkSpeed = DashSpeed;
 			if (DashTimeLeft <= 0.f)
 			{
-				// Burst over: restore friction/braking so the player decelerates to a normal walk.
+				// Burst over: restore friction/braking + walk speed, and clamp the leftover dash velocity
+				// down to a normal walk. Without this, holding a movement key skips braking (it only applies
+				// with no input) so the 2000-speed bled off slowly and carried you way too far.
 				Movement->GroundFriction = DefaultGroundFriction;
 				Movement->BrakingDecelerationWalking = DefaultBrakingWalk;
+				Movement->MaxWalkSpeed = WalkSpeed;
+
+				const FVector Vel = Movement->Velocity;
+				const FVector2D Horiz(Vel.X, Vel.Y);
+				if (Horiz.SizeSquared() > FMath::Square(WalkSpeed))
+				{
+					const FVector2D Capped = Horiz.GetSafeNormal() * WalkSpeed;
+					Movement->Velocity = FVector(Capped.X, Capped.Y, Vel.Z);
+				}
 			}
 		}
 		else

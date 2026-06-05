@@ -25,7 +25,7 @@ void ADamageNumber::Init(float Amount, bool bWeakPoint)
 		Text->SetText(FText::AsNumber(Rounded));
 		// Big, bright, unlit so it pops through the dark/fog at combat range.
 		Text->SetTextRenderColor(bWeakPoint ? FColor(255, 130, 0) : FColor(255, 250, 200));
-		Text->SetWorldSize(bWeakPoint ? 240.f : 165.f);
+		Text->SetWorldSize(bWeakPoint ? 165.f : 115.f);
 	}
 
 	// Face the camera immediately so it's never edge-on / mirrored on the first frame.
@@ -34,9 +34,10 @@ void ADamageNumber::Init(float Amount, bool bWeakPoint)
 		SetActorRotation(FRotator(0.f, Cam->GetCameraRotation().Yaw + 180.f, 0.f));
 	}
 
-	// Drift up in a small arc with a little sideways scatter so stacked hits don't perfectly overlap.
-	Velocity = FVector(FMath::FRandRange(-45.f, 45.f), FMath::FRandRange(-45.f, 45.f), 230.f);
-	MaxLife = 1.5f; // lingers longer so it's easy to read
+	// Drift up gently with a little sideways scatter so stacked hits don't perfectly overlap. Slow rise +
+	// long life so the number stays put at the impact point and is easy to read.
+	Velocity = FVector(FMath::FRandRange(-30.f, 30.f), FMath::FRandRange(-30.f, 30.f), 55.f);
+	MaxLife = 2.2f;
 }
 
 void ADamageNumber::Tick(float DeltaSeconds)
@@ -47,7 +48,7 @@ void ADamageNumber::Tick(float DeltaSeconds)
 	const float A = (MaxLife > 0.f) ? (Life / MaxLife) : 1.f;
 
 	AddActorWorldOffset(Velocity * DeltaSeconds);
-	Velocity.Z -= 240.f * DeltaSeconds; // gentle deceleration/arc
+	Velocity.Z -= 25.f * DeltaSeconds; // very gentle slowdown so it keeps drifting up slowly, not arcing away
 
 	// Yaw-billboard toward the camera so the text always reads flat to the player.
 	if (APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))

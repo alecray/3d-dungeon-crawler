@@ -1,5 +1,4 @@
 #include "TownGameMode.h"
-#include "BlackjackTable.h"
 #include "FishingHole.h"
 
 #include "EngineUtils.h"                 // TActorIterator
@@ -50,6 +49,7 @@ void ATownGameMode::BuildWorld()
 		World->SpawnActor<AActor>(Class, FTransform(Rot, Loc), Params);
 	};
 
-	SpawnStation(ABlackjackTable::StaticClass(), 360.f, -250.f, /*ExtraYaw*/ 180.f); // ahead-left, flipped to face the player
-	SpawnStation(AFishingHole::StaticClass(),    360.f,  250.f, /*ExtraYaw*/ 0.f);   // ahead-right
+	// Blackjack table is now a placed actor in L_Town (reposition it in-editor); only the fishing hole is
+	// still code-spawned for now.
+	SpawnStation(AFishingHole::StaticClass(), 360.f, 250.f, /*ExtraYaw*/ 0.f); // ahead-right
 }

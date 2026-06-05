@@ -121,6 +121,10 @@ protected:
 	bool SetupSkeletalBody(const FString& MeshPath, float MeshScale,
 		const FString& RunPath, const FString& IdlePath, const FString& AttackPath);
 
+	/** Self-illuminate the skeletal body (drives M_Base's EmissiveStrength via a dynamic instance) so a
+	    mesh reads brighter in the dark. 0 = off. */
+	void SetBodyEmissive(float Strength);
+
 	/** Plays the hit-react pop without applying damage (for special-attack feedback). */
 	void TriggerHitReact() { HitReactTimeLeft = HitReactDuration; }
 
@@ -134,12 +138,21 @@ protected:
 	/** Set by ApplyHitDamage when the last hit struck a weak point — drives the damage-number styling. */
 	bool bLastHitWeak = false;
 
+	/** Set by ApplyHitDamage to where the last hit came from — places the damage number at the impact point. */
+	FVector LastHitFromLocation = FVector::ZeroVector;
+
 	/** When true, the attack path prints an on-screen confirmation each swing (boss anim debugging). */
 	bool bLogAttackAnim = false;
 
 	/** Animation frame on which the melee blow connects. <0 = deal damage instantly when the swing starts
 	    (default for plain monsters). The boss sets this so its hit lands mid-swing and can be dodged. */
 	float AttackHitFrame = -1.f;
+
+	/** Melee danger zone (the telegraph + the actual hit) is a disc pushed forward along the facing, so the
+	    strike reads as a forward swipe instead of a ring under the body. Center = this fraction of reach in
+	    front; radius = this fraction of reach. */
+	float AttackZoneForwardFrac = 0.7f;
+	float AttackZoneRadiusFrac = 0.85f;
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;
@@ -168,6 +181,8 @@ private:
 	bool bHitPending = false;
 	float PendingHitTime = 0.f;
 	float PendingDamage = 0.f;
+	FVector PendingHitCenter = FVector::ZeroVector; // frozen at swing start so the hit matches the telegraph
+	float PendingHitRadius = 0.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
 

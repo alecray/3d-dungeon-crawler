@@ -18,7 +18,8 @@ public class DungeonCrawler : ModuleRules
 			"UMG",
 			"Slate",
 			"SlateCore",
-			"GameplayTags"
+			"GameplayTags",
+			"ImageWrapper"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

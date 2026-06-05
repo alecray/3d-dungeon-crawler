@@ -1,7 +1,7 @@
 # Consolidated Test Plan
 
-Untested / unchecked work is up top (**TO TEST**); sections you've already passed are at the bottom
-(**PASSED**). **(NEW)** = added since the last revision and never run.
+Untested / unchecked work is up top (**TO TEST**); verified work is at the bottom (**PASSED**).
+**(NEW)** = added this revision, never run. Items the user flagged with `?` were moved to `TODO.md`.
 
 **Setup**
 - Rebuild the editor target, open the project, **Play**.
@@ -15,175 +15,93 @@ Untested / unchecked work is up top (**TO TEST**); sections you've already passe
 # TO TEST
 
 ## 0. This session's changes (NEW — test these first)
-**Dash (Shift):**
-- [x] Shift does a quick **dash** in your movement direction (or facing when standing still), **not** a sprint.
-- [x] It **costs stamina** and has a short cooldown; spamming is gated. With no stamina the **stamina bar flashes red** and you don't dash.
 
-**Insufficient-resource feedback:**
-- [x] Swinging/firing with no stamina (or casting a spell with no mana) **flashes the matching HUD bar red** instead of silently doing nothing.
+**Blackjack — art + UX overhaul:**
+- [ ] It's now a **placed actor in L_Town** (reposition in-editor); sits flat on the floor (no float) and **blocks you** correctly (bounds-fitted box collision); `[E] Play Blackjack` still appears.
+- [ ] Cards deal as real **card-face images** on the felt; the dealer's 2nd card is **face-down (back)** until the hand resolves; faces read matte (not blown out).
+- [ ] The table is the textured **SM_Blackjack_Table** mesh; the **curved edge faces the player**, flat edge away.
+- [ ] Pressing **E** pulls you to a **fixed seat** in front of the table with a consistent camera angle; the prompt hides while seated and returns after Leave.
+- [ ] Card layout: **your row nearest you**, the **dealer's row just behind it**, no overlap; the **newest dealt card is on the left** and older cards shift right.
+- [ ] Readouts: **"Dealer N" / "You N"** are **3D labels beside each row** (dealer shows the up-card value during your turn, full total on resolve); **"Hit or Stand." / result** is **bottom-center of the screen**; the **left panel** has just Gold / Bet / aligned button rows (Bet± · Deal/Hit/Stand · Leave).
 
-**Boss combat (anim-test mode — no specials):**
-- [x] The boss **swings its attack animation** when in range, and the hit **lands partway through the swing** (frame 20) — you can **step/dash out of the way to dodge it**.
-- [x] A clean hit is **brutal (~75% of your HP)**. It closes distance **quickly**.
-- [x] On death it **drops several items** at the kill spot (each with a **rarity-colored beam**), and the **return portal appears elsewhere in the room** (a back corner), not on the loot.
-- [x] The boss **spawn-in** plays a code VFX: ground flare + an energy pillar + a rising shard swirl + a debris ring. No phase changes / specials (that's expected — anim-test mode).
-- [x] **Boss room** has **no scenery except a banner on each side of every doorway**, and is **two walls tall** (raised ceiling) with no clipping between the wall courses.
+**Boss:**
+- [ ] **Attack telegraph is forward** — the red disc sits where the blow lands (in front of the boss), not under it, and the hit matches the disc.
+- [ ] **Slower attacks** — a long pause between swings (cooldown 5.6s) so there's a clear punish window.
+- [ ] **Boss glows** a little (self-illuminated) so it's readable in the dark.
 
-**VFX / feel quick wins:**
-- [ ] **Footstep dust** — a **subtle muted puff** at your feet as you move (no bright white flash / firecracker look).
-- [ ] **Enemy death** sinks into the floor + shrinks (dissolve), not a pop-up.
-- [ ] **Picking up** a dropped item throws a rarity-colored **sparkle**; opening a **chest** pops a rarity-colored burst (brighter for Rare+).
-- [ ] **Traps glow red** (pulsing) just before they fire — spikes ramp before rising, plates flash on the step, dart shooters glow before a shot.
-- [x] **Wall torches** sit a bit lower and their light comes from the **flame tip**, not the middle of the stick.
+**Combat feel / bugs:**
+- [ ] Damage numbers spawn at the **impact point on the enemy's body** (not above the head), **linger ~2.2s**, rise slowly. Backstab / weak-point = larger + orange.
+- [ ] A red **"-N" popup** pops over your **HP bar** when you take damage, then drifts off in a random direction and fades.
+- [ ] **Dash distance is consistent** — no longer flings you too far when dashing while moving + holding a key.
+- [ ] **Equipping** Max-Health gear **no longer flashes the screen red** (only real damage flashes).
 
-**Latest batch (boss feel + bugs):**
-- [ ] **Red ground telegraph** — a red disc appears on the floor where the boss is about to hit; it brightens through the wind-up and **flashes** on impact. Standing in it when it flashes = hit.
-- [ ] **Wide dodge-only zone** — the danger disc is wide enough that a **step-back won't clear it**; you must **dash** out. (If a dash can't escape it, tell me — it's tunable.)
-- [ ] **Attack cooldown** — the boss has a clear pause between swings (no spamming).
-- [ ] **Boss doors seal** — entrance doorways close with rising barriers when the fight starts (this was broken).
-- [ ] **Boss loot drops on the floor** (not up in the ceiling).
-- [ ] **Banners lie flat** along the wall (not jutting out perpendicular).
-- [ ] **Boss intro plays every time** (camera move + shake), including replays — not just the first kill.
-- [ ] **Intro camera frames the boss** (centered on it), not the empty space above it.
-- [ ] **Hit sparks** on monsters are now a **dark blood spurt**, not a bright pop.
-- [ ] **Player melee** lands **partway through the swing**, not on the first frame.
-- [ ] **Damage numbers** are big/bright and pop when you hit an enemy (easy to see).
-- [ ] **Skill tree (K)** is **bigger with more padding** — not cramped in the corner.
-- [ ] **Bonfire** in Rest rooms (green-lit rooms): a flickering flame on a stone base; `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
-- [ ] **Mage weapon** — buy the **Apprentice Wand** from the shop (or find a Wand/Staff in loot), put it on the hotbar, select it: LMB now casts **spell bolts** that cost **mana** (Mage style).
-- [ ] **Backstab** — hitting a regular enemy **from behind** deals extra damage (orange crit number). Facing it = normal damage.
-- [ ] **Fishing (prototype)** — in **town**, a graybox water pool is spawned near where you start. `[E]` casts (red bobber appears); after a few seconds the bobber **shakes** and the prompt flips to **REEL IN!** — press `[E]` within ~1.3s to **land a random fish** (added to inventory; a graybox fish pops up). Miss the window = "it got away". (E for both cast + reel; models/SFX pending.)
-- [ ] **Blackjack (prototype)** — in **town**, a graybox card table is spawned near where you start. `[E]` opens a control bar (Bet± / Deal / Hit / Stand / Leave); cards deal as **3D meshes** on the felt with a floating value/result label. Win/lose adjusts your **gold** (blackjack pays 3:2). Known rough edges: card/label 3D positions + text orientation are first-pass (tell me how they look), table placement is code-spawned (temporary), controls are an on-screen bar (not 3D buttons yet).
-- [ ] **Starting class** (fresh save — delete `DungeonProfile.sav` first) — the main menu shows **Choose your class: Warrior / Ranger / Mage**. Picking one starts you with that stat spread + weapon (sword/crossbow/wand) already equipped. A returning save instead shows **Continue** (no class pick). Nothing's locked — you can still level any stat / use any weapon / take any skill.
-
-## 1. Hermit-crab boss — skeletal mesh + anims
-- [x] The boss is the **hermit-crab skeletal mesh** (not graybox cubes), boss-sized, upright, facing you.
-- [x] It plays an **idle** standing still and a **walk** while moving/chasing.
-- [ ] It plays the **attack** animation on its melee swings (the hit lands on frame 20 — see Section 0).
-- [x] It **stands on the floor** — not buried/sunk into the ground.
-- [ ] Expected gaps (not bugs): no death anim yet; the spawn-in uses the code VFX (Section 0), not a rig "rise".
-
-## 2. Boss room + intro camera (UPDATED — double-height arena)
-- [ ] The boss room is a big arena that's **two walls tall** (raised ceiling), with **no clipping** between the
-      lower and upper wall courses.
-- [ ] **No scenery** inside except a **banner on each side of every doorway** (lying flat on the wall).
-- [ ] **No floor traps**, **no chest** in the boss arena.
-- [ ] The intro camera frames the **boss itself** (centered, scaled to fit), not the empty space above it.
-
-## 3. Boss encounter sequence
-- [ ] Walking in triggers it: **input locks**, the boss **spawns opposite you** (with the spawn-in VFX), camera
-      **blends to frame it** with a **screen shake**, then blends back and control returns.
-- [ ] This now plays **every encounter, including replays** (no longer first-kill-only).
-- [ ] The **entrance doorways seal** with rising barriers (you can't leave).
-- [ ] On death: doors **sink back down**; the **return portal activates** at a back corner (away from the loot).
-- [ ] No "Phase 9" / multiple bosses — regenerating the dungeon no longer leaves old bosses around.
-
-## 4. Boss fight mechanics
-- [ ] **Movement:** scuttles sideways / circles you while pressing inward, then **telegraphs + lunges**. Smooth, no jitter.
-- [ ] **Navmesh hand-off:** break line of sight behind a wall → it **paths around**, then resumes scuttling.
-- NOTE: the boss runs in **anim-test mode** (`bAbilitiesEnabled = false`) right now, so the items below are
-  **expected NOT to happen** until abilities are re-enabled (they're here for when they are):
-  - [ ] Phases at ~66% / ~33% HP; phase-1 back weak point; projectile volley; ground slam; summon adds;
-        bubble pools; enrage; shell-retreat.
-
-## 5. Scenery — deliberate placement (NEW)
-- [ ] Each room feels **themed** (storage / dining / crypt / smithy / library) — props from one coherent set.
-- [ ] Furniture **lines the walls** flush + facing into the room (no random spin); the centre stays walkable.
-- [ ] **Corner stacks** — tight piles in corners; some **dining halls** have a **table ringed by stools**.
-- [x] **Coffins lie flat along the wall** (rotated 90°, not jutting into the room).
-- [ ] **No scenery on traps**, and **no scenery spawning inside other scenery**.
-- [ ] Corridors have wall-hugging props that don't block the path.
-- [ ] (Known: the **weapon rack** still spawns tilted/sunk — asset pivot fix pending, on the art TODO.)
-
-## 6. VFX / "alive" pass (NEW)
-- [x] **Impact sparks** — hitting an enemy throws a small burst of bits + a brief light flash (weak-point = orange).
-- [x] **Ambient dust** — faint motes drift in the air and catch the torch light.
-- [x] **Damage flash** — the screen pulses red the instant you take a hit.
+## 1. Carried over (still untested)
+- [ ] **Boss attack anim** plays on melee swings, with the hit landing on **frame 20** (dodge by repositioning).
+- [ ] **Bonfire** in Rest rooms (green-lit): `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
+- [ ] **Mage weapon** — buy/loot the Apprentice Wand / Staff, select it: LMB casts **spell bolts** that cost **mana** (Mage style).
+- [ ] **Backstab** — hitting a regular enemy **from behind** deals extra damage (orange crit number); facing it = normal.
+- [ ] **Starting class** (fresh save — delete `DungeonProfile.sav` first) — menu offers **Warrior / Ranger / Mage**; picking seeds stats + a starting weapon; a returning save shows **Continue** instead. Nothing is locked.
 - [ ] **Level-up burst** — a gold poof erupts off you when you level up.
-- [x] **Low-HP screen** — chromatic aberration + desaturation ramp up as health drops (on top of the red vignette).
-- [ ] **Dash FOV** — the view widens a touch during the dash burst (sprint was replaced by dash).
-- [x] **FPS holds** with all of it on (the dust is pooled; impacts are cheap).
-
-## 7. Game feel / juice
-- [ ] Landing a **melee** hit produces a brief **hit-stop**; **camera kick** on hit, light recoil on ranged fire.
-- [ ] Enemies get **knocked back** (small hop) away from your hits.
-- [ ] None of it is nauseating / overlong (flag if hit-stop too long, kick too strong, dust too thick).
-
-## 8. Dev menu (NEW)
-- [x] **Esc → Dev Menu**: No Clip / God Mode / Reveal Map / **Teleport to Boss** / Kill Player / Teleport Home.
-- [x] **No Clip** fly through walls (ON/OFF label); **God Mode** invulnerable; **Reveal Map** fills the minimap.
-- [x] **Teleport to Boss** drops you in the boss room; **Kill Player** kills you even in God Mode; **Teleport Home** → town.
-
-## 9. Shop & inventory (NEW)
-- [x] Your **inventory shows "Gold: N"** (your own inventory screen, not the chest loot grid).
-- [ ] Opening the **shop closes the inventory and vice-versa** — they never overlap (shop has its own buy/sell/gold).
-
-## 10. Traps
-- [x] **Spike floors** rise/fall and damage you when up; **pressure plates** telegraph then erupt once;
-      **dart shooters** fire across the passage. Not in the spawn room or the boss room.
-
-## 11. Room-type variety
-- [x] Rooms flagged by a **colored marker light**: gold = Treasure, red = Ambush, green = Rest, purple = Elite.
-- [ ] Treasure = 2-3 chests + guards; Rest = no monsters/traps; Ambush = bigger swarm; Elite = one tough mini-boss + chest.
-
-## 12. Generation tuning
-- [ ] Rooms are **bigger**; hallways are **shorter** (nearest-neighbor); more chests; props don't clip walls.
-
-## 13. Skill tree (K) — declutter (NEW)
-- [x] **K** opens Melee/Ranged/Mage columns + **Points: N**; each node is **one clean line** (name + rank),
-      and **hovering shows the full description in a tooltip** (no more overlapping text).
-- [ ] Allocate/lock/multi-rank works; passives + modifiers + **Q capstones** work; persists across relaunch.
-
-## 14. Floating damage numbers
-- [ ] Hitting an enemy spawns a **big, bright** number that pops, faces the camera, and drifts up (easy to see);
-      a **backstab / weak-point** hit is larger + **orange**.
-
-## 15. Melee stamina
-- [x] A melee swing **drains stamina**; **out of stamina** = no swing. Skill cost-reduction also lowers melee cost.
-
-## 16. FPS counter
-- [x] An **FPS counter** sits **top-right, below the minimap**, color-coded green / yellow (<60) / red (<30).
-
-## 17. Pause menu layout
-- [x] Esc menu reads cleanly — not squished, proper button height, wide enough for the Controls rows.
-
-## 18. Item icons / Potions
-- [ ] Inventory + hotbar show **3D thumbnails** per item; the three start-room **potions** (red/blue/green) match their icons.
-
-## 19. Interaction prompt + E
-- [x] `[E] Open` on chests, `[E] Pick up` on ground items (no auto-collect), `[E] Close` on loot panes; dropped items show their mesh.
-
-## 20. Paperdoll equipment
-- [ ] Drag to equip (mismatches rejected), click to unequip; bonuses apply + persist; chest view = grid only.
-
-## 21. Enemy pathing
-- [x] Crabs **path around walls/corners**, then close in and attack; no stutter. (Needs a full editor restart.)
-
-## 22. Town, shop & portals
-- [x] Starts in **L_Town**; Portal (`[E] Enter`) loads a dungeon with a fade; ShopNPC buys/sells; return portal flush on a wall;
-      gold/inventory/equipment/skills survive transitions.
-
-## 23. Regression
-- [x] HUD bars + level correct; styles switch with weapon; chests loot; dungeon generates.
-- [x] Inventory / hotbar / collection log / level / XP / gold persist across relaunch. No bright Lumen band on wall tops.
+- [ ] **Enemy knockback** — enemies get a small hop away from your hits.
+- [ ] **Feel check** — none of the juice is nauseating / overlong (hit-stop, camera kick, dust density).
 
 ---
 
-# PASSED (already verified)
+# PASSED (verified)
 
-- [x] **Start screen** — menu on launch, Start fades in, Quit exits, only once per session.
-- [x] **Scene transitions** — black fades on town↔dungeon + death restart, fade-in on arrival.
-- [x] **Controls in settings** — full scrollable controls list under the sliders.
-- [x] **Boss health bar** — top-center red bar, labelled, drains, removed on death.
-- [x] **Minimap (fog of war)** — top-right, reveals as you walk, boss room red, cyan player dot, no crash.
+## Boss — mesh / room / intro / sequence
+- [x] Boss is the **hermit-crab skeletal mesh**, boss-sized, upright; **idle** standing, **walk** while chasing; **stands on the floor** (not sunk).
+- [x] Boss room is a **double-height arena** (no clipping between wall courses), **banner each side of every doorway** (lying flat), **no traps/chest** inside.
+- [x] **Intro camera frames the boss** (centered, scaled to fit), and plays **every encounter incl. replays**: input locks, boss spawns opposite you with the spawn-in VFX + screen shake, then control returns.
+- [x] No "Phase 9" / multiple-boss leftovers when the dungeon regenerates.
+- [x] A clean boss hit is **brutal (~75% HP)**; it closes fast. On death it **drops several rarity-beamed items** at the kill spot and the **return portal** appears in a back corner. Spawn-in code VFX = ground flare + energy pillar + shard swirl + debris ring.
+- [x] Boss **loot drops on the floor** (not the ceiling); **banners lie flat**.
+
+## Combat / feel
+- [x] **Dash (Shift)**: quick **stamina-costed dash** in your movement/facing direction (not a sprint); cooldown-gated; no stamina → **stamina bar flashes red** and no dash.
+- [x] **Insufficient-resource**: swinging/firing with no stamina (or casting with no mana) **flashes the matching HUD bar red**.
+- [x] **Player melee lands partway** through the swing; **hit sparks are a dark blood spurt** (not a bright pop).
+- [x] **Damage numbers** are big/bright and pop on hit. *(Reworked this session — re-test in TO TEST.)*
+- [x] **Enemy death** sinks + shrinks (dissolve). **Traps glow red** before firing. **Wall torches** sit lower, light from the flame tip.
+- [x] **Pickup** throws a rarity-colored sparkle; **chest open** pops a rarity burst (brighter for Rare+).
+
+## VFX / "alive" pass
+- [x] Impact sparks, ambient drifting dust motes, **screen damage flash** on hit, **low-HP** chromatic aberration + desaturation, **dash FOV** widen. **FPS holds** with all of it on.
+
+## Scenery
+- [x] Furniture **lines the walls** flush, facing into the room; **corner stacks** + **dining sets** (table ringed by stools); **coffins flat** along the wall; **no scenery on traps** or inside other scenery; corridor props don't block the path. *(Note: prop clusters could still be improved.)*
+
+## Dev menu / shop / inventory
+- [x] **Esc → Dev Menu**: No Clip / God Mode / Reveal Map / Teleport to Boss / Kill Player / Teleport Home — all work as labelled.
+- [x] Inventory shows **"Gold: N"**; **shop and inventory are mutually exclusive** (never overlap).
+
+## Traps / room types
+- [x] **Spike floors / pressure plates / dart shooters** work; not in the spawn room or boss room.
+- [x] Room types flagged by a **colored marker light**: gold = Treasure, red = Ambush, green = Rest, purple = Elite.
+
+## Skill tree / numbers / stamina / HUD
+- [x] **K** opens Melee/Ranged/Mage columns + Points; **one clean line per node** with a hover tooltip; allocate/lock/multi-rank/capstones persist across relaunch. *(Note: want to redo all nodes with custom ones later.)*
+- [x] Floating damage numbers face the camera; **backstab / weak-point** are bigger + orange. *(Note: improved this session.)*
+- [x] A melee swing **drains stamina**; out of stamina = no swing.
+- [x] **FPS counter** top-right under the minimap, color-coded; pause menu reads cleanly (not squished).
+
+## Interaction / town / regression
+- [x] `[E] Open` / `[E] Pick up` / `[E] Close` prompts; dropped items show their mesh.
+- [x] Crabs **path around walls/corners** then close in and attack, no stutter.
+- [x] Starts in **L_Town**; portal (`[E] Enter`) loads a dungeon with a fade; ShopNPC buys/sells; return portal flush on a wall; **gold/inventory/equipment/skills persist** across transitions.
+- [x] HUD bars + level correct; styles switch with weapon; chests loot; dungeon generates; inventory/hotbar/collection-log/XP/gold persist across relaunch; no bright Lumen band on wall tops.
+
+## Prototypes
+- [x] **Fishing (town)**: `[E]` casts (red bobber); after a few seconds it **shakes** → **REEL IN!** — press `[E]` within ~1.3s to land a **random fish**; miss = "it got away".
+- [x] **Blackjack (first-pass prototype)**: `[E]` opens a control bar; cards on the felt; bet gold vs the dealer (3:2 blackjack). *(Overhauled this session — re-test in TO TEST.)*
+
+## Earlier-verified
+- [x] **Start screen** (menu on launch, once per session); **scene transitions** (black fades + fade-in); **controls in settings** (scrollable list); **boss health bar** (top-center, drains, removed on death); **minimap fog of war** (reveals as you walk, boss room red, no crash).
 
 ---
 
 ## Known / expected rough edges (not bugs)
-- Still graybox in places — doors/portal/traps/bubbles/room-markers/bonfire are primitive shapes; the crab
-  boss has idle/walk/attack anims (no spawn/death anims yet — spawn uses code VFX).
-- The boss runs in **anim-test mode** (`bAbilitiesEnabled = false`): no phases/specials until re-enabled.
+- The boss runs in **anim-test mode** (`bAbilitiesEnabled = false`): **no phases/specials** (projectile volley, ground slam, summon adds, bubble pools, enrage, shell-retreat) until re-enabled. No **death/spawn rig** anim yet (spawn uses the code VFX).
 - The **weapon-rack** prop spawns tilted/sunk (asset pivot fix is on the art TODO).
-- The start menu is an **overlay on the town map**, not a separate menu level.
-- The controls list is **read-only** (no rebinding yet).
-- The mage staff/wand has **no held mesh yet** (graybox/hidden) — it still casts; a mesh swaps in later.
+- **Navmesh hand-off** is untested — there are no walls in the boss arena yet to break line of sight.
+- Still graybox in places (doors / portal / traps / bubbles / room-markers / bonfire). The start menu is an **overlay** on the town map, not a separate level. The controls list is **read-only** (no rebinding). The mage staff/wand has **no held mesh yet** (graybox/hidden) — it still casts.

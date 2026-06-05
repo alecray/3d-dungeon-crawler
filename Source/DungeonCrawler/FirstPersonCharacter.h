@@ -64,6 +64,9 @@ public:
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
 
+	/** Set while the player is seated at a blackjack table; suppresses the world interaction prompt. */
+	void SetBlackjackActive(bool bActive) { bBlackjackActive = bActive; }
+
 	// ---- Insufficient-resource feedback (HUD polls these to flash the bar red) ----
 	/** Call when an action is denied for lack of stamina / mana — flashes the matching bar. */
 	void FlagStaminaDenied();
@@ -277,6 +280,8 @@ protected:
 	float DashStaminaCost = 25.f;
 
 private:
+	bool bBlackjackActive = false; // true while seated at a blackjack table — hides the interact prompt
+
 	// Input handlers
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);

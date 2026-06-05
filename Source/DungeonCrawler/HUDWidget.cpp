@@ -10,6 +10,8 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 
+static constexpr float DamagePopupDuration = 0.9f; // life of the "-N" HP-loss popup
+
 bool UHUDWidget::Initialize()
 {
 	if (!Super::Initialize())
@@ -37,6 +39,20 @@ bool UHUDWidget::Initialize()
 		TS->SetAlignment(FVector2D(0.f, 1.f));
 		TS->SetPosition(FVector2D(24.f, -100.f));
 		TS->SetAutoSize(true);
+	}
+
+	// "-N" damage popup that flashes over the HP bar when the player is hit, then drifts off + fades.
+	DamagePopup = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DamagePopup"));
+	DamagePopup->SetVisibility(ESlateVisibility::Collapsed);
+	DamagePopup->SetJustification(ETextJustify::Center);
+	DamagePopup->SetColorAndOpacity(FLinearColor(1.f, 0.3f, 0.25f)); // red
+	if (FSlateFontInfo F = DamagePopup->GetFont(); true) { F.Size = 22; DamagePopup->SetFont(F); }
+	if (UCanvasPanelSlot* DS = Root->AddChildToCanvas(DamagePopup))
+	{
+		DS->SetAnchors(FAnchors(0.f, 1.f));          // bottom-left, over the HP bar
+		DS->SetAlignment(FVector2D(0.5f, 1.f));
+		DS->SetPosition(FVector2D(164.f, -98.f));    // centered above the 24..304 HP bar
+		DS->SetAutoSize(true);
 	}
 
 	// Interaction prompt, centered just below the crosshair; hidden until looking at something usable.
@@ -86,11 +102,39 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		return;
 	}
 
-	if (HealthBar)
+	if (const UHealthComponent* H = Player->GetHealthComponent())
 	{
-		if (const UHealthComponent* H = Player->GetHealthComponent())
+		if (HealthBar) { HealthBar->SetPercent(H->GetHealthPercent()); }
+
+		// Trigger a "-N" popup whenever the player loses HP.
+		const float Cur = H->GetHealth();
+		if (LastHealth >= 0.f && Cur < LastHealth - 0.5f && DamagePopup)
 		{
-			HealthBar->SetPercent(H->GetHealthPercent());
+			const int32 Lost = FMath::RoundToInt(LastHealth - Cur);
+			DamagePopup->SetText(FText::FromString(FString::Printf(TEXT("-%d"), Lost)));
+			DamagePopupTime = DamagePopupDuration;
+			const float Ang = FMath::FRandRange(0.f, 2.f * PI); // random drift direction
+			DamagePopupDir = FVector2D(FMath::Cos(Ang), FMath::Sin(Ang));
+		}
+		if (Cur >= 0.f) { LastHealth = Cur; }
+	}
+
+	// Animate the active damage popup: a quick pop, drift in its random direction, fade out.
+	if (DamagePopup)
+	{
+		if (DamagePopupTime > 0.f)
+		{
+			DamagePopupTime = FMath::Max(0.f, DamagePopupTime - InDeltaTime);
+			const float A = 1.f - (DamagePopupTime / DamagePopupDuration); // 0 -> 1 over its life
+			DamagePopup->SetVisibility(ESlateVisibility::HitTestInvisible);
+			DamagePopup->SetRenderOpacity(1.f - A);
+			DamagePopup->SetRenderTranslation(DamagePopupDir * (A * 55.f));
+			const float Pop = (A < 0.2f) ? FMath::Lerp(1.5f, 1.f, A / 0.2f) : 1.f;
+			DamagePopup->SetRenderScale(FVector2D(Pop, Pop));
+		}
+		else if (DamagePopup->GetVisibility() != ESlateVisibility::Collapsed)
+		{
+			DamagePopup->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 	// A denied action flashes the matching bar toward red, fading back to its normal color.

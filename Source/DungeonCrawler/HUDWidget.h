@@ -28,4 +28,10 @@ private:
 	UPROPERTY() TObjectPtr<UProgressBar> StaminaBar;
 	UPROPERTY() TObjectPtr<UTextBlock> LevelText;
 	UPROPERTY() TObjectPtr<UTextBlock> InteractPrompt; // "[E] Open" when looking at an interactable
+
+	UPROPERTY() TObjectPtr<UTextBlock> DamagePopup;    // "-N" that pops over the HP bar when you take damage
+
+	float LastHealth = -1.f;       // for detecting HP loss (-1 = not sampled yet)
+	float DamagePopupTime = 0.f;   // remaining animation time on the popup
+	FVector2D DamagePopupDir = FVector2D(0.f, -1.f); // random drift direction for the current popup
 };

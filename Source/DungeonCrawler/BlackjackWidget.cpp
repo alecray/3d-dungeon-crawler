@@ -27,22 +27,23 @@ bool UBlackjackWidget::Initialize()
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Root"));
 	WidgetTree->RootWidget = Root;
 
-	// A control bar pinned to the bottom-center (the cards/values are shown in 3D on the table).
+	// A control panel pinned to the left-center of the screen (cards are shown in 3D on the table).
 	UBorder* Panel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Panel"));
 	Panel->SetBrushColor(FLinearColor(0.03f, 0.10f, 0.05f, 0.94f));
-	Panel->SetPadding(FMargin(20.f));
+	Panel->SetPadding(FMargin(18.f, 16.f));
 	if (UCanvasPanelSlot* PS = Root->AddChildToCanvas(Panel))
 	{
-		PS->SetAnchors(FAnchors(0.5f, 1.f));
-		PS->SetAlignment(FVector2D(0.5f, 1.f));
-		PS->SetPosition(FVector2D(0.f, -40.f));
-		PS->SetAutoSize(true);
+		PS->SetAnchors(FAnchors(0.f, 0.5f));
+		PS->SetAlignment(FVector2D(0.f, 0.5f));
+		PS->SetPosition(FVector2D(40.f, 0.f));
+		PS->SetSize(FVector2D(260.f, 0.f)); // fixed width so the stacked button rows line up; height auto
+		PS->SetAutoSize(false);
 	}
 
 	UVerticalBox* Box = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Box"));
 	Panel->SetContent(Box);
 
-	auto AddLabel = [&](const TCHAR* Initial, int32 FontSize) -> UTextBlock*
+	auto AddLabel = [&](const TCHAR* Initial, int32 FontSize, float TopPad) -> UTextBlock*
 	{
 		UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 		T->SetText(FText::FromString(Initial));
@@ -51,27 +52,50 @@ bool UBlackjackWidget::Initialize()
 		if (UVerticalBoxSlot* S = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(T)))
 		{
 			S->SetHorizontalAlignment(HAlign_Center);
-			S->SetPadding(FMargin(0.f, 3.f));
+			S->SetPadding(FMargin(0.f, TopPad, 0.f, 0.f));
 		}
 		return T;
 	};
 
-	StatusText = AddLabel(TEXT("Blackjack"), 20);
-	InfoText = AddLabel(TEXT("Gold: 0      Bet: 25"), 18);
-
-	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("Buttons"));
-	if (UVerticalBoxSlot* RS = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(Row)))
+	// New vertical row of evenly-filled buttons; each button stretches to share the row width equally.
+	auto AddButtonRow = [&](float TopPad) -> UHorizontalBox*
 	{
-		RS->SetHorizontalAlignment(HAlign_Center);
-		RS->SetPadding(FMargin(0.f, 10.f, 0.f, 0.f));
-	}
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		if (UVerticalBoxSlot* RS = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(Row)))
+		{
+			RS->SetHorizontalAlignment(HAlign_Fill);
+			RS->SetPadding(FMargin(0.f, TopPad, 0.f, 0.f));
+		}
+		return Row;
+	};
 
-	BetDownBtn = MakeButton(Row, TEXT("  Bet -  "), &UBlackjackWidget::OnBetDown);
-	BetUpBtn   = MakeButton(Row, TEXT("  Bet +  "), &UBlackjackWidget::OnBetUp);
-	DealBtn    = MakeButton(Row, TEXT("  Deal  "), &UBlackjackWidget::OnDeal);
-	HitBtn     = MakeButton(Row, TEXT("  Hit  "), &UBlackjackWidget::OnHit);
-	StandBtn   = MakeButton(Row, TEXT("  Stand  "), &UBlackjackWidget::OnStand);
-	MakeButton(Row, TEXT("  Leave  "), &UBlackjackWidget::OnLeave);
+	GoldText = AddLabel(TEXT("Gold: 0"), 20, 0.f);   // top of the left panel
+	BetText  = AddLabel(TEXT("Bet: 25"), 18, 6.f);   // (Dealer/You values are 3D labels on the table now)
+
+	UHorizontalBox* BetRow = AddButtonRow(12.f);
+	BetDownBtn = MakeButton(BetRow, TEXT("Bet -"), &UBlackjackWidget::OnBetDown);
+	BetUpBtn   = MakeButton(BetRow, TEXT("Bet +"), &UBlackjackWidget::OnBetUp);
+
+	UHorizontalBox* ActRow = AddButtonRow(8.f);
+	DealBtn  = MakeButton(ActRow, TEXT("Deal"),  &UBlackjackWidget::OnDeal);
+	HitBtn   = MakeButton(ActRow, TEXT("Hit"),   &UBlackjackWidget::OnHit);
+	StandBtn = MakeButton(ActRow, TEXT("Stand"), &UBlackjackWidget::OnStand);
+
+	UHorizontalBox* LeaveRow = AddButtonRow(8.f);
+	MakeButton(LeaveRow, TEXT("Leave"), &UBlackjackWidget::OnLeave);
+
+	// Status line ("Hit or Stand." / result) pinned to the bottom-center of the screen, above the hotbar.
+	StatusText = WidgetTree->ConstructWidget<UTextBlock>();
+	StatusText->SetText(FText::FromString(TEXT("Blackjack")));
+	StatusText->SetJustification(ETextJustify::Center);
+	if (FSlateFontInfo F = StatusText->GetFont(); true) { F.Size = 22; StatusText->SetFont(F); }
+	if (UCanvasPanelSlot* SS = Root->AddChildToCanvas(StatusText))
+	{
+		SS->SetAnchors(FAnchors(0.5f, 1.f));
+		SS->SetAlignment(FVector2D(0.5f, 1.f));
+		SS->SetPosition(FVector2D(0.f, -110.f)); // sit above the hotbar at the bottom-center
+		SS->SetAutoSize(true);
+	}
 
 	return true;
 }
@@ -81,11 +105,13 @@ UButton* UBlackjackWidget::MakeButton(UHorizontalBox* Row, const TCHAR* Label, v
 	UButton* Btn = WidgetTree->ConstructWidget<UButton>();
 	UTextBlock* T = WidgetTree->ConstructWidget<UTextBlock>();
 	T->SetText(FText::FromString(Label));
+	T->SetJustification(ETextJustify::Center);
 	if (FSlateFontInfo F = T->GetFont(); true) { F.Size = 18; T->SetFont(F); }
-	Btn->AddChild(T);
+	Btn->AddChild(T); // UButtonSlot centers its content by default, so the label sits centered
 	if (UHorizontalBoxSlot* S = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(Btn)))
 	{
-		S->SetPadding(FMargin(6.f, 0.f));
+		S->SetSize(FSlateChildSize(ESlateSizeRule::Fill)); // every button shares its row width equally
+		S->SetPadding(FMargin(4.f, 0.f));
 	}
 	if (Handler == &UBlackjackWidget::OnBetDown) { Btn->OnClicked.AddDynamic(this, &UBlackjackWidget::OnBetDown); }
 	else if (Handler == &UBlackjackWidget::OnBetUp) { Btn->OnClicked.AddDynamic(this, &UBlackjackWidget::OnBetUp); }
@@ -114,7 +140,8 @@ void UBlackjackWidget::RefreshFromTable()
 	if (!T) { return; }
 
 	if (StatusText) { StatusText->SetText(FText::FromString(T->GetStatusLine())); }
-	if (InfoText) { InfoText->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d        Bet: %d"), T->GetGold(), T->GetBet()))); }
+	if (GoldText) { GoldText->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d"), T->GetGold()))); }
+	if (BetText) { BetText->SetText(FText::FromString(FString::Printf(TEXT("Bet: %d"), T->GetBet()))); }
 
 	const bool bBet = T->CanBet();
 	const bool bPlay = T->CanHitStand();

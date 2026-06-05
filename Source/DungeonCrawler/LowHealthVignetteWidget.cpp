@@ -44,20 +44,23 @@ void ULowHealthVignetteWidget::NativeTick(const FGeometry& MyGeometry, float Del
 	}
 
 	float Pct = 1.f;
+	float Cur = -1.f;
 	if (APawn* Pawn = UGameplayStatics::GetPlayerPawn(this, 0))
 	{
 		if (UHealthComponent* Health = Pawn->FindComponentByClass<UHealthComponent>())
 		{
 			Pct = Health->GetHealthPercent();
+			Cur = Health->GetHealth();
 		}
 	}
 
-	// A red flash whenever health just dropped (took a hit).
-	if (Pct < LastPct - 0.001f)
+	// Red flash whenever the player actually loses HP (took a hit). Compare absolute HP, not percent —
+	// equipping gear that raises Max Health lowers the percent with no damage, which used to false-flash.
+	if (LastHealth >= 0.f && Cur >= 0.f && Cur < LastHealth - 0.01f)
 	{
 		FlashTime = 0.22f;
 	}
-	LastPct = Pct;
+	if (Cur >= 0.f) { LastHealth = Cur; }
 	FlashTime = FMath::Max(0.f, FlashTime - DeltaTime);
 	const float FlashAlpha = (FlashTime / 0.22f) * 0.4f;
 

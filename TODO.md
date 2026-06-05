@@ -2,6 +2,22 @@
 
 > Open / untested work is up top. Completed items are in **Done** at the bottom.
 
+- feature request: make the starting room always a "safe room" so it has a bonfire in it that i can test
+- todo: reduce the # of chests that spawn. theres way too many at the moment. maybe we have them only spawn in the dedicated treasure room?
+- todo: add settings menu to title screen
+
+## From the test plan — items I marked "?" (need work)
+- boss danger disc: make it **bigger** (tune after the telegraph location is fixed — DONE; tune `AttackZoneRadiusFrac`)
+- boss doors: still **not sealing** (maybe because I teleport in?) — make them close **when the boss spawns**; confirm the camera focus works; on death the doors sink + the return portal activates at a back corner
+- boss movement: improve the **scuttle** — circle at distance longer, then rush in for a few attacks, and back off to scuttle again if it whiffs
+- boss navmesh hand-off: needs **walls in the boss arena** to actually test pathing around cover
+- footstep dust: I don't see any — verify it's still spawning (it was too bright once); keep it a subtle puff
+- hit-stop: **triple it** so I can see how it feels
+- room theming: only *sorta* themed — improve coherence + the prop clusters
+- treasure room: dial it in (ties into the chest-count todo above)
+- generation variety: more **Diablo-style** — random room sizes/shapes, more dead ends + loops, less samey; bigger map if perf allows
+- item icons + potions: the 3D thumbnails need a lot of improvement
+- paperdoll drag-drop: dragging and missing drops items on the floor — only drop when dragged **fully out** of the inventory; dropping on a slot that rejects it should **return the item to its original slot**
 ---
 
 ## Notes / reminders
@@ -229,6 +245,25 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 # DONE
 
 ## Gameplay / combat
+- [x] **Boss attack telegraph forward** — the danger disc (and the actual hit) is now a forward swipe zone
+      pushed along the boss's facing and frozen at swing start (telegraph + impact stay in sync), instead of a
+      ring centered under the body. Tunables: `AttackZoneForwardFrac` / `AttackZoneRadiusFrac` (MonsterCharacter).
+- [x] **Boss attack delay doubled** — `AttackCooldown` 2.8 → 5.6s for a big punish window between swings.
+- [x] **Dash overshoot fix** — clamp speed back to walk at the end of the dash burst, so the dash travels a
+      consistent distance whether or not you're holding a movement key (braking only applied with no input).
+- [x] **Equip red-flash fix** — the low-HP vignette now flashes on a real **HP** drop, not on the health-**percent**
+      drop you get from equipping Max-Health gear.
+- [x] **Hit numbers reworked** — spawn at the impact point on the enemy's body (toward the hit), linger ~2.2s, slow rise.
+- [x] **Blackjack overhaul** — real card-face images on the felt + face-down dealer card, textured SM_Blackjack_Table,
+      pull-to-seat camera, left-side control HUD, dealer up-card value, prompt hidden while seated.
+- [x] **Blackjack readout layout** — moved "Dealer N / You N" to 3D labels beside each row, "Hit or Stand."
+      to bottom-center, left panel keeps Gold/Bet/buttons; newest dealt card sits on the left (older shift right).
+- [x] **Blackjack table placed in L_Town** — now an editable level actor (code-spawn removed); mesh base
+      snapped to the actor origin (no float after the model's pivot moved); blocking + interact handled by a
+      bounds-fitted box collision (independent of the art's authored collision).
+- [x] **Boss self-glow** — `EmissiveStrength` param added to `M_Base` (default 0); boss drives it to 0.35
+      via `SetBodyEmissive` so the crab reads in the dark.
+- [x] **Player damage popup** — a red "-N" pops over the HP bar on damage, drifts off in a random direction + fades.
 - [x] **Dash/dodge** replaces sprint on Shift — short committed stamina-costed burst (Dark-Souls feel).
 - [x] **Boss combat pass** (Dark-Souls direction): attack lands on anim **frame 20** (dodgeable by
       repositioning), melee reach measured from the boss's body edge (so the big crab can actually hit),

@@ -43,7 +43,8 @@ protected:
 private:
 	UButton* MakeButton(UHorizontalBox* Row, const TCHAR* Label, void (UBlackjackWidget::*Handler)());
 
-	UPROPERTY() TObjectPtr<UTextBlock> InfoText;
+	UPROPERTY() TObjectPtr<UTextBlock> GoldText;
+	UPROPERTY() TObjectPtr<UTextBlock> BetText;
 	UPROPERTY() TObjectPtr<UTextBlock> StatusText;
 	UPROPERTY() TObjectPtr<UButton> BetDownBtn;
 	UPROPERTY() TObjectPtr<UButton> BetUpBtn;

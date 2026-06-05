@@ -13,6 +13,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
@@ -196,6 +197,20 @@ bool AMonsterCharacter::SetupSkeletalBody(const FString& MeshPath, float MeshSca
 	return true;
 }
 
+void AMonsterCharacter::SetBodyEmissive(float Strength)
+{
+	USkeletalMeshComponent* SkelComp = GetMesh();
+	if (!SkelComp) { return; }
+	const int32 NumMats = SkelComp->GetNumMaterials();
+	for (int32 i = 0; i < NumMats; ++i)
+	{
+		if (UMaterialInstanceDynamic* MID = SkelComp->CreateDynamicMaterialInstance(i))
+		{
+			MID->SetScalarParameterValue(TEXT("EmissiveStrength"), Strength); // no-op if the material lacks the param
+		}
+	}
+}
+
 void AMonsterCharacter::MakeElite()
 {
 	MonsterMaxHealth *= 4.f;
@@ -276,7 +291,8 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	if (bHitPending && Now >= PendingHitTime)
 	{
 		bHitPending = false;
-		if (Dist <= Reach) // still in front of the claw at the moment of impact -> it connects
+		// Connects if the player is inside the telegraphed forward strike zone at the moment of impact.
+		if (FVector::DistSquared2D(Player->GetActorLocation(), PendingHitCenter) <= PendingHitRadius * PendingHitRadius)
 		{
 			if (UHealthComponent* PlayerHealth = Player->FindComponentByClass<UHealthComponent>())
 			{
@@ -335,18 +351,22 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 			PendingDamage = AttackDamage;
 			PendingHitTime = Now + HitDelay;
 			bHitPending = true;
+				// Freeze the danger zone: a disc pushed forward along the facing (a forward swipe), so the
+				// telegraph + the impact match and sit in front of the boss, not under it.
+				PendingHitRadius = Reach * AttackZoneRadiusFrac;
+				PendingHitCenter = GetActorLocation() + Dir * (Reach * AttackZoneForwardFrac);
 
 			// Paint the danger zone on the floor: a red disc of the exact hit radius (Reach), centered on
 			// us, that flashes when the blow lands — dash out of it to dodge.
 			if (UWorld* World = GetWorld())
 			{
 				const float FloorZ = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-				const FVector TeleLoc(GetActorLocation().X, GetActorLocation().Y, FloorZ);
+				const FVector TeleLoc(PendingHitCenter.X, PendingHitCenter.Y, FloorZ);
 				FActorSpawnParameters TP;
 				TP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				if (AAttackTelegraph* Tele = World->SpawnActor<AAttackTelegraph>(AAttackTelegraph::StaticClass(), FTransform(TeleLoc), TP))
 				{
-					Tele->Configure(Reach, HitDelay);
+					Tele->Configure(PendingHitRadius, HitDelay);
 				}
 			}
 		}
@@ -420,6 +440,8 @@ float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLoc
 		bLastHitWeak = true;
 	}
 
+	LastHitFromLocation = FromLocation; // stash for HandleDamaged (fires synchronously below)
+
 	const float Dealt = Health ? Health->ApplyDamage(BaseDamage) : 0.f;
 
 	// Juice: knock the monster back away from where the hit came from (small upward hop).
@@ -439,7 +461,7 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 {
 	HitReactTimeLeft = HitReactDuration; // kick off the pop
 
-	// Floating damage number above the monster + a quick impact spark at the body.
+	// Floating damage number at the impact point + a quick impact spark at the body.
 	if (Amount > 0.f)
 	{
 		if (UWorld* World = GetWorld())
@@ -447,7 +469,14 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 			FActorSpawnParameters P;
 			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-			const FVector NumberLoc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() + 60.f);
+			// Place the number at the impact point: on the near side of the body (toward where the hit came
+			// from), around mid-height, so it reads as landing on the enemy instead of floating overhead.
+			FVector ToSrc = LastHitFromLocation - GetActorLocation();
+			ToSrc.Z = 0.f;
+			ToSrc = ToSrc.GetSafeNormal();
+			const FVector NumberLoc = GetActorLocation()
+				+ ToSrc * GetSimpleCollisionRadius()
+				+ FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() * 0.35f);
 			if (ADamageNumber* Num = World->SpawnActor<ADamageNumber>(ADamageNumber::StaticClass(), FTransform(NumberLoc), P))
 			{
 				Num->Init(Amount, bLastHitWeak);

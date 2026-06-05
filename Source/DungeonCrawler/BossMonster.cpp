@@ -27,7 +27,7 @@ ABossMonster::ABossMonster()
 	AttackRange = 380.f;        // wide danger zone — you must DODGE out of it, a step back won't clear it
                                 // (the red telegraph disc matches this reach exactly)
 	AggroRange = 6000.f;       // notices the player anywhere in the big boss room
-	AttackCooldown = 2.8f;      // clear recovery window between swings (was a spammy 1.6) — punish openings
+	AttackCooldown = 5.6f;      // long recovery window between swings (doubled from 2.8) — big punish openings
 	AttackHitFrame = 20.f;      // the claw connects on frame 20 of the attack anim (dodgeable until then)
 	MoveSpeed = 430.f;          // closes on the player quickly (was a sluggish 280)
 	XPReward = 300;
@@ -92,6 +92,9 @@ void ABossMonster::BeginPlay()
 		// Skeletal is showing; hide the unused static fallback mesh.
 		if (CrabMesh) { CrabMesh->SetVisibility(false); }
 	}
+
+	// Give the boss a subtle self-glow so the big crab reads in the dark dungeon (drives M_Base emissive).
+	SetBodyEmissive(0.35f);
 
 	// Resizing the capsule to fit the crab can leave it clipping into the floor — and because the boss is
 	// frozen during its intro it can't settle via gravity. Snap it so the capsule base rests on the floor.
@@ -503,6 +506,7 @@ float ABossMonster::ApplyHitDamage(float BaseDamage, const FVector& FromLocation
 	}
 
 	bLastHitWeak = bWeak; // read by HandleDamaged to style the floating number
+	LastHitFromLocation = FromLocation; // and to place it at the impact point
 	return Health ? Health->ApplyDamage(Dmg) : 0.f;
 }
 

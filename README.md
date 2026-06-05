@@ -65,8 +65,11 @@ Boss & encounters:
 - [x] Boss encounter sequence — boss spawns when you enter the room (opposite you), entrance doorways
       seal for the fight (reopen on death), and a camera-focus + screen-shake intro cinematic plays
       every encounter (framed on the boss). Return portal on death, placed away from the loot.
-- [x] Boss melee telegraph — a red danger disc on the floor (the exact hit radius) brightens through the
-      wind-up and flashes on impact; the zone is wide enough that you must **dash** out, not just step back
+- [x] Boss melee telegraph — a red danger disc marking a **forward strike zone** (pushed out along the
+      boss's facing to where the blow actually lands, not a ring under its body); it brightens through the
+      wind-up and flashes on impact, and is wide enough that you must **dash** out, not just step back. The
+      disc + the real hit are frozen at swing start so they stay in sync, and the boss self-illuminates a
+      touch so the big crab reads in the dark
 - [x] Boss fight depth — crab-like scuttle + telegraphed lunge movement (hybrid navmesh: paths around
       cover when line-of-sight is blocked), 3 phases, specials (ground slam, summon adds, projectile
       volley, bubble-pool hazards, enrage, phase-3 shell-retreat), and a phase-1 back weak point (2× dmg)
@@ -93,8 +96,9 @@ Combat feel & VFX (code-driven, no imported art):
 - [x] **Dash/dodge** on Shift (replaces sprint) — a short, committed, stamina-costed burst
 - [x] **Dark-Souls-leaning combat** — the boss hits hard (~75% of starting HP) but its blow lands on a
       specific animation frame, so it's dodgeable by repositioning; reach is measured from its body edge
-- [x] Floating damage numbers; weapon use costs stamina/mana (melee included), with an **insufficient-
-      resource bar flash** when you're too tired/low on mana to act
+- [x] Floating damage numbers that spawn **at the impact point** on the enemy and linger; a **"-N" popup**
+      pops over your HP bar and drifts off when you take damage; weapon use costs stamina/mana (melee
+      included), with an **insufficient-resource bar flash** when you're too tired/low on mana to act
 - [x] Game juice — hit-stop on melee impact, camera kick, enemy knockback, low-health red vignette
 - [x] VFX pass — impact spark bursts on hits, ambient drifting dust motes, screen damage flash, gold
       level-up burst, dash FOV kick, low-HP chromatic aberration + desaturation
@@ -153,8 +157,12 @@ Flow / UX:
 - `ABossSpawnVFX` / `AAttackTelegraph` — the boss's code-driven spawn-in effect, and the red floor disc
   that marks (and flashes on) its incoming hit.
 - `ABonfire` — a Rest-room rest point: `[E]` to fully heal, refill mana/stamina, and checkpoint-save.
-- `ABlackjackTable` + `UBlackjackWidget` — a town minigame (prototype): a 3D card table; bet gold vs a
-  dealer with the rules engine in the table, cards dealt as 3D meshes, and a slim on-screen control bar.
+- `ABlackjackTable` + `UBlackjackWidget` — a town minigame (placed in L_Town): a textured 3D card table;
+  cards deal as **real card-face images** on the felt (dealer's hole card face-down until reveal), newest
+  card on the left. Pressing **E** pulls the player to a fixed seat for a consistent view. The rules engine
+  lives in the table; the UI is a left-side control panel (Gold/Bet/buttons), a bottom-center status line,
+  and 3D **"Dealer N / You N"** labels beside each row. Card faces decode from PNGs at runtime onto a
+  masked `M_Card` material — see `Tools/` for the headless material/placement scripts.
 - `AFishingHole` — a town minigame (prototype): cast with `[E]`, reel when the bobber shakes to land a
   random fish (weighted catch table → inventory). Graybox water/bobber/fish with mesh swap-in points.
 - `CharacterClass.h` — the starting-archetype loadouts (Warrior/Ranger/Mage: a stat spread + a weapon).
