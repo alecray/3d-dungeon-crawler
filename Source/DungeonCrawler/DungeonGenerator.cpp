@@ -619,7 +619,7 @@ void ADungeonGenerator::ScatterProps()
 	// Wall-hugging scenery used in corridors and against room walls (won't block the path).
 	static const EPropType WallProps[] = {
 		EPropType::Barrel, EPropType::Pots, EPropType::Bucket, EPropType::Crate,
-		EPropType::Bones, EPropType::Rocks, EPropType::Coffin
+		EPropType::Bones, EPropType::Rocks, EPropType::Coffin, EPropType::Cage
 	};
 	const int32 NumWall = UE_ARRAY_COUNT(WallProps);
 
@@ -744,7 +744,7 @@ void ADungeonGenerator::ScatterProps()
 			{
 			case EDecor::Storage: { const EPropType P[] = { EPropType::Barrel, EPropType::Pots, EPropType::Bucket, EPropType::Crate };     return P[Rng.RandRange(0, 3)]; }
 			case EDecor::Dining:  { const EPropType P[] = { EPropType::Barrel, EPropType::Crate, EPropType::Pots, EPropType::Bucket };      return P[Rng.RandRange(0, 3)]; }
-			case EDecor::Crypt:   { const EPropType P[] = { EPropType::Coffin, EPropType::Coffin, EPropType::Bones, EPropType::Rocks };     return P[Rng.RandRange(0, 3)]; }
+			case EDecor::Crypt:   { const EPropType P[] = { EPropType::Coffin, EPropType::Coffin, EPropType::Bones, EPropType::Rocks, EPropType::Cage }; return P[Rng.RandRange(0, 4)]; }
 			case EDecor::Smithy:  { const EPropType P[] = { EPropType::Anvil, EPropType::Crate, EPropType::Barrel, EPropType::Bucket };     return P[Rng.RandRange(0, 3)]; }
 			default:              { const EPropType P[] = { EPropType::Bookshelf, EPropType::Dresser, EPropType::Cabinet, EPropType::Crate }; return P[Rng.RandRange(0, 3)]; }
 			}

@@ -20,6 +20,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "AudioDevice.h"
 #include "Engine/World.h"
+#include "HAL/IConsoleManager.h"
 
 bool UPauseMenuWidget::Initialize()
 {
@@ -240,6 +241,7 @@ bool UPauseMenuWidget::Initialize()
 	UTextBlock* NoClipText = nullptr;
 	UTextBlock* GodModeText = nullptr;
 	UTextBlock* Throwaway = nullptr;
+	UTextBlock* DebugOverlayText = nullptr;
 	MakeDevButton(TEXT("No Clip: OFF"),  NoClipText )->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevNoClip);
 	MakeDevButton(TEXT("God Mode: OFF"), GodModeText)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevGodMode);
 	MakeDevButton(TEXT("Reveal Map"),       Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevReveal);
@@ -247,8 +249,10 @@ bool UPauseMenuWidget::Initialize()
 	MakeDevButton(TEXT("Kill Player"),      Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevKill);
 	MakeDevButton(TEXT("Teleport Home"),    Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevHome);
 	MakeDevButton(TEXT("Give 1,000,000 Gold"), Throwaway)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevGold);
+	MakeDevButton(TEXT("Debug Overlays: OFF"), DebugOverlayText)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevDebugOverlays);
 	NoClipLabel = NoClipText;
 	GodModeLabel = GodModeText;
+	DebugOverlayLabel = DebugOverlayText;
 
 	return true;
 }
@@ -349,6 +353,20 @@ void UPauseMenuWidget::OnDevHome()
 void UPauseMenuWidget::OnDevGold()
 {
 	if (AFirstPersonCharacter* P = GetPlayer()) { P->AddGold(1000000); }
+}
+
+void UPauseMenuWidget::OnDevDebugOverlays()
+{
+	// Toggle the dc.DebugOverlays CVar that the monsters read to draw their melee hit zones.
+	if (IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("dc.DebugOverlays")))
+	{
+		const bool bOn = (CVar->GetInt() == 0);
+		CVar->Set(bOn ? 1 : 0);
+		if (DebugOverlayLabel)
+		{
+			DebugOverlayLabel->SetText(FText::FromString(bOn ? TEXT("Debug Overlays: ON") : TEXT("Debug Overlays: OFF")));
+		}
+	}
 }
 
 void UPauseMenuWidget::OnDevBoss()

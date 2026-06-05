@@ -15,6 +15,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "DrawDebugHelpers.h"
+#include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/SoftObjectPath.h"
@@ -26,6 +28,12 @@
 
 // The engine cube is a 100cm cube centered on its origin, so a component scale of 1.0 == 100cm.
 static constexpr float MonsterUnitCm = 100.f;
+
+// Dev-menu "Debug Overlays" toggle (read here, flipped from ADungeonPlayerController). When on, monsters
+// draw their melee danger zone on the floor so you can see exactly where an attack will land.
+TAutoConsoleVariable<int32> CVarDebugOverlays(
+	TEXT("dc.DebugOverlays"), 0,
+	TEXT("Draw gameplay debug overlays (enemy melee hit zones, etc.). 0=off, 1=on."));
 
 AMonsterCharacter::AMonsterCharacter()
 {
@@ -300,6 +308,27 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 			}
 		}
 	}
+
+#if ENABLE_DRAW_DEBUG
+	// Debug overlay (dev menu): draw the melee danger zone on the floor — yellow = where the next swing
+	// would land from the current facing, red (thicker) = the committed/frozen zone of an in-flight swing.
+	if (CVarDebugOverlays.GetValueOnGameThread() != 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			const float GroundZ = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 3.f;
+			const FVector XAxis(1.f, 0.f, 0.f), YAxis(0.f, 1.f, 0.f); // circle flat on the ground
+			const FVector PredCenter = GetActorLocation() + Dir * (Reach * AttackZoneForwardFrac);
+			DrawDebugCircle(World, FVector(PredCenter.X, PredCenter.Y, GroundZ), Reach * AttackZoneRadiusFrac,
+				28, FColor(255, 210, 0), false, -1.f, 0, 2.f, XAxis, YAxis, false);
+			if (bHitPending)
+			{
+				DrawDebugCircle(World, FVector(PendingHitCenter.X, PendingHitCenter.Y, GroundZ), PendingHitRadius,
+					28, FColor::Red, false, -1.f, 0, 4.f, XAxis, YAxis, false);
+			}
+		}
+	}
+#endif
 
 	if (Dist > Reach)
 	{

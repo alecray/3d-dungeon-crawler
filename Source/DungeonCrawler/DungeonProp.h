@@ -28,6 +28,7 @@ enum class EPropType : uint8
 	Mushrooms	UMETA(DisplayName = "Mushrooms"),
 	Banner		UMETA(DisplayName = "Banner"),
 	Coffin		UMETA(DisplayName = "Coffin"),
+	Cage		UMETA(DisplayName = "Cage"),
 
 	MAX			UMETA(Hidden)
 };

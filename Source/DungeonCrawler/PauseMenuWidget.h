@@ -40,6 +40,7 @@ private:
 	UFUNCTION() void OnDevHome();
 	UFUNCTION() void OnDevBoss();
 	UFUNCTION() void OnDevGold();
+	UFUNCTION() void OnDevDebugOverlays();
 
 	AFirstPersonCharacter* GetPlayer() const;
 	UDungeonGameInstance* GetGI() const;
@@ -58,4 +59,5 @@ private:
 	UPROPERTY() TObjectPtr<UVerticalBox> DevPanel;
 	UPROPERTY() TObjectPtr<UTextBlock> NoClipLabel;
 	UPROPERTY() TObjectPtr<UTextBlock> GodModeLabel;
+	UPROPERTY() TObjectPtr<UTextBlock> DebugOverlayLabel;
 };
