@@ -7,6 +7,7 @@
 class UBorder;
 class UTextBlock;
 class UInventoryComponent;
+class UItemTooltipWidget;
 
 /**
  * One inventory cell (pure C++): a colored border (rarity) with a stack-count label. Supports
@@ -42,6 +43,7 @@ private:
 	UPROPERTY() TObjectPtr<UBorder> Box;
 	UPROPERTY() TObjectPtr<class UImage> IconImage;
 	UPROPERTY() TObjectPtr<UTextBlock> CountText;
+	UPROPERTY() TObjectPtr<UItemTooltipWidget> Tooltip; // styled hover tooltip (lazy-created)
 	TWeakObjectPtr<UInventoryComponent> Inventory;
 	int32 SlotIndex = INDEX_NONE;
 };

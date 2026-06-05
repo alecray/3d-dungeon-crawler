@@ -323,6 +323,12 @@ void ADungeonGenerator::AssignRoomTypes()
 		else if (R < 0.48f) { Rooms[i].Type = ERoomType::Elite; }
 		else                { Rooms[i].Type = ERoomType::Normal; } // ~52%
 	}
+
+	// Start room is always a safe Rest room (bonfire, no monsters/traps/chests) — handy for testing.
+	if (Rooms.Num() > 0)
+	{
+		Rooms[0].Type = ERoomType::Rest;
+	}
 }
 
 void ADungeonGenerator::DecorateRooms()
@@ -337,8 +343,9 @@ void ADungeonGenerator::DecorateRooms()
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	// A colored marker light at each special room's center so its type reads at a glance.
-	for (int32 i = 1; i < Rooms.Num(); ++i)
+	// A colored marker light at each special room's center so its type reads at a glance. Starts at 0 so the
+	// start room (forced to Rest) gets its bonfire too.
+	for (int32 i = 0; i < Rooms.Num(); ++i)
 	{
 		if (i == BossRoomIndex)
 		{
@@ -399,6 +406,30 @@ void ADungeonGenerator::CarveCorridors()
 		}
 		const FDungeonRoom& A = Rooms[Best];
 		CarveLine(A.CenterX(), A.CenterY(), B.CenterX(), B.CenterY(), Rng.RandRange(0, 1) == 0);
+	}
+
+	// Loops: the above is a spanning tree (fully connected, but linear/no loops). Add a few extra corridors
+	// between nearby room pairs so the layout has branches + loops to circle through (less "samey").
+	const int32 ExtraLoops = FMath::RoundToInt(Rooms.Num() * LoopFraction);
+	for (int32 k = 0; k < ExtraLoops && Rooms.Num() > 2; ++k)
+	{
+		const int32 i = Rng.RandRange(0, Rooms.Num() - 1);
+		// Connect i to a *different* nearby room (2nd-nearest-ish) to add an alternate path.
+		int32 Best = INDEX_NONE;
+		int32 BestDistSq = MAX_int32;
+		for (int32 j = 0; j < Rooms.Num(); ++j)
+		{
+			if (j == i) { continue; }
+			const int32 dx = Rooms[j].CenterX() - Rooms[i].CenterX();
+			const int32 dy = Rooms[j].CenterY() - Rooms[i].CenterY();
+			const int32 DistSq = dx * dx + dy * dy;
+			// Skip the very nearest (already linked by the tree) by biasing toward a small random offset.
+			if (DistSq < BestDistSq && DistSq > 0) { BestDistSq = DistSq; Best = j; }
+		}
+		if (Best != INDEX_NONE)
+		{
+			CarveLine(Rooms[i].CenterX(), Rooms[i].CenterY(), Rooms[Best].CenterX(), Rooms[Best].CenterY(), Rng.RandRange(0, 1) == 0);
+		}
 	}
 }
 
@@ -987,8 +1018,7 @@ void ADungeonGenerator::ScatterChests()
 		int32 NumChests;
 		if (Rooms[i].Type == ERoomType::Treasure)      { NumChests = Rng.RandRange(2, 3); }
 		else if (Rooms[i].Type == ERoomType::Elite)    { NumChests = 1; }
-		else if (Rooms[i].Type == ERoomType::Rest)     { NumChests = 0; }
-		else                                        { NumChests = (Rng.FRand() <= ChestChancePerRoom) ? 1 : 0; }
+		else                                            { NumChests = 0; } // chests live in Treasure (+Elite) rooms only now
 
 		const FDungeonRoom& Room = Rooms[i];
 		const float SpreadX = FMath::Max(0.f, (Room.W - 2) * 0.4f) * CellSize;

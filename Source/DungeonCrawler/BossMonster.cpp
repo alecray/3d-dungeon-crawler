@@ -542,12 +542,15 @@ bool ABossMonster::TickCustomChase(float DeltaSeconds, APawn* Player, const FVec
 	}
 	if (!bUsingDirectMove)
 	{
-		// Just regained sight: cancel any active path-follow so our direct steering takes over cleanly.
+		// Just regained sight: cancel any active path-follow so our direct steering takes over cleanly, and
+		// start by circling (not an instant lunge).
 		if (AAIController* AI = Cast<AAIController>(GetController()))
 		{
 			AI->StopMovement();
 		}
 		bUsingDirectMove = true;
+		MoveState = EMoveState::Scuttle;
+		MoveTimer = FMath::FRandRange(ScuttleTimeMin, ScuttleTimeMax);
 	}
 
 	const FVector Lateral = FVector::CrossProduct(FVector::UpVector, DirToPlayer).GetSafeNormal();
@@ -557,22 +560,22 @@ bool ABossMonster::TickCustomChase(float DeltaSeconds, APawn* Player, const FVec
 	{
 	case EMoveState::Scuttle:
 	{
-		// Sidestep around the player while pressing inward — a crab-like scuttle that still closes distance.
-		const FVector Move = (Lateral * StrafeSign * 0.7f + DirToPlayer * 0.7f).GetSafeNormal();
+		// Crab-like orbit: strafe sideways and steer in/out to hold ~PreferredScuttleDist (circle at range)
+		// instead of beelining the player. It circles for ScuttleTime, THEN commits to a rush.
+		const float DistErr = Dist - PreferredScuttleDist;
+		const float Radial = FMath::Clamp(DistErr / 300.f, -1.f, 1.f); // +in when too far, -out when too close
+		const FVector Move = (Lateral * StrafeSign + DirToPlayer * (0.6f * Radial)).GetSafeNormal();
 		AddMovementInput(Move, 1.f);
 		if (MoveTimer <= 0.f)
 		{
-			if (FMath::FRand() < 0.5f) { StrafeSign *= -1.f; } // occasionally reverse the circle
-			if (Dist < LungeRange)
-			{
-				MoveState = EMoveState::Telegraph;
-				MoveTimer = LungeTelegraph;
-				TriggerHitReact(); // wind-up tell
-			}
-			else
-			{
-				MoveTimer = FMath::FRandRange(0.8f, 1.6f);
-			}
+			// Done circling: wind up and rush in.
+			MoveState = EMoveState::Telegraph;
+			MoveTimer = LungeTelegraph;
+			TriggerHitReact(); // wind-up tell
+		}
+		else if (FMath::FRand() < DeltaSeconds * 0.6f)
+		{
+			StrafeSign *= -1.f; // occasionally reverse the circle direction mid-scuttle
 		}
 		break;
 	}
@@ -586,14 +589,24 @@ bool ABossMonster::TickCustomChase(float DeltaSeconds, APawn* Player, const FVec
 		}
 		break;
 	case EMoveState::Lunge:
-		AddMovementInput(DirToPlayer, 1.f); // fast forward dash
+		AddMovementInput(DirToPlayer, 1.f); // fast forward dash to get in attack range (base class swings)
+		if (MoveTimer <= 0.f)
+		{
+			// Rush over: back off and circle again (gives the in-then-out rhythm; if the lunge whiffed,
+			// the player gets a window, then the boss re-engages).
+			MoveState = EMoveState::Retreat;
+			MoveTimer = RetreatTime;
+			GetCharacterMovement()->MaxWalkSpeed = (EnrageEndTime > 0.f) ? BaseMoveSpeed * 2.f : BaseMoveSpeed;
+		}
+		break;
+	case EMoveState::Retreat:
+		// Back away from the player (with a little sideways drift) before resuming the scuttle.
+		AddMovementInput((-DirToPlayer * 0.85f + Lateral * StrafeSign * 0.5f).GetSafeNormal(), 1.f);
 		if (MoveTimer <= 0.f)
 		{
 			MoveState = EMoveState::Scuttle;
-			MoveTimer = FMath::FRandRange(1.2f, 2.2f);
+			MoveTimer = FMath::FRandRange(ScuttleTimeMin, ScuttleTimeMax);
 			StrafeSign = (FMath::FRand() < 0.5f) ? -1.f : 1.f;
-			// Restore normal speed (respecting an active enrage burst).
-			GetCharacterMovement()->MaxWalkSpeed = (EnrageEndTime > 0.f) ? BaseMoveSpeed * 2.f : BaseMoveSpeed;
 		}
 		break;
 	}

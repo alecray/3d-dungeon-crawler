@@ -129,6 +129,18 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
 	float LungeSpeedMult = 2.6f;    // dash speed vs. base move speed
 
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float PreferredScuttleDist = 850.f; // orbit the player around this distance while scuttling
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float ScuttleTimeMin = 2.2f;    // how long it circles before committing to a rush (longer = more scuttle)
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float ScuttleTimeMax = 3.6f;
+
+	UPROPERTY(EditAnywhere, Category = "Boss|Movement")
+	float RetreatTime = 1.1f;       // how long it backs off after a rush before scuttling again
+
 private:
 	void AdvanceToPhase(int32 NewPhase);
 	void ScheduleNextSpecial();
@@ -206,7 +218,7 @@ private:
 	float ShellTimeLeft = 0.f;
 
 	// Scuttle/lunge movement state machine (see TickCustomChase).
-	enum class EMoveState : uint8 { Scuttle, Telegraph, Lunge };
+	enum class EMoveState : uint8 { Scuttle, Telegraph, Lunge, Retreat };
 	EMoveState MoveState = EMoveState::Scuttle;
 	float MoveTimer = 0.f;
 	float StrafeSign = 1.f;

@@ -85,23 +85,27 @@ protected:
 
 	// ---- Grid / layout tunables ----
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Grid", meta = (ClampMin = "8"))
-	int32 GridWidth = 48;
+	int32 GridWidth = 64;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Grid", meta = (ClampMin = "8"))
-	int32 GridHeight = 48;
+	int32 GridHeight = 64;
 
 	/** Size of one grid cell in cm (also the hallway width). */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Grid", meta = (ClampMin = "100"))
 	float CellSize = 300.f;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "1"))
-	int32 TargetRoomCount = 8;
+	int32 TargetRoomCount = 13;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "2"))
-	int32 MinRoomCells = 4;
+	int32 MinRoomCells = 3;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "2"))
-	int32 MaxRoomCells = 9;
+	int32 MaxRoomCells = 13;
+
+	/** Extra non-tree corridors added to create loops (fraction of room count). 0 = pure tree (no loops). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "0.0"))
+	float LoopFraction = 0.35f;
 
 	/** How hard to try placing each room before giving up. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "1"))

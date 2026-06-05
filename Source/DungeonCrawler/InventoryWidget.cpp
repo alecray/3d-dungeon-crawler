@@ -186,6 +186,14 @@ void UInventoryWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+bool UInventoryWidget::NativeOnDrop(const FGeometry& /*InGeometry*/, const FDragDropEvent& /*InDragDropEvent*/, UDragDropOperation* InOperation)
+{
+	// A drop landed inside the inventory window but missed a slot (gap, title bar, a slot that rejected it).
+	// Absorb it: the item stays where it was. Only drops OUTSIDE the window go unhandled -> OnDragCancelled,
+	// which is where the drop-to-world happens.
+	return InOperation != nullptr;
+}
+
 void UInventoryWidget::SetInventory(UInventoryComponent* InInventory, const FString& Title)
 {
 	if (Inventory.IsValid())

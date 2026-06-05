@@ -85,6 +85,11 @@ void ABossArena::OnTriggerOverlap(UPrimitiveComponent* /*OverlappedComp*/, AActo
 	}
 }
 
+void ABossArena::ForceStart(APawn* Player)
+{
+	StartEncounter(Player); // StartEncounter no-ops if already started
+}
+
 void ABossArena::StartEncounter(APawn* Player)
 {
 	UWorld* World = GetWorld();

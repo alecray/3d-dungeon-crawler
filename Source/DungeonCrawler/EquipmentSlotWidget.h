@@ -8,6 +8,7 @@ class UBorder;
 class UImage;
 class UTextBlock;
 class UEquipmentComponent;
+class UItemTooltipWidget;
 
 /**
  * One paperdoll equipment slot. Shows its slot label when empty (e.g. "head") and the equipped item's
@@ -34,6 +35,7 @@ private:
 	UPROPERTY() TObjectPtr<UBorder> Box;
 	UPROPERTY() TObjectPtr<UImage> IconImage;
 	UPROPERTY() TObjectPtr<UTextBlock> LabelText;
+	UPROPERTY() TObjectPtr<UItemTooltipWidget> Tooltip; // styled hover tooltip (lazy-created)
 
 	UPROPERTY() TWeakObjectPtr<UEquipmentComponent> Equipment;
 	int32 SlotIndex = 0;

@@ -4,6 +4,7 @@
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
 #include "ItemIconSubsystem.h"
+#include "ItemTooltipWidget.h"
 #include "FirstPersonCharacter.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -85,7 +86,7 @@ void UEquipmentSlotWidget::Refresh()
 			LabelText->SetText(FText::FromString(EquipSlotLabel(UEquipmentComponent::SlotCategory(SlotIndex))));
 			LabelText->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
-		SetToolTipText(FText::GetEmpty());
+		SetToolTip(nullptr);
 		return;
 	}
 
@@ -114,10 +115,16 @@ void UEquipmentSlotWidget::Refresh()
 		}
 	}
 
-	FString Tip = FString::Printf(TEXT("%s\n%s %s"), *Def.DisplayName, *RarityName(Def.Rarity), *ItemTypeName(Def.Type));
-	if (!Def.Description.IsEmpty()) { Tip += FString::Printf(TEXT("\n\n%s"), *Def.Description); }
-	Tip += TEXT("\n\n(click to unequip)");
-	SetToolTipText(FText::FromString(Tip));
+	// Styled hover tooltip (lazy-created), with an unequip hint.
+	if (!Tooltip)
+	{
+		Tooltip = CreateWidget<UItemTooltipWidget>(GetOwningPlayer(), UItemTooltipWidget::StaticClass());
+	}
+	if (Tooltip)
+	{
+		Tooltip->SetItem(ItemId, TEXT("(click to unequip)"));
+		SetToolTip(Tooltip);
+	}
 }
 
 FReply UEquipmentSlotWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)

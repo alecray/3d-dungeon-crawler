@@ -2,6 +2,7 @@
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
 #include "ItemPickup.h"
+#include "ItemTooltipWidget.h"
 
 #include "ItemIconSubsystem.h"
 
@@ -79,7 +80,7 @@ void UInventorySlotWidget::Refresh()
 	{
 		Box->SetBrushColor(FLinearColor(0.08f, 0.08f, 0.09f, 0.85f)); // empty cell
 		CountText->SetText(FText::GetEmpty());
-		SetToolTipText(FText::GetEmpty()); // no hover label on empty slots
+		SetToolTip(nullptr); // no hover popup on empty slots
 		if (IconImage) { IconImage->SetVisibility(ESlateVisibility::Collapsed); }
 	}
 	else
@@ -88,15 +89,16 @@ void UInventorySlotWidget::Refresh()
 		Box->SetBrushColor(RarityColor(Def.Rarity));
 		CountText->SetText(InvSlot.Count > 1 ? FText::AsNumber(InvSlot.Count) : FText::GetEmpty());
 
-		// Hover tooltip: name, rarity + type, description, and gold value.
-		FString Tip = FString::Printf(TEXT("%s\n%s %s"), *Def.DisplayName,
-			*RarityName(Def.Rarity), *ItemTypeName(Def.Type));
-		if (!Def.Description.IsEmpty())
+		// Styled hover tooltip (lazy-created): black panel, white name, rarity-colored type, yellow desc/value.
+		if (!Tooltip)
 		{
-			Tip += FString::Printf(TEXT("\n\n%s"), *Def.Description);
+			Tooltip = CreateWidget<UItemTooltipWidget>(GetOwningPlayer(), UItemTooltipWidget::StaticClass());
 		}
-		Tip += FString::Printf(TEXT("\n\nValue: %dg"), Def.Value);
-		SetToolTipText(FText::FromString(Tip));
+		if (Tooltip)
+		{
+			Tooltip->SetItem(InvSlot.ItemId);
+			SetToolTip(Tooltip);
+		}
 
 		// Rendered 3D icon (cached); falls back to just the rarity color when the item has no mesh.
 		UTextureRenderTarget2D* Icon = nullptr;

@@ -18,6 +18,7 @@
 #include "FpsCounterWidget.h"
 #include "DungeonGameInstance.h"
 #include "DungeonGenerator.h"
+#include "BossArena.h"
 #include "AmbientDust.h"
 #include "EngineUtils.h"
 #include "Blueprint/UserWidget.h"
@@ -209,6 +210,13 @@ void ADungeonPlayerController::DevTeleportToBoss()
 		{
 			const FVector Loc = It->GetBossRoomCenterWorld() + FVector(0.f, 0.f, 120.f);
 			P->SetActorLocation(Loc, /*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+			// Teleporting skips the arena's entry trigger, so kick off the encounter directly (spawns the
+			// boss, seals the doors, runs the intro). Otherwise the doors never close.
+			for (TActorIterator<ABossArena> AIt(World); AIt; ++AIt)
+			{
+				AIt->ForceStart(P);
+				break;
+			}
 			return;
 		}
 	}

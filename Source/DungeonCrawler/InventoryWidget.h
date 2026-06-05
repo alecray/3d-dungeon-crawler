@@ -27,6 +27,10 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 
+	/** Absorbs drops that miss a slot but land inside the window, so the item returns to its slot instead
+	 *  of being dropped to the world. Only drops OUTSIDE the window reach OnDragCancelled (world drop). */
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
 	/** Point this panel at an inventory and label it. Rebuilds the grid. */
 	void SetInventory(UInventoryComponent* InInventory, const FString& Title);
 

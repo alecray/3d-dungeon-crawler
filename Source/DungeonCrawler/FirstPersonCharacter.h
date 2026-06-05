@@ -316,7 +316,7 @@ private:
 	FTimerHandle MeleeHitTimer;
 
 	/** Briefly slows global time for impact "hit-stop" (restored after Duration real seconds). */
-	void TriggerHitStop(float Duration = 0.055f, float Dilation = 0.04f);
+	void TriggerHitStop(float Duration = 0.165f, float Dilation = 0.04f); // ~3x (was 0.055) for a punchier hit
 	/** Plays the short combat camera-kick shake at the given scale. */
 	void CameraKick(float Scale);
 

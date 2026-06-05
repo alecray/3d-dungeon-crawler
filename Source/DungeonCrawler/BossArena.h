@@ -37,6 +37,10 @@ public:
 	/** Registers one entrance doorway to seal (world transform + full barrier size in cm). */
 	void AddDoorSlot(const FTransform& WorldXf, const FVector& SizeCm);
 
+	/** Force the encounter to begin now (e.g. the dev "Teleport to Boss" skips the entry trigger). No-op
+	 *  if it already started. */
+	void ForceStart(APawn* Player);
+
 protected:
 	/** Destroys the boss/doors/portal this arena spawned so they don't leak on dungeon regenerate. */
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
