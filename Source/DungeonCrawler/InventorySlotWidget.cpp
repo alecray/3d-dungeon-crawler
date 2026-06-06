@@ -16,7 +16,7 @@
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
 #include "Engine/World.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
 #include "Input/Reply.h"
 
 bool UInventorySlotWidget::Initialize()
@@ -31,8 +31,8 @@ bool UInventorySlotWidget::Initialize()
 	}
 
 	USizeBox* Root = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("SlotSize"));
-	Root->SetWidthOverride(58.f);
-	Root->SetHeightOverride(58.f);
+	Root->SetWidthOverride(80.f);
+	Root->SetHeightOverride(80.f);
 	WidgetTree->RootWidget = Root;
 
 	Box = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SlotBox"));
@@ -100,8 +100,8 @@ void UInventorySlotWidget::Refresh()
 			SetToolTip(Tooltip);
 		}
 
-		// Rendered 3D icon (cached); falls back to just the rarity color when the item has no mesh.
-		UTextureRenderTarget2D* Icon = nullptr;
+		// Baked 3D icon texture (cached); falls back to just the rarity color when the item has no mesh.
+		UTexture2D* Icon = nullptr;
 		if (UWorld* World = GetWorld())
 		{
 			if (UItemIconSubsystem* Icons = World->GetSubsystem<UItemIconSubsystem>())

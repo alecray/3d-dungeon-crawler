@@ -5,6 +5,7 @@
 - feature request: make the starting room always a "safe room" so it has a bonfire in it that i can test
 - todo: reduce the # of chests that spawn. theres way too many at the moment. maybe we have them only spawn in the dedicated treasure room?
 - todo: add settings menu to title screen
+- todo: add stats page. monsters killed, bosses killed, fish caught, hands gambled, hands won/lost, gold looted, etc etc
 
 ## From the test plan — items I marked "?" (need work)
 - boss danger disc: make it **bigger** (tune after the telegraph location is fixed — DONE; tune `AttackZoneRadiusFrac`)
@@ -28,6 +29,10 @@
 # OPEN
 
 ## Gameplay
+
+- give one of the bosses a receptionist
+      maybe even play elevator music when you walk inside
+      and then you get told to take a seat
 
 - [ ] Adjust the death flow (DESIGN DECISION pending) — currently death keeps all progression and
       reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
@@ -239,6 +244,9 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 - monkey
 - snake
 - squirrel
+
+boss idea:
+big clanker that eats tokens LOL
 
 ---
 

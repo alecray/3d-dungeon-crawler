@@ -15,7 +15,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/World.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
 #include "Input/Reply.h"
 
 bool UHotbarSlotWidget::Initialize()
@@ -30,8 +30,8 @@ bool UHotbarSlotWidget::Initialize()
 	}
 
 	USizeBox* Root = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("Size"));
-	Root->SetWidthOverride(60.f);
-	Root->SetHeightOverride(60.f);
+	Root->SetWidthOverride(84.f);
+	Root->SetHeightOverride(84.f);
 	WidgetTree->RootWidget = Root;
 
 	Highlight = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("Highlight"));
@@ -88,7 +88,7 @@ void UHotbarSlotWidget::Refresh()
 	Inner->SetBrushColor(bHasItem ? RarityColor(ItemDatabase::Get(ItemId).Rarity)
 		: FLinearColor(0.1f, 0.1f, 0.11f, 0.9f));
 
-	UTextureRenderTarget2D* Icon = nullptr;
+	UTexture2D* Icon = nullptr;
 	if (bHasItem)
 	{
 		if (UWorld* World = GetWorld())

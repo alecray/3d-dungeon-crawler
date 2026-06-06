@@ -16,7 +16,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Engine/World.h"
-#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
 #include "Input/Reply.h"
 
 bool UEquipmentSlotWidget::Initialize()
@@ -94,7 +94,7 @@ void UEquipmentSlotWidget::Refresh()
 	Box->SetBrushColor(RarityColor(Def.Rarity));
 	if (LabelText) { LabelText->SetVisibility(ESlateVisibility::Collapsed); }
 
-	UTextureRenderTarget2D* Icon = nullptr;
+	UTexture2D* Icon = nullptr;
 	if (UWorld* World = GetWorld())
 	{
 		if (UItemIconSubsystem* Icons = World->GetSubsystem<UItemIconSubsystem>())
