@@ -1139,6 +1139,7 @@ void AFirstPersonCharacter::DoMeleeHit()
 	{
 		TriggerHitStop();
 		CameraKick(1.f);
+		LastHitLandedTime = World->GetTimeSeconds(); // HUD flashes the hit marker
 	}
 }
 

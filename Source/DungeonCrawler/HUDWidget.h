@@ -31,7 +31,16 @@ private:
 
 	UPROPERTY() TObjectPtr<UTextBlock> DamagePopup;    // "-N" that pops over the HP bar when you take damage
 
+	UPROPERTY() TObjectPtr<UTextBlock> Crosshair;      // small always-on center "+"
+	UPROPERTY() TObjectPtr<UTextBlock> HitMarker;      // center "✕" that flashes when you land a hit
+	UPROPERTY() TObjectPtr<UTextBlock> LevelUpText;    // "LEVEL UP!" banner that flashes on level-up
+
 	float LastHealth = -1.f;       // for detecting HP loss (-1 = not sampled yet)
 	float DamagePopupTime = 0.f;   // remaining animation time on the popup
 	FVector2D DamagePopupDir = FVector2D(0.f, -1.f); // random drift direction for the current popup
+
+	float HitMarkerTime = 0.f;     // remaining flash time on the hit marker
+	double LastHitSeen = 0.0;      // last player hit time the HUD has reacted to (player default -1 = none)
+	float LevelUpTime = 0.f;       // remaining flash time on the level-up banner
+	int32 LastLevelSeen = -1;      // last level the HUD has reacted to (-1 = not sampled)
 };

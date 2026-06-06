@@ -75,6 +75,9 @@ public:
 	float GetStaminaDenyFlash() const { return StaminaDenyFlashLeft / FMath::Max(0.01f, ResourceDenyFlashDuration); }
 	float GetManaDenyFlash() const { return ManaDenyFlashLeft / FMath::Max(0.01f, ResourceDenyFlashDuration); }
 
+	/** World time the player last landed a damaging hit; the HUD polls this to flash the hit marker. */
+	double GetLastHitLandedTime() const { return LastHitLandedTime; }
+
 	// ---- Gold (shop) ----
 	int32 GetGold() const { return Gold; }
 	void AddGold(int32 Amount);          // adds (clamped >= 0) and saves
@@ -377,6 +380,7 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpDesat = 0.5f;   // desaturation at 0 HP
 	float BaseFOV = 90.f;
 	int32 LastLevel = 1;  // to detect level-ups for the celebration burst
+	double LastHitLandedTime = -1.0; // world time of the last damaging melee hit (HUD hit marker)
 	ECombatStyle CurrentStyle = ECombatStyle::Melee;
 
 	/** Player gold (persisted in the profile). */

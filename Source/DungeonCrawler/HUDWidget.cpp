@@ -12,6 +12,8 @@
 #include "Components/TextBlock.h"
 
 static constexpr float DamagePopupDuration = 0.9f; // life of the "-N" HP-loss popup
+static constexpr float HitMarkerDuration = 0.18f;  // flash time of the center hit marker
+static constexpr float LevelUpDuration = 1.6f;     // life of the "LEVEL UP!" banner
 
 bool UHUDWidget::Initialize()
 {
@@ -66,6 +68,50 @@ bool UHUDWidget::Initialize()
 		PS->SetAlignment(FVector2D(0.5f, 0.f));
 		PS->SetPosition(FVector2D(0.f, 40.f));
 		PS->SetAutoSize(true);
+	}
+
+	// Center crosshair ("+"), always on.
+	Crosshair = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Crosshair"));
+	Crosshair->SetText(FText::FromString(TEXT("+")));
+	Crosshair->SetJustification(ETextJustify::Center);
+	Crosshair->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 0.55f));
+	if (FSlateFontInfo F = Crosshair->GetFont(); true) { F.Size = 22; Crosshair->SetFont(F); }
+	if (UCanvasPanelSlot* CS = Root->AddChildToCanvas(Crosshair))
+	{
+		CS->SetAnchors(FAnchors(0.5f, 0.5f));
+		CS->SetAlignment(FVector2D(0.5f, 0.5f));
+		CS->SetPosition(FVector2D(0.f, 0.f));
+		CS->SetAutoSize(true);
+	}
+
+	// Hit marker ("✕"), centered, flashes when a hit lands.
+	HitMarker = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("HitMarker"));
+	HitMarker->SetText(FText::FromString(TEXT("✕")));
+	HitMarker->SetJustification(ETextJustify::Center);
+	HitMarker->SetColorAndOpacity(FLinearColor(1.f, 0.85f, 0.25f)); // gold
+	HitMarker->SetVisibility(ESlateVisibility::Collapsed);
+	if (FSlateFontInfo F = HitMarker->GetFont(); true) { F.Size = 26; HitMarker->SetFont(F); }
+	if (UCanvasPanelSlot* HS = Root->AddChildToCanvas(HitMarker))
+	{
+		HS->SetAnchors(FAnchors(0.5f, 0.5f));
+		HS->SetAlignment(FVector2D(0.5f, 0.5f));
+		HS->SetPosition(FVector2D(0.f, 0.f));
+		HS->SetAutoSize(true);
+	}
+
+	// "LEVEL UP!" banner, centered a bit above the middle, flashes on level-up.
+	LevelUpText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("LevelUpText"));
+	LevelUpText->SetText(FText::FromString(TEXT("LEVEL UP!")));
+	LevelUpText->SetJustification(ETextJustify::Center);
+	LevelUpText->SetColorAndOpacity(FLinearColor(1.f, 0.86f, 0.3f));
+	LevelUpText->SetVisibility(ESlateVisibility::Collapsed);
+	if (FSlateFontInfo F = LevelUpText->GetFont(); true) { F.Size = 44; LevelUpText->SetFont(F); }
+	if (UCanvasPanelSlot* LS = Root->AddChildToCanvas(LevelUpText))
+	{
+		LS->SetAnchors(FAnchors(0.5f, 0.5f));
+		LS->SetAlignment(FVector2D(0.5f, 0.5f));
+		LS->SetPosition(FVector2D(0.f, -140.f));
+		LS->SetAutoSize(true);
 	}
 
 	// Version stamp, bottom-right corner.
@@ -173,7 +219,51 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	{
 		if (const UStatsComponent* St = Player->GetStatsComponent())
 		{
-			LevelText->SetText(FText::FromString(FString::Printf(TEXT("Lv %d"), St->GetLevel())));
+			const int32 Lv = St->GetLevel();
+			LevelText->SetText(FText::FromString(FString::Printf(TEXT("Lv %d"), Lv)));
+			if (LastLevelSeen >= 0 && Lv > LastLevelSeen) { LevelUpTime = LevelUpDuration; } // celebrate
+			LastLevelSeen = Lv;
+		}
+	}
+
+	// Hit marker: flash when the player lands a melee hit (poll the player's last-hit timestamp).
+	{
+		const double HitT = Player->GetLastHitLandedTime();
+		if (HitT > LastHitSeen) { HitMarkerTime = HitMarkerDuration; LastHitSeen = HitT; }
+	}
+	if (HitMarker)
+	{
+		if (HitMarkerTime > 0.f)
+		{
+			HitMarkerTime = FMath::Max(0.f, HitMarkerTime - InDeltaTime);
+			const float T = HitMarkerTime / HitMarkerDuration; // 1 -> 0
+			HitMarker->SetVisibility(ESlateVisibility::HitTestInvisible);
+			HitMarker->SetRenderOpacity(T);
+			const float S = FMath::Lerp(1.0f, 1.6f, T); // shrinks inward as it fades
+			HitMarker->SetRenderScale(FVector2D(S, S));
+		}
+		else if (HitMarker->GetVisibility() != ESlateVisibility::Collapsed)
+		{
+			HitMarker->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// "LEVEL UP!" banner: pop in, hold, rise + fade out.
+	if (LevelUpText)
+	{
+		if (LevelUpTime > 0.f)
+		{
+			LevelUpTime = FMath::Max(0.f, LevelUpTime - InDeltaTime);
+			const float A = 1.f - (LevelUpTime / LevelUpDuration); // 0 -> 1 over its life
+			LevelUpText->SetVisibility(ESlateVisibility::HitTestInvisible);
+			LevelUpText->SetRenderOpacity(A < 0.7f ? 1.f : FMath::GetMappedRangeValueClamped(FVector2D(0.7f, 1.f), FVector2D(1.f, 0.f), A));
+			LevelUpText->SetRenderTranslation(FVector2D(0.f, -40.f * A)); // drift up
+			const float Pop = (A < 0.15f) ? FMath::Lerp(0.6f, 1.f, A / 0.15f) : 1.f;
+			LevelUpText->SetRenderScale(FVector2D(Pop, Pop));
+		}
+		else if (LevelUpText->GetVisibility() != ESlateVisibility::Collapsed)
+		{
+			LevelUpText->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 	if (InteractPrompt)
