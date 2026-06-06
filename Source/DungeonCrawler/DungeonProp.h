@@ -29,6 +29,7 @@ enum class EPropType : uint8
 	Banner		UMETA(DisplayName = "Banner"),
 	Coffin		UMETA(DisplayName = "Coffin"),
 	Cage		UMETA(DisplayName = "Cage"),
+	Books		UMETA(DisplayName = "Books"),
 
 	MAX			UMETA(Hidden)
 };

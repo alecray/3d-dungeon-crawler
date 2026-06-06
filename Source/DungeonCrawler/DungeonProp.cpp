@@ -21,11 +21,12 @@ static const TCHAR* MeshPathForType(EPropType Type)
 	case EPropType::Anvil:      return TEXT("/Game/Furniture/SM_Anvil.SM_Anvil");
 	case EPropType::Coffin:     return TEXT("/Game/Furniture/SM_Coffin.SM_Coffin");
 	case EPropType::Cage:       return TEXT("/Game/Furniture/SM_Cage.SM_Cage");
+	case EPropType::Books:      return TEXT("/Game/World/SM_Books.SM_Books");
 	case EPropType::WeaponRack: return TEXT("/Game/Furniture/SM_Weapon_Rack.SM_Weapon_Rack");
 	case EPropType::Banner:     return TEXT("/Game/Furniture/SM_Banner.SM_Banner");
-	case EPropType::Rocks:      return TEXT("/Game/World/rocks.rocks");
-	case EPropType::Bones:      return TEXT("/Game/World/bones.bones");
-	case EPropType::Mushrooms:  return TEXT("/Game/World/mushroom.mushroom");
+	case EPropType::Rocks:      return TEXT("/Game/World/SM_Rocks.SM_Rocks");
+	case EPropType::Bones:      return TEXT("/Game/World/SM_Bones.SM_Bones");
+	case EPropType::Mushrooms:  return TEXT("/Game/World/SM_Mushroom.SM_Mushroom");
 	default:                    return nullptr;
 	}
 }

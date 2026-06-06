@@ -3,15 +3,22 @@
 #include "DungeonGameInstance.h"
 #include "CharacterClass.h"
 
+#include "FirstPersonCharacter.h"
+
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Border.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Components/Slider.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "AudioDevice.h"
+#include "Engine/World.h"
 
 bool UMainMenuWidget::Initialize()
 {
@@ -54,6 +61,10 @@ bool UMainMenuWidget::Initialize()
 		TS->SetPadding(FMargin(0.f, 0.f, 0.f, 48.f));
 	}
 
+	// Buttons live in their own box so Settings can hide them (the title stays).
+	MenuButtons = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("MenuButtons"));
+	Box->AddChildToVerticalBox(MenuButtons);
+
 	auto AddButton = [&](const TCHAR* Label, void (UMainMenuWidget::*Handler)())
 	{
 		UButton* Btn = WidgetTree->ConstructWidget<UButton>();
@@ -62,7 +73,7 @@ bool UMainMenuWidget::Initialize()
 		T->SetJustification(ETextJustify::Center);
 		if (FSlateFontInfo Font = T->GetFont(); true) { Font.Size = 22; T->SetFont(Font); }
 		Btn->AddChild(T);
-		if (UVerticalBoxSlot* BSlot = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(Btn)))
+		if (UVerticalBoxSlot* BSlot = Cast<UVerticalBoxSlot>(MenuButtons->AddChildToVerticalBox(Btn)))
 		{
 			BSlot->SetHorizontalAlignment(HAlign_Center);
 			BSlot->SetPadding(FMargin(0.f, 10.f));
@@ -97,7 +108,78 @@ bool UMainMenuWidget::Initialize()
 	{
 		AddButton(TEXT("  Continue  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStartClicked);
 	}
+	AddButton(TEXT("  Settings  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnSettingsClicked);
 	AddButton(TEXT("  Quit  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnQuitClicked);
+
+	// --- Settings panel (hidden until "Settings" is pressed) ---
+	SettingsPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("SettingsPanel"));
+	SettingsPanel->SetVisibility(ESlateVisibility::Collapsed);
+	Box->AddChildToVerticalBox(SettingsPanel);
+
+	auto AddSliderRow = [&](const TCHAR* Label, TObjectPtr<USlider>& OutSlider, TObjectPtr<UTextBlock>& OutValue)
+	{
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
+		SettingsPanel->AddChildToVerticalBox(Row);
+
+		UTextBlock* Name = WidgetTree->ConstructWidget<UTextBlock>();
+		Name->SetText(FText::FromString(Label));
+		if (UHorizontalBoxSlot* NS = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(Name)))
+		{
+			NS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			NS->SetVerticalAlignment(VAlign_Center);
+		}
+
+		OutSlider = WidgetTree->ConstructWidget<USlider>();
+		if (UHorizontalBoxSlot* SLS = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(OutSlider)))
+		{
+			SLS->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			SLS->SetVerticalAlignment(VAlign_Center);
+		}
+
+		OutValue = WidgetTree->ConstructWidget<UTextBlock>();
+		OutValue->SetText(FText::FromString(TEXT("--")));
+		if (UHorizontalBoxSlot* VS = Cast<UHorizontalBoxSlot>(Row->AddChildToHorizontalBox(OutValue)))
+		{
+			VS->SetVerticalAlignment(VAlign_Center);
+			VS->SetPadding(FMargin(8.f, 0.f, 0.f, 0.f));
+		}
+	};
+
+	AddSliderRow(TEXT("Mouse Sensitivity"), SensSlider, SensValueText);
+	AddSliderRow(TEXT("Master Volume"), VolumeSlider, VolumeValueText);
+
+	// Seed slider positions + labels from the saved profile.
+	float Sens = 1.f, Volume = 1.f;
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		Sens = GI->GetProfile().MouseSensitivity;
+		Volume = GI->GetProfile().MasterVolume;
+	}
+	if (SensSlider)
+	{
+		SensSlider->SetValue(FMath::Clamp((Sens - MinSens) / (MaxSens - MinSens), 0.f, 1.f));
+		SensSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::OnSensitivityChanged);
+	}
+	if (SensValueText) { SensValueText->SetText(FText::FromString(FString::Printf(TEXT("%.2f"), Sens))); }
+	if (VolumeSlider)
+	{
+		VolumeSlider->SetValue(FMath::Clamp(Volume, 0.f, 1.f));
+		VolumeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::OnVolumeChanged);
+	}
+	if (VolumeValueText) { VolumeValueText->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Volume * 100.f)))); }
+
+	UButton* Back = WidgetTree->ConstructWidget<UButton>();
+	UTextBlock* BackText = WidgetTree->ConstructWidget<UTextBlock>();
+	BackText->SetText(FText::FromString(TEXT("  Back  ")));
+	BackText->SetJustification(ETextJustify::Center);
+	if (FSlateFontInfo F = BackText->GetFont(); true) { F.Size = 20; BackText->SetFont(F); }
+	Back->AddChild(BackText);
+	Back->OnClicked.AddDynamic(this, &UMainMenuWidget::OnSettingsBackClicked);
+	if (UVerticalBoxSlot* BkS = Cast<UVerticalBoxSlot>(SettingsPanel->AddChildToVerticalBox(Back)))
+	{
+		BkS->SetHorizontalAlignment(HAlign_Center);
+		BkS->SetPadding(FMargin(0.f, 18.f, 0.f, 0.f));
+	}
 
 	return true;
 }
@@ -128,4 +210,53 @@ void UMainMenuWidget::OnMageClicked()
 void UMainMenuWidget::OnQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, /*bIgnorePlatformRestrictions*/ false);
+}
+
+void UMainMenuWidget::OnSettingsClicked()
+{
+	if (MenuButtons) { MenuButtons->SetVisibility(ESlateVisibility::Collapsed); }
+	if (SettingsPanel) { SettingsPanel->SetVisibility(ESlateVisibility::Visible); }
+}
+
+void UMainMenuWidget::OnSettingsBackClicked()
+{
+	if (SettingsPanel) { SettingsPanel->SetVisibility(ESlateVisibility::Collapsed); }
+	if (MenuButtons) { MenuButtons->SetVisibility(ESlateVisibility::Visible); }
+}
+
+void UMainMenuWidget::OnSensitivityChanged(float Value)
+{
+	const float Sens = MinSens + Value * (MaxSens - MinSens);
+	if (SensValueText) { SensValueText->SetText(FText::FromString(FString::Printf(TEXT("%.2f"), Sens))); }
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		FPlayerProfile& Profile = GI->GetProfile();
+		Profile.bInitialized = true;
+		Profile.MouseSensitivity = Sens;
+		GI->SaveProfile();
+	}
+	// Apply live if a pawn already exists (usually none on the title screen — it applies on spawn).
+	if (AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetOwningPlayerPawn()))
+	{
+		Player->SetLookSensitivity(Sens);
+	}
+}
+
+void UMainMenuWidget::OnVolumeChanged(float Value)
+{
+	if (VolumeValueText) { VolumeValueText->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Value * 100.f)))); }
+	if (UWorld* W = GetWorld())
+	{
+		if (FAudioDevice* Audio = W->GetAudioDeviceRaw())
+		{
+			Audio->SetTransientPrimaryVolume(Value);
+		}
+	}
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		FPlayerProfile& Profile = GI->GetProfile();
+		Profile.bInitialized = true;
+		Profile.MasterVolume = Value;
+		GI->SaveProfile();
+	}
 }

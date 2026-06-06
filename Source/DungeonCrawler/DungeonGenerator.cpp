@@ -777,7 +777,7 @@ void ADungeonGenerator::ScatterProps()
 			case EDecor::Dining:  { const EPropType P[] = { EPropType::Barrel, EPropType::Crate, EPropType::Pots, EPropType::Bucket };      return P[Rng.RandRange(0, 3)]; }
 			case EDecor::Crypt:   { const EPropType P[] = { EPropType::Coffin, EPropType::Coffin, EPropType::Bones, EPropType::Rocks, EPropType::Cage }; return P[Rng.RandRange(0, 4)]; }
 			case EDecor::Smithy:  { const EPropType P[] = { EPropType::Anvil, EPropType::Crate, EPropType::Barrel, EPropType::Bucket };     return P[Rng.RandRange(0, 3)]; }
-			default:              { const EPropType P[] = { EPropType::Bookshelf, EPropType::Dresser, EPropType::Cabinet, EPropType::Crate }; return P[Rng.RandRange(0, 3)]; }
+			default:              { const EPropType P[] = { EPropType::Bookshelf, EPropType::Dresser, EPropType::Cabinet, EPropType::Crate, EPropType::Books }; return P[Rng.RandRange(0, 4)]; }
 			}
 		};
 

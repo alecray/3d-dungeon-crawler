@@ -111,9 +111,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<USkeletalMesh> SwordSkeletalAsset;
 
-	/** Swing animation played on attack. Defaults to /Game/Weapons/Sword/A_Sword_Swing. */
+	/** Swing animation played on attack. Defaults to /Game/Weapons/Sword/A_Sword_Attack. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<UAnimSequence> SwingAnim;
+
+	/** Deflect/bounce animation played when a melee swing strikes a solid, non-damageable surface (wall,
+	 *  prop) instead of an enemy. Defaults to /Game/Weapons/Sword/A_Sword_Deflect (make this anim). */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<UAnimSequence> DeflectAnim;
 
 	/** Optional crossbow skeletal mesh (equipping the Crossbow item swaps to it). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
@@ -313,6 +318,8 @@ private:
 	void MeleeAttack();
 	/** The actual swing hit (sweep + damage), fired on a timer partway through the swing animation. */
 	void DoMeleeHit();
+	/** Plays the deflect/bounce reaction when a swing hits a solid non-damageable surface. */
+	void PlayMeleeDeflect(const FVector& ImpactPoint);
 	FTimerHandle MeleeHitTimer;
 
 	/** Briefly slows global time for impact "hit-stop" (restored after Duration real seconds). */

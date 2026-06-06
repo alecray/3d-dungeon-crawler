@@ -76,3 +76,6 @@ DerivedDataCache/*
 
 # Screenshots
 Screenshots/
+
+# Runtime-baked item icon cache (regenerated on play)
+Content/Images/ItemIcons/

@@ -51,7 +51,8 @@
 
 // Skeletal sword + its swing animation are loaded from these paths if not assigned in the editor.
 static const TCHAR* SwordSkeletalPath = TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword");
-static const TCHAR* SwordSwingAnimPath = TEXT("/Game/Weapons/Sword/A_Sword_Swing.A_Sword_Swing");
+static const TCHAR* SwordSwingAnimPath = TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack");
+static const TCHAR* SwordDeflectAnimPath = TEXT("/Game/Weapons/Sword/A_Sword_Deflect.A_Sword_Deflect");
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -131,6 +132,10 @@ void AFirstPersonCharacter::BeginPlay()
 	if (!SwingAnim)
 	{
 		SwingAnim = Cast<UAnimSequence>(FSoftObjectPath(SwordSwingAnimPath).TryLoad());
+	}
+	if (!DeflectAnim)
+	{
+		DeflectAnim = Cast<UAnimSequence>(FSoftObjectPath(SwordDeflectAnimPath).TryLoad());
 	}
 	if (!CrossbowSkeletalAsset)
 	{
@@ -1039,6 +1044,35 @@ void AFirstPersonCharacter::MeleeAttack()
 		return;
 	}
 
+	// Pre-check the swing so we play exactly ONE animation: if it would strike only a solid surface
+	// (wall / scenery prop) with no enemy in reach, play the deflect/bounce and deal no damage; otherwise
+	// play the normal attack swing and resolve the hit partway through.
+	const FVector Start = FirstPersonCamera->GetComponentLocation();
+	const FVector End = Start + FirstPersonCamera->GetForwardVector() * AttackRange;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	TArray<FHitResult> Hits;
+	World->SweepMultiByChannel(Hits, Start, End, FQuat::Identity, ECC_Pawn,
+		FCollisionShape::MakeSphere(AttackRadius), Params);
+
+	bool bEnemyInSwing = false;
+	bool bSolidInSwing = false;
+	FVector SolidImpact = End;
+	for (const FHitResult& Hit : Hits)
+	{
+		AActor* HitActor = Hit.GetActor();
+		if (!HitActor) { continue; }
+		if (HitActor->IsA(AMonsterCharacter::StaticClass())) { bEnemyInSwing = true; break; }
+		if (Hit.bBlockingHit && !bSolidInSwing) { bSolidInSwing = true; SolidImpact = Hit.ImpactPoint; }
+	}
+
+	if (!bEnemyInSwing && bSolidInSwing)
+	{
+		PlayMeleeDeflect(SolidImpact); // bounce off the wall/prop — no swing, no damage
+		return;
+	}
+
 	if (SwordMesh && SwingAnim)
 	{
 		SwordMesh->PlayAnimation(SwingAnim, /*bLooping*/ false);
@@ -1080,7 +1114,6 @@ void AFirstPersonCharacter::DoMeleeHit()
 			continue;
 		}
 		AlreadyHit.Add(HitActor);
-
 		if (AMonsterCharacter* Monster = Cast<AMonsterCharacter>(HitActor))
 		{
 			TotalDealt += Monster->ApplyHitDamage(DamagePerHit, GetActorLocation());
@@ -1100,6 +1133,17 @@ void AFirstPersonCharacter::DoMeleeHit()
 		TriggerHitStop();
 		CameraKick(1.f);
 	}
+}
+
+void AFirstPersonCharacter::PlayMeleeDeflect(const FVector& ImpactPoint)
+{
+	// Bounce/clang reaction off a solid surface: play the deflect anim + a small recoil kick. (Add a
+	// spark/SFX at ImpactPoint later — the impact point is passed through for that.)
+	if (SwordMesh && DeflectAnim)
+	{
+		SwordMesh->PlayAnimation(DeflectAnim, /*bLooping*/ false);
+	}
+	CameraKick(0.6f);
 }
 
 void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
