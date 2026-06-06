@@ -123,6 +123,13 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
     don't stack instances with differing affixes (`UInventoryComponent::AddItem`), apply
     `FlatBonusDamage`/`BonusDamageType` in combat, and show the composed name + affixes in tooltips/UI.
 - [ ] Multiple dungeon floors with descending, scaling difficulty (floor 1 → N)
+- [ ] **Run-augment drops (PoE "map"-style system)** — a droppable consumable item that modifies the NEXT
+      run when used (e.g. slotted into a device/altar in town before descending). Each augment rolls
+      modifiers that crank **difficulty AND rewards together** — tougher/extra/empowered enemies, more
+      chests/gold, rarer loot, elite/boss density, environmental hazards, time limits, etc. Rarer augments =
+      bigger swings. Gives players a reason to chase drops and a knob to push risk/reward per run. Ties into
+      loot rarity/affixes, biomes/themed floors, and the run-stakes/death-flow design. Consider tiers
+      (white/blue/yellow), stacking multiple augments, and a town "map device" to consume them.
 - [ ] FTUE for controls — first-run onboarding surfacing movement/attack/interact/abilities/inventory.
 - [~] Fishing mechanic in the town — **prototyped** (`AFishingHole`): cast with E, the bobber shakes after
       a random wait, reel (E) within the window to land a **random fish** (weighted catch table → inventory;

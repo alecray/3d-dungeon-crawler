@@ -741,9 +741,11 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 					AImpactBurst::StaticClass(), FeetXf, this, nullptr,
 					ESpawnActorCollisionHandlingMethod::AlwaysSpawn))
 				{
-					Dust->Configure(/*Count*/ 3, /*Speed*/ 60.f, /*BitScale*/ 0.045f, /*Life*/ 0.45f,
+					// Bigger/bushier than before so it's actually visible at the feet in first person,
+					// but still flash-free and low so it stays a subtle puff.
+					Dust->Configure(/*Count*/ 7, /*Speed*/ 95.f, /*BitScale*/ 0.11f, /*Life*/ 0.6f,
 						/*FlashIntensity*/ 0.f, /*FlashRadius*/ 0.f); // no light — just a low puff
-					Dust->SetColor(FLinearColor(0.32f, 0.29f, 0.25f)); // muted dusty brown
+					Dust->SetColor(FLinearColor(0.46f, 0.42f, 0.36f)); // light dusty brown (reads on dark floors)
 					UGameplayStatics::FinishSpawningActor(Dust, FeetXf);
 				}
 			}
