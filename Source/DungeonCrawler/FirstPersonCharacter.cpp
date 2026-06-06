@@ -248,6 +248,13 @@ void AFirstPersonCharacter::HandleStatsChanged(UStatsComponent* /*ChangedStats*/
 void AFirstPersonCharacter::AddGold(int32 Amount)
 {
 	Gold = FMath::Max(0, Gold + Amount);
+	if (Amount > 0)
+	{
+		if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+		{
+			GI->GetStats().GoldLooted += Amount; // persisted by PersistProfile() below
+		}
+	}
 	PersistProfile();
 }
 
@@ -1144,6 +1151,11 @@ void AFirstPersonCharacter::PlayMeleeDeflect(const FVector& ImpactPoint)
 		SwordMesh->PlayAnimation(DeflectAnim, /*bLooping*/ false);
 	}
 	CameraKick(0.6f);
+
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		GI->GetStats().DeflectsOffWalls++; // persisted on the next profile save
+	}
 }
 
 void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
@@ -1222,7 +1234,11 @@ void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 	}
 	bDead = true;
 
-	// Persist progress so attributes/level/gold survive the restart.
+	// Tally the death, then persist progress so attributes/level/gold/stats survive the restart.
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
+	{
+		GI->GetStats().Deaths++;
+	}
 	PersistProfile();
 
 	// Freeze the player and hand control back, then reload the level for a fresh dungeon run.

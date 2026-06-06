@@ -1,6 +1,8 @@
 #include "BlackjackTable.h"
 #include "BlackjackWidget.h"
 #include "FirstPersonCharacter.h"
+#include "DungeonGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #include "Components/SceneComponent.h"
@@ -345,6 +347,7 @@ void ABlackjackTable::Hit()
 	{
 		Phase = EPhase::Resolved;
 		Status = FString::Printf(TEXT("Bust! You lose %d."), Bet);
+		RecordHandStat(/*Payout*/ 0); // bust = loss
 	}
 	RefreshWidget();
 }
@@ -373,10 +376,24 @@ void ABlackjackTable::DealerPlayAndResolve()
 	else                              { Status = FString::Printf(TEXT("Dealer wins. -%d"), Bet); }
 
 	if (Payout > 0 && Player.IsValid()) { Player->AddGold(Payout); }
+	RecordHandStat(Payout);
 
 	Phase = EPhase::Resolved;
 	RebuildCardVisuals(); // reveal the dealer hole card
 	RefreshWidget();
+}
+
+void ABlackjackTable::RecordHandStat(int32 Payout)
+{
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		FPlayerStats& S = GI->GetStats();
+		S.BlackjackHandsPlayed++;
+		if (Payout == 0)        { S.BlackjackHandsLost++; } // loss
+		else if (Payout > Bet)  { S.BlackjackHandsWon++; }  // win (payout exceeds the returned bet)
+		// Payout == Bet -> push (counts as played, neither win nor loss)
+		GI->SaveProfile();
+	}
 }
 
 void ABlackjackTable::ClearCardVisuals()

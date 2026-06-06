@@ -35,6 +35,9 @@ public:
 	 */
 	virtual float ApplyHitDamage(float BaseDamage, const FVector& FromLocation);
 
+	/** Bosses count toward a separate kill stat. Overridden by ABossMonster. */
+	virtual bool IsBoss() const { return false; }
+
 protected:
 	virtual void BeginPlay() override;
 

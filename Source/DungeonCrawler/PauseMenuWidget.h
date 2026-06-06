@@ -26,6 +26,7 @@ public:
 
 private:
 	UFUNCTION() void OnResumeClicked();
+	UFUNCTION() void OnStatsClicked();
 	UFUNCTION() void OnSettingsClicked();
 	UFUNCTION() void OnQuitClicked();
 	UFUNCTION() void OnSensitivityChanged(float Value);

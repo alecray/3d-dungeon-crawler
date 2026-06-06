@@ -3,6 +3,7 @@
 #include "HealthComponent.h"
 #include "ResourceComponent.h"
 #include "StatsComponent.h"
+#include "DungeonGameInstance.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -65,6 +66,19 @@ bool UHUDWidget::Initialize()
 		PS->SetAlignment(FVector2D(0.5f, 0.f));
 		PS->SetPosition(FVector2D(0.f, 40.f));
 		PS->SetAutoSize(true);
+	}
+
+	// Version stamp, bottom-right corner.
+	UTextBlock* Version = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Version"));
+	Version->SetText(FText::FromString(UDungeonGameInstance::GetGameVersion()));
+	Version->SetColorAndOpacity(FLinearColor(0.7f, 0.7f, 0.75f, 0.6f));
+	if (FSlateFontInfo F = Version->GetFont(); true) { F.Size = 13; Version->SetFont(F); }
+	if (UCanvasPanelSlot* VS = Root->AddChildToCanvas(Version))
+	{
+		VS->SetAnchors(FAnchors(1.f, 1.f));        // bottom-right
+		VS->SetAlignment(FVector2D(1.f, 1.f));
+		VS->SetPosition(FVector2D(-14.f, -10.f));
+		VS->SetAutoSize(true);
 	}
 
 	return true;

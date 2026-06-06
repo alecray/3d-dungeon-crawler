@@ -6,6 +6,7 @@
 #include "DamageNumber.h"
 #include "ImpactBurst.h"
 #include "AttackTelegraph.h"
+#include "DungeonGameInstance.h"
 
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h" // EPathFollowingRequestResult values
@@ -542,6 +543,13 @@ void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 				PlayerStats->AddXP(XPReward);
 			}
 		}
+	}
+
+	// Tally the kill on the lifetime stats (bosses counted separately; save on boss kills since they're rare).
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(UGameplayStatics::GetGameInstance(this)))
+	{
+		if (IsBoss()) { GI->GetStats().BossesKilled++; GI->SaveProfile(); }
+		else          { GI->GetStats().MonstersKilled++; }
 	}
 
 	// Stop chasing, drop collision, and let the corpse linger briefly before cleanup.

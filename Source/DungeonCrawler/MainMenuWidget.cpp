@@ -4,6 +4,7 @@
 #include "CharacterClass.h"
 
 #include "FirstPersonCharacter.h"
+#include "StatsScreenWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -108,6 +109,7 @@ bool UMainMenuWidget::Initialize()
 	{
 		AddButton(TEXT("  Continue  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStartClicked);
 	}
+	AddButton(TEXT("  Stats  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStatsClicked);
 	AddButton(TEXT("  Settings  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnSettingsClicked);
 	AddButton(TEXT("  Quit  "), nullptr)->OnClicked.AddDynamic(this, &UMainMenuWidget::OnQuitClicked);
 
@@ -168,6 +170,19 @@ bool UMainMenuWidget::Initialize()
 	}
 	if (VolumeValueText) { VolumeValueText->SetText(FText::FromString(FString::Printf(TEXT("%d%%"), FMath::RoundToInt(Volume * 100.f)))); }
 
+	// Version stamp, bottom-right corner (matches the in-game HUD placement).
+	UTextBlock* Version = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Version"));
+	Version->SetText(FText::FromString(UDungeonGameInstance::GetGameVersion()));
+	Version->SetColorAndOpacity(FSlateColor(FLinearColor(0.6f, 0.6f, 0.65f, 0.85f)));
+	if (FSlateFontInfo F = Version->GetFont(); true) { F.Size = 14; Version->SetFont(F); }
+	if (UCanvasPanelSlot* VerS = Root->AddChildToCanvas(Version))
+	{
+		VerS->SetAnchors(FAnchors(1.f, 1.f, 1.f, 1.f));
+		VerS->SetAlignment(FVector2D(1.f, 1.f));
+		VerS->SetAutoSize(true);
+		VerS->SetPosition(FVector2D(-14.f, -10.f));
+	}
+
 	UButton* Back = WidgetTree->ConstructWidget<UButton>();
 	UTextBlock* BackText = WidgetTree->ConstructWidget<UTextBlock>();
 	BackText->SetText(FText::FromString(TEXT("  Back  ")));
@@ -210,6 +225,14 @@ void UMainMenuWidget::OnMageClicked()
 void UMainMenuWidget::OnQuitClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, /*bIgnorePlatformRestrictions*/ false);
+}
+
+void UMainMenuWidget::OnStatsClicked()
+{
+	if (UStatsScreenWidget* Stats = CreateWidget<UStatsScreenWidget>(GetOwningPlayer(), UStatsScreenWidget::StaticClass()))
+	{
+		Stats->AddToViewport(100); // overlays the menu; its Back button removes it
+	}
 }
 
 void UMainMenuWidget::OnSettingsClicked()

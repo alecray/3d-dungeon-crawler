@@ -2,6 +2,7 @@
 #include "FirstPersonCharacter.h"
 #include "DungeonGameInstance.h"
 #include "DungeonPlayerController.h"
+#include "StatsScreenWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/CanvasPanel.h"
@@ -100,6 +101,7 @@ bool UPauseMenuWidget::Initialize()
 	};
 
 	AddButton(TEXT("Resume"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnResumeClicked);
+	AddButton(TEXT("Stats"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnStatsClicked);
 	AddButton(TEXT("Settings"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnSettingsClicked);
 	AddButton(TEXT("Dev Menu"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnDevMenuClicked);
 	AddButton(TEXT("Quit"), nullptr)->OnClicked.AddDynamic(this, &UPauseMenuWidget::OnQuitClicked);
@@ -282,6 +284,14 @@ void UPauseMenuWidget::OnResumeClicked()
 	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
 	{
 		PC->ClosePauseMenu();
+	}
+}
+
+void UPauseMenuWidget::OnStatsClicked()
+{
+	if (UStatsScreenWidget* Stats = CreateWidget<UStatsScreenWidget>(GetOwningPlayer(), UStatsScreenWidget::StaticClass()))
+	{
+		Stats->AddToViewport(100); // overlays the pause menu; its Back button removes it
 	}
 }
 

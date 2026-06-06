@@ -36,6 +36,8 @@ protected:
 	void OnQuitClicked();
 
 	UFUNCTION()
+	void OnStatsClicked();
+	UFUNCTION()
 	void OnSettingsClicked();
 	UFUNCTION()
 	void OnSettingsBackClicked();

@@ -248,6 +248,9 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 boss idea:
 big clanker that eats tokens LOL
 
+later
+- add variety to floor/wall generation
+
 ---
 
 # DONE

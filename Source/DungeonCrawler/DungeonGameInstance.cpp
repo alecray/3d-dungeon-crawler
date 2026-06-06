@@ -5,11 +5,24 @@
 #include "SkillTreeComponent.h"
 #include "EquipmentComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/ConfigCacheIni.h"
 
 void UDungeonGameInstance::Init()
 {
 	Super::Init();
 	LoadProfile();
+}
+
+FString UDungeonGameInstance::GetGameVersion()
+{
+	FString Version;
+	if (GConfig)
+	{
+		GConfig->GetString(TEXT("/Script/EngineSettings.GeneralProjectSettings"),
+			TEXT("ProjectVersion"), Version, GGameIni);
+	}
+	if (Version.IsEmpty()) { Version = TEXT("0.0.0"); }
+	return FString::Printf(TEXT("v%s"), *Version);
 }
 
 void UDungeonGameInstance::CaptureFromStats(const UStatsComponent* Stats, int32 Gold)

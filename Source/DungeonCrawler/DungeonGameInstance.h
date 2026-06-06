@@ -26,6 +26,10 @@ public:
 	/** The live profile other systems read/write during play. */
 	FPlayerProfile& GetProfile() { return Profile; }
 
+	/** Lifetime play statistics (Stats screen). Increment fields directly; call SaveProfile() to persist. */
+	FPlayerStats& GetStats() { return Profile.Stats; }
+	const FPlayerStats& GetStats() const { return Profile.Stats; }
+
 	/** Copy a stats component's values into the in-memory profile. */
 	void CaptureFromStats(const UStatsComponent* Stats, int32 Gold);
 
@@ -71,6 +75,9 @@ public:
 	bool LoadProfile();
 
 	bool HasProfile() const { return Profile.bInitialized; }
+
+	/** Version string ("v0.1.N") read from DefaultGame.ini ProjectVersion, for on-screen display. */
+	static FString GetGameVersion();
 
 	/** Per-session (not saved): true once the start menu has been dismissed, so it only shows on boot. */
 	bool IsSessionStarted() const { return bSessionStarted; }

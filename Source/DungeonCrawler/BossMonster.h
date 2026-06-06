@@ -27,6 +27,8 @@ public:
 	/** Doubles damage from behind while the phase-1 back weak point is exposed. */
 	virtual float ApplyHitDamage(float BaseDamage, const FVector& FromLocation) override;
 
+	virtual bool IsBoss() const override { return true; }
+
 	/** Stable identifier for this boss type — keys the "intro already seen" save flag. */
 	FName GetBossId() const { return BossId; }
 

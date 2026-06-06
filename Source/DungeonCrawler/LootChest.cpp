@@ -2,6 +2,8 @@
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
 #include "ImpactBurst.h"
+#include "DungeonGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/BoxComponent.h"
@@ -85,6 +87,10 @@ void ALootChest::Open()
 	{
 		bOpened = true;
 		RollLoot(); // roll once, on first open
+		if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(UGameplayStatics::GetGameInstance(this)))
+		{
+			GI->GetStats().ChestsOpened++; // persisted on the next profile save
+		}
 	}
 	if (ChestMesh && OpenAnim)
 	{

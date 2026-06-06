@@ -2,6 +2,8 @@
 #include "FirstPersonCharacter.h"
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
+#include "DungeonGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -128,6 +130,14 @@ void AFishingHole::Interact(AFirstPersonCharacter* Player)
 		if (Angler.IsValid())
 		{
 			if (UInventoryComponent* Inv = Angler->GetInventoryComponent()) { Inv->AddItem(Fish, 1); }
+		}
+		if (Fish != FName(TEXT("OldBoot"))) // boots don't count as a fish
+		{
+			if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(UGameplayStatics::GetGameInstance(this)))
+			{
+				GI->GetStats().FishCaught++;
+				GI->SaveProfile();
+			}
 		}
 		State = EState::Idle;
 		BiteLeft = 0.f;

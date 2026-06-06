@@ -103,6 +103,7 @@ private:
 	UTexture2D* GetCardTexture(const FString& Stem);
 
 	void DealerPlayAndResolve();
+	void RecordHandStat(int32 Payout); // tally a resolved hand on the lifetime stats
 	void RebuildCardVisuals(); // (re)spawn the 3D cards for both hands
 	void ClearCardVisuals();
 	void SpawnCard(const FBJCard& Card, int32 IndexInRow, int32 RowCount, bool bDealerRow, bool bFaceDown);

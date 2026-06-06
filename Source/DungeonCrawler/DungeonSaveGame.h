@@ -7,6 +7,27 @@
 #include "DungeonSaveGame.generated.h"
 
 /**
+ * Lifetime play statistics, shown on the Stats screen and persisted with the profile.
+ * Add new counters here as features land (see the stats-page note) — old saves default missing ones to 0.
+ */
+USTRUCT(BlueprintType)
+struct FPlayerStats
+{
+	GENERATED_BODY()
+
+	UPROPERTY() int32 MonstersKilled = 0;
+	UPROPERTY() int32 BossesKilled = 0;
+	UPROPERTY() int32 Deaths = 0;
+	UPROPERTY() int32 GoldLooted = 0;        // total gold gained (loot + payouts)
+	UPROPERTY() int32 ChestsOpened = 0;
+	UPROPERTY() int32 FishCaught = 0;
+	UPROPERTY() int32 BlackjackHandsPlayed = 0;
+	UPROPERTY() int32 BlackjackHandsWon = 0;
+	UPROPERTY() int32 BlackjackHandsLost = 0;
+	UPROPERTY() int32 DeflectsOffWalls = 0;  // sword bounced off scenery instead of an enemy
+};
+
+/**
  * The persistent player profile carried between levels (town ⇄ dungeon) and written to disk.
  * Later phases extend this with inventory, collection log, and skill-tree allocations.
  */
@@ -34,6 +55,8 @@ struct FPlayerProfile
 	UPROPERTY() TArray<FName> Equipment;  // equipped item per paperdoll slot (NAME_None = empty)
 
 	UPROPERTY() TArray<FName> SeenBossIntros; // boss ids whose intro cinematic has already played
+
+	UPROPERTY() FPlayerStats Stats; // lifetime play statistics (Stats screen)
 
 	// Settings (pause menu).
 	UPROPERTY() float MouseSensitivity = 1.f;
