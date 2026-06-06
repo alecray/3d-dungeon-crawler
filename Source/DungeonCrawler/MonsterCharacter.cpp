@@ -7,6 +7,7 @@
 #include "ImpactBurst.h"
 #include "AttackTelegraph.h"
 #include "DungeonGameInstance.h"
+#include "Camera/PlayerCameraManager.h"
 
 #include "AIController.h"
 #include "Navigation/PathFollowingComponent.h" // EPathFollowingRequestResult values
@@ -499,20 +500,29 @@ void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, fl
 			FActorSpawnParameters P;
 			P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-			// Place the number at the impact point: on the near side of the body (toward where the hit came
-			// from), around mid-height, so it reads as landing on the enemy instead of floating overhead.
-			FVector ToSrc = LastHitFromLocation - GetActorLocation();
-			ToSrc.Z = 0.f;
-			ToSrc = ToSrc.GetSafeNormal();
-			const FVector NumberLoc = GetActorLocation()
-				+ ToSrc * GetSimpleCollisionRadius()
-				+ FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() * 0.35f);
+			// Scale the offset by the monster's visual size (BodyScale) and push toward the camera, so on a
+			// big enemy like the boss the number sits clearly above + in front of the body instead of buried
+			// inside it (the collision capsule is much smaller than the boss's visual mesh).
+			const FVector Center = GetActorLocation();
+			const float VisScale = FMath::Max(1.f, BodyScale);
+			const float UpOff = GetSimpleCollisionHalfHeight() * VisScale * 1.3f + 70.f;
+			const float OutOff = GetSimpleCollisionRadius() * VisScale + 60.f;
+
+			FVector ToView = LastHitFromLocation - Center; // fall back to the hit direction
+			if (APlayerCameraManager* Cam = UGameplayStatics::GetPlayerCameraManager(this, 0))
+			{
+				ToView = Cam->GetCameraLocation() - Center; // prefer the actual view so it's never occluded
+			}
+			ToView.Z = 0.f;
+			ToView = ToView.GetSafeNormal();
+
+			const FVector NumberLoc = Center + ToView * OutOff + FVector(0.f, 0.f, UpOff);
 			if (ADamageNumber* Num = World->SpawnActor<ADamageNumber>(ADamageNumber::StaticClass(), FTransform(NumberLoc), P))
 			{
 				Num->Init(Amount, bLastHitWeak);
 			}
 
-			const FVector ImpactLoc = GetActorLocation() + FVector(0.f, 0.f, GetSimpleCollisionHalfHeight() * 0.5f);
+			const FVector ImpactLoc = Center + ToView * OutOff + FVector(0.f, 0.f, UpOff * 0.5f);
 			// Dark-Souls-y hit spray: a small spurt of dark blood bits with almost no light flash (the old
 			// bright warm flash read as cartoony). Deferred so the config + color land before BeginPlay.
 			if (AImpactBurst* Burst = World->SpawnActorDeferred<AImpactBurst>(

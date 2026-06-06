@@ -31,7 +31,6 @@ private:
 
 	UPROPERTY() TObjectPtr<UTextBlock> DamagePopup;    // "-N" that pops over the HP bar when you take damage
 
-	UPROPERTY() TObjectPtr<UTextBlock> Crosshair;      // small always-on center "+"
 	UPROPERTY() TObjectPtr<UTextBlock> HitMarker;      // center "✕" that flashes when you land a hit
 	UPROPERTY() TObjectPtr<UTextBlock> LevelUpText;    // "LEVEL UP!" banner that flashes on level-up
 

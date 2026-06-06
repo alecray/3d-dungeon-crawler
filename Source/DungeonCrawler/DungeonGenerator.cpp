@@ -349,6 +349,30 @@ void ADungeonGenerator::DecorateRooms()
 	{
 		if (i == BossRoomIndex)
 		{
+			// The boss room is double-height (WallHeight*2) and otherwise unlit — hang a set of warm
+			// "chandelier" lights from near the ceiling so the fight reads instead of being pitch black.
+			const FVector Ctr = GetRoomCenterWorld(i);
+			const float CeilZ = Ctr.Z + WallHeight * 2.f - 200.f; // just below the ceiling
+			const FVector Offsets[] = {
+				FVector(0.f, 0.f, 0.f),
+				FVector(700.f, 700.f, 0.f), FVector(-700.f, 700.f, 0.f),
+				FVector(700.f, -700.f, 0.f), FVector(-700.f, -700.f, 0.f) };
+			for (const FVector& Off : Offsets)
+			{
+				const FVector LightLoc(Ctr.X + Off.X, Ctr.Y + Off.Y, CeilZ);
+				if (APointLight* Chandelier = World->SpawnActor<APointLight>(APointLight::StaticClass(), FTransform(LightLoc), Params))
+				{
+					if (UPointLightComponent* C = Cast<UPointLightComponent>(Chandelier->GetLightComponent()))
+					{
+						C->SetMobility(EComponentMobility::Movable);
+						C->SetLightColor(FLinearColor(1.0f, 0.82f, 0.5f)); // warm chandelier glow
+						C->SetIntensity(9000.f);
+						C->SetAttenuationRadius(2200.f);
+						C->SetCastShadows(false);
+					}
+					SpawnedActors.Add(Chandelier);
+				}
+			}
 			continue;
 		}
 		FLinearColor Color;
@@ -777,7 +801,7 @@ void ADungeonGenerator::ScatterProps()
 			case EDecor::Dining:  { const EPropType P[] = { EPropType::Barrel, EPropType::Crate, EPropType::Pots, EPropType::Bucket };      return P[Rng.RandRange(0, 3)]; }
 			case EDecor::Crypt:   { const EPropType P[] = { EPropType::Coffin, EPropType::Coffin, EPropType::Bones, EPropType::Rocks, EPropType::Cage }; return P[Rng.RandRange(0, 4)]; }
 			case EDecor::Smithy:  { const EPropType P[] = { EPropType::Anvil, EPropType::Crate, EPropType::Barrel, EPropType::Bucket };     return P[Rng.RandRange(0, 3)]; }
-			default:              { const EPropType P[] = { EPropType::Bookshelf, EPropType::Dresser, EPropType::Cabinet, EPropType::Crate, EPropType::Books }; return P[Rng.RandRange(0, 4)]; }
+			default:              { const EPropType P[] = { EPropType::Books, EPropType::Crate, EPropType::Barrel, EPropType::Pots }; return P[Rng.RandRange(0, 3)]; } // Library: only mesh-backed props (Cabinet/Dresser/Bookshelf were graybox-only — removed)
 			}
 		};
 
@@ -1174,7 +1198,11 @@ void ADungeonGenerator::SetupBossEncounter()
 			}
 			for (int32 d = 0; d < 4; ++d)
 			{
-				if (CellAt(x + DX[d], y + DY[d]) == ECell::Corridor)
+				// Seal EVERY exit: any walkable neighbour (corridor OR another room) that's outside the boss
+				// room. (Previously only corridors were caught, so a room-to-room entrance never got a door.)
+				const int32 nx = x + DX[d];
+				const int32 ny = y + DY[d];
+				if (IsFloor(nx, ny) && !IsBossRoomCell(nx, ny))
 				{
 					const FVector Outward(DX[d], DY[d], 0.f);
 					const FVector DoorLocal = CellToLocal(x, y) + Outward * HalfCell;

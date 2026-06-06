@@ -19,8 +19,7 @@ ELL = unreal.EditorLevelLibrary
 FOLDER = "TownHub"
 DUNGEON_MAP = "L_DungeonTest"
 CUBE = unreal.load_asset("/Engine/BasicShapes/Cube.Cube")
-CONE = unreal.load_asset("/Engine/BasicShapes/Cone.Cone")
-CYL = unreal.load_asset("/Engine/BasicShapes/Cylinder.Cylinder")
+TREE = unreal.load_asset("/Game/World/SM_Tree_1.SM_Tree_1")
 
 ELL.load_level("/Game/Maps/Town/L_Town")
 actors = ELL.get_all_level_actors()
@@ -96,28 +95,16 @@ def spawn_block(loc, rot, size_cm, collide, shadow, visible=True):
 
 
 def spawn_tree(cx, cy, s):
-    """A graybox tree: a cylinder trunk + two stacked foliage cones (no collision; the boundary blocks)."""
+    """Place the SM_Tree_1 mesh at the clearing edge (no collision — the invisible boundary blocks the
+    player; trees are visual). `s` is a uniform scale; tweak the ranges if the tree reads too big/small."""
     yaw = random.uniform(0.0, 360.0)
-    trunk_h = 320.0 * s
-    trunk = ELL.spawn_actor_from_class(unreal.StaticMeshActor,
-                                       unreal.Vector(cx, cy, floor_z + trunk_h * 0.5), unreal.Rotator(0, 0, yaw))
-    tc = trunk.static_mesh_component
-    tc.set_static_mesh(CYL)
-    trunk.set_actor_scale3d(unreal.Vector(0.55 * s, 0.55 * s, trunk_h / 100.0))
-    tc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
-    cfg(tc, "cast_shadow", False)
-    place(trunk)
-    base_z = floor_z + trunk_h
-    fol_h = 430.0 * s
-    for width, height, dz in ((3.4, fol_h, 0.0), (2.3, fol_h * 0.7, fol_h * 0.55)):
-        cone = ELL.spawn_actor_from_class(unreal.StaticMeshActor,
-                                          unreal.Vector(cx, cy, base_z + dz + height * 0.5), unreal.Rotator(0, 0, yaw))
-        cc = cone.static_mesh_component
-        cc.set_static_mesh(CONE)
-        cone.set_actor_scale3d(unreal.Vector(width * s, width * s, height / 100.0))
-        cc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
-        cfg(cc, "cast_shadow", False)
-        place(cone)
+    a = ELL.spawn_actor_from_class(unreal.StaticMeshActor, unreal.Vector(cx, cy, floor_z), unreal.Rotator(0, 0, yaw))
+    smc = a.static_mesh_component
+    smc.set_static_mesh(TREE)
+    a.set_actor_scale3d(unreal.Vector(s, s, s))
+    smc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    cfg(smc, "cast_shadow", True)  # real trees cast shadows so the clearing reads with depth
+    place(a)
 
 
 # ===== 1) Open-sky backdrop =====

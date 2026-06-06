@@ -70,20 +70,6 @@ bool UHUDWidget::Initialize()
 		PS->SetAutoSize(true);
 	}
 
-	// Center crosshair ("+"), always on.
-	Crosshair = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Crosshair"));
-	Crosshair->SetText(FText::FromString(TEXT("+")));
-	Crosshair->SetJustification(ETextJustify::Center);
-	Crosshair->SetColorAndOpacity(FLinearColor(1.f, 1.f, 1.f, 0.55f));
-	if (FSlateFontInfo F = Crosshair->GetFont(); true) { F.Size = 22; Crosshair->SetFont(F); }
-	if (UCanvasPanelSlot* CS = Root->AddChildToCanvas(Crosshair))
-	{
-		CS->SetAnchors(FAnchors(0.5f, 0.5f));
-		CS->SetAlignment(FVector2D(0.5f, 0.5f));
-		CS->SetPosition(FVector2D(0.f, 0.f));
-		CS->SetAutoSize(true);
-	}
-
 	// Hit marker ("✕"), centered, flashes when a hit lands.
 	HitMarker = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("HitMarker"));
 	HitMarker->SetText(FText::FromString(TEXT("✕")));
