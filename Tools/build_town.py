@@ -19,6 +19,8 @@ ELL = unreal.EditorLevelLibrary
 FOLDER = "TownHub"
 DUNGEON_MAP = "L_DungeonTest"
 CUBE = unreal.load_asset("/Engine/BasicShapes/Cube.Cube")
+CONE = unreal.load_asset("/Engine/BasicShapes/Cone.Cone")
+CYL = unreal.load_asset("/Engine/BasicShapes/Cylinder.Cylinder")
 
 ELL.load_level("/Game/Maps/Town/L_Town")
 actors = ELL.get_all_level_actors()
@@ -77,7 +79,7 @@ def has_class(cls):
     return any(isinstance(a, cls) for a in actors)
 
 
-def spawn_block(loc, rot, size_cm, collide, shadow):
+def spawn_block(loc, rot, size_cm, collide, shadow, visible=True):
     a = ELL.spawn_actor_from_class(unreal.StaticMeshActor, loc, rot)
     smc = a.static_mesh_component
     smc.set_static_mesh(CUBE)
@@ -88,7 +90,34 @@ def spawn_block(loc, rot, size_cm, collide, shadow):
     else:
         smc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
     cfg(smc, "cast_shadow", shadow)
+    if not visible:
+        smc.set_visibility(False)  # invisible barrier (collision stays) — hidden behind the tree line
     return place(a)
+
+
+def spawn_tree(cx, cy, s):
+    """A graybox tree: a cylinder trunk + two stacked foliage cones (no collision; the boundary blocks)."""
+    yaw = random.uniform(0.0, 360.0)
+    trunk_h = 320.0 * s
+    trunk = ELL.spawn_actor_from_class(unreal.StaticMeshActor,
+                                       unreal.Vector(cx, cy, floor_z + trunk_h * 0.5), unreal.Rotator(0, 0, yaw))
+    tc = trunk.static_mesh_component
+    tc.set_static_mesh(CYL)
+    trunk.set_actor_scale3d(unreal.Vector(0.55 * s, 0.55 * s, trunk_h / 100.0))
+    tc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    cfg(tc, "cast_shadow", False)
+    place(trunk)
+    base_z = floor_z + trunk_h
+    fol_h = 430.0 * s
+    for width, height, dz in ((3.4, fol_h, 0.0), (2.3, fol_h * 0.7, fol_h * 0.55)):
+        cone = ELL.spawn_actor_from_class(unreal.StaticMeshActor,
+                                          unreal.Vector(cx, cy, base_z + dz + height * 0.5), unreal.Rotator(0, 0, yaw))
+        cc = cone.static_mesh_component
+        cc.set_static_mesh(CONE)
+        cone.set_actor_scale3d(unreal.Vector(width * s, width * s, height / 100.0))
+        cc.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+        cfg(cc, "cast_shadow", False)
+        place(cone)
 
 
 # ===== 1) Open-sky backdrop =====
@@ -125,26 +154,27 @@ if fogc:
     cfg(fogc, "start_distance", 2500.0)  # fog inscattering color is left default — tweak in-editor
 place(fog, label="HeightFog")
 
-# ===== 2) Boundary walls (square ring around the play area) =====
-half, wall_h, wall_t = 1600.0, 600.0, 80.0
+# ===== 2) Invisible boundary ring (collision only) — hidden behind the tree line =====
+half, wall_h, wall_t = 1600.0, 700.0, 80.0
 span = half * 2.0 + wall_t
 cz = floor_z + wall_h * 0.5
-spawn_block(sl + fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False)
-spawn_block(sl - fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False)
-spawn_block(sl + right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False)
-spawn_block(sl - right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False)
+spawn_block(sl + fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False)
+spawn_block(sl - fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False)
+spawn_block(sl + right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False, visible=False)
+spawn_block(sl - right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False, visible=False)
 
-# ===== 3) Distant vista ring (silhouettes, no collision/shadow) =====
+# ===== 3) Forest enclosing the clearing (dense near tree line + sparser deeper trees) =====
 random.seed(1337)
-N = 18
-for i in range(N):
-    ang = (2.0 * math.pi * i) / N + random.uniform(-0.06, 0.06)
-    radius = random.uniform(6500.0, 9500.0)
-    h = random.uniform(1400.0, 4200.0)
-    w = random.uniform(900.0, 2400.0)
-    loc = unreal.Vector(sl.x + math.cos(ang) * radius, sl.y + math.sin(ang) * radius, floor_z + h * 0.5)
-    rot = unreal.Rotator(0.0, 0.0, math.degrees(ang) + random.uniform(-20.0, 20.0))
-    spawn_block(loc, rot, unreal.Vector(w, w * random.uniform(0.6, 1.2), h), False, False)
+# Near ring: a dense wall of trees just outside the boundary = the edge of the clearing.
+for i in range(56):
+    ang = (2.0 * math.pi * i) / 56 + random.uniform(-0.05, 0.05)
+    r = random.uniform(1850.0, 2550.0)
+    spawn_tree(sl.x + math.cos(ang) * r, sl.y + math.sin(ang) * r, random.uniform(0.8, 1.4))
+# Deeper forest: bigger + sparser, receding into the distance for depth.
+for i in range(34):
+    ang = random.uniform(0.0, 2.0 * math.pi)
+    r = random.uniform(2750.0, 6000.0)
+    spawn_tree(sl.x + math.cos(ang) * r, sl.y + math.sin(ang) * r, random.uniform(1.3, 2.4))
 
 # ===== 4) Hub stations (skip any class already placed) =====
 def station(cls, fwd_cm, right_cm, label):
@@ -164,8 +194,9 @@ station(unreal.FishingHole, -350.0, 700.0, "FishingHole")
 station(unreal.Bonfire, 250.0, 0.0, "Bonfire")
 
 # ===== 5) Scenery scatter =====
-scatter = [unreal.PropType.BARREL, unreal.PropType.CRATE, unreal.PropType.POTS,
-           unreal.PropType.BONES, unreal.PropType.BUCKET, unreal.PropType.ROCKS]
+# Lean natural for a forest clearing (rocks/mushrooms/bones), with a couple of crates/barrels by the stalls.
+scatter = [unreal.PropType.ROCKS, unreal.PropType.MUSHROOMS, unreal.PropType.ROCKS,
+           unreal.PropType.BONES, unreal.PropType.MUSHROOMS, unreal.PropType.CRATE, unreal.PropType.BARREL]
 random.seed(99)
 for i in range(10):
     fc = random.uniform(-1100.0, 1100.0)
