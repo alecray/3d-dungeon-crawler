@@ -35,7 +35,8 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<USceneComponent> Root;
-	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Water;   // interact target
+	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> HoleMesh; // real art (SM_Fishing_Hole)
+	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Water;   // interact target (invisible once art is in)
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Bobber;  // on the water while cast
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> CaughtFish; // shown briefly on a catch
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UTextRenderComponent> StatusText3D;

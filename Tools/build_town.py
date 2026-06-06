@@ -80,7 +80,7 @@ def has_class(cls):
     return any(isinstance(a, cls) for a in actors)
 
 
-def spawn_block(loc, rot, size_cm, collide, shadow, visible=True):
+def spawn_block(loc, rot, size_cm, collide, shadow, visible=True, label=None):
     a = ELL.spawn_actor_from_class(unreal.StaticMeshActor, loc, rot)
     smc = a.static_mesh_component
     smc.set_static_mesh(CUBE)
@@ -93,7 +93,7 @@ def spawn_block(loc, rot, size_cm, collide, shadow, visible=True):
     cfg(smc, "cast_shadow", shadow)
     if not visible:
         smc.set_visibility(False)  # invisible barrier (collision stays) — hidden behind the tree line
-    return place(a)
+    return place(a, label=label)
 
 
 def spawn_tree(cx, cy, s):
@@ -144,13 +144,14 @@ if fogc:
 place(fog, label="HeightFog")
 
 # ===== 2) Invisible boundary ring (collision only) — hidden behind the tree line =====
+# Labeled Boundary1..4 so they're easy to find in the World Outliner (names persist across re-runs).
 half, wall_h, wall_t = CLEARING_HALF, 700.0, 80.0
 span = half * 2.0 + wall_t
 cz = floor_z + wall_h * 0.5
-spawn_block(sl + fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False)
-spawn_block(sl - fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False)
-spawn_block(sl + right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False, visible=False)
-spawn_block(sl - right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False, visible=False)
+spawn_block(sl + fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False, label="Boundary1")
+spawn_block(sl - fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False, label="Boundary2")
+spawn_block(sl + right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False, visible=False, label="Boundary3")
+spawn_block(sl - right * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(span, wall_t, wall_h), True, False, visible=False, label="Boundary4")
 
 # ===== 3) Forest enclosing the clearing (dense near tree line + sparser deeper trees) =====
 random.seed(1337)

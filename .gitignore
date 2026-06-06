@@ -79,3 +79,7 @@ Screenshots/
 
 # Runtime-baked item icon cache (regenerated on play)
 Content/Images/ItemIcons/
+
+# Python bytecode cache (Tools/)
+__pycache__/
+*.pyc

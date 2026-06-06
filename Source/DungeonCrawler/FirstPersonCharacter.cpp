@@ -147,8 +147,11 @@ void AFirstPersonCharacter::BeginPlay()
 	}
 	if (!StaffSkeletalAsset)
 	{
-		// Conventional path; absent for now (graybox), so the mage just has no held mesh until art lands.
 		StaffSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/SK_Staff.SK_Staff")).TryLoad());
+	}
+	if (!StaffCastAnim)
+	{
+		StaffCastAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")).TryLoad());
 	}
 
 	if (Health)
@@ -595,6 +598,7 @@ void AFirstPersonCharacter::UseAbility(const FInputActionValue& /*Value*/)
 	case EActiveAbility::Nova:
 		if (Mana && Mana->Spend(30.f))
 		{
+			if (SwordMesh && StaffCastAnim) { SwordMesh->PlayAnimation(StaffCastAnim, false); }
 			PerformAreaBurst(400.f, ProjectileDamage * 2.f * (Stats ? Stats->GetSpellDamageMult() : 1.f));
 			AbilityReadyTime.Add(Ability, Now + 7.f);
 		}
@@ -1026,7 +1030,28 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		if (Mana && Mana->Spend(SpellManaCost * (1.f - FMath::Clamp(Mods.ManaCostPct, 0.f, 0.8f))))
 		{
 			LastAttackTime = Now;
-			FireProjectile(ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f), Mods.ExtraProjectiles);
+			if (SwordMesh && StaffCastAnim) { SwordMesh->PlayAnimation(StaffCastAnim, false); }
+
+			// Release the bolt on frame 9 of the cast anim so it leaves the staff in sync with the gesture
+			// (falls back to an immediate cast if the clip is missing/shorter than the release frame).
+			const float SpellDamage = ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f);
+			const int32 ExtraBolts = Mods.ExtraProjectiles;
+			float CastDelay = 0.f;
+			if (StaffCastAnim)
+			{
+				const double Fps = StaffCastAnim->GetSamplingFrameRate().AsDecimal();
+				const float SafeFps = (Fps > 1.0) ? (float)Fps : 30.f;
+				CastDelay = FMath::Clamp(9.f / SafeFps, 0.f, StaffCastAnim->GetPlayLength());
+			}
+			if (CastDelay > 0.f)
+			{
+				FTimerDelegate Del = FTimerDelegate::CreateUObject(this, &AFirstPersonCharacter::FireProjectile, SpellDamage, ExtraBolts, /*bFireball*/ true);
+				World->GetTimerManager().SetTimer(MageCastTimer, Del, CastDelay, false);
+			}
+			else
+			{
+				FireProjectile(SpellDamage, ExtraBolts, /*bFireball*/ true);
+			}
 		}
 		else { FlagManaDenied(); }
 		break;
@@ -1161,7 +1186,7 @@ void AFirstPersonCharacter::PlayMeleeDeflect(const FVector& ImpactPoint)
 	}
 }
 
-void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
+void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles, bool bFireball)
 {
 	UWorld* World = GetWorld();
 	if (!World || !FirstPersonCamera || !ProjectileClass)
@@ -1188,6 +1213,7 @@ void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles)
 		const FVector SpawnLoc = SpawnOrigin + Dir * 60.f;
 		if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), SpawnLoc), P))
 		{
+			if (bFireball) { Proj->EnableFireballVisual(); } // mage casts only
 			Proj->Launch(Dir, Damage, this);
 		}
 	}

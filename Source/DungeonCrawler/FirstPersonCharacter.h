@@ -135,6 +135,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<USkeletalMesh> StaffSkeletalAsset;
 
+	/** Staff spell-cast animation. Defaults to /Game/Weapons/Staff/A_Staff_Cast. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
+	TObjectPtr<UAnimSequence> StaffCastAnim;
+
 	// ---- Ranged / mage ----
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TSubclassOf<AProjectile> ProjectileClass;
@@ -324,9 +328,11 @@ private:
 	/** Plays the deflect/bounce reaction when a swing hits a solid non-damageable surface. */
 	void PlayMeleeDeflect(const FVector& ImpactPoint);
 	FTimerHandle MeleeHitTimer;
+	/** Delays the mage spell bolt until the cast animation's release frame (see Attack/Mage). */
+	FTimerHandle MageCastTimer;
 
 	/** Briefly slows global time for impact "hit-stop" (restored after Duration real seconds). */
-	void TriggerHitStop(float Duration = 0.165f, float Dilation = 0.04f); // ~3x (was 0.055) for a punchier hit
+	void TriggerHitStop(float Duration = 0.1155f, float Dilation = 0.04f); // 0.165 - 30% (was 0.055; bumped 3x, then trimmed)
 	/** Plays the short combat camera-kick shake at the given scale. */
 	void CameraKick(float Scale);
 
@@ -334,7 +340,7 @@ private:
 	bool bHitStopActive = false;
 	float HitStopRealLeft = 0.f;
 	/** Fires the center bolt plus ExtraProjectiles additional bolts in a horizontal spread. */
-	void FireProjectile(float Damage, int32 ExtraProjectiles = 0);
+	void FireProjectile(float Damage, int32 ExtraProjectiles = 0, bool bFireball = false);
 
 	/** Push current stats into the GameInstance profile and write it to disk. */
 	void PersistProfile();

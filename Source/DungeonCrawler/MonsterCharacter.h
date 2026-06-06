@@ -155,7 +155,7 @@ protected:
 	    strike reads as a forward swipe instead of a ring under the body. Center = this fraction of reach in
 	    front; radius = this fraction of reach. */
 	float AttackZoneForwardFrac = 0.7f;
-	float AttackZoneRadiusFrac = 0.85f;
+	float AttackZoneRadiusFrac = 0.425f; // halved from 0.85 — hit radius was too large
 
 	UPROPERTY()
 	TObjectPtr<UStaticMesh> CubeMesh;

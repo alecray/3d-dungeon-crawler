@@ -2,37 +2,20 @@
 
 > Open / untested work is up top. Completed items are in **Done** at the bottom.
 
-- feature request: make the starting room always a "safe room" so it has a bonfire in it that i can test
-- todo: reduce the # of chests that spawn. theres way too many at the moment. maybe we have them only spawn in the dedicated treasure room?
-- todo: add settings menu to title screen
-- todo: add stats page. monsters killed, bosses killed, fish caught, hands gambled, hands won/lost, gold looted, etc etc
+# OPEN
 
-## From the test plan — items I marked "?" (need work)
-- boss danger disc: make it **bigger** (tune after the telegraph location is fixed — DONE; tune `AttackZoneRadiusFrac`)
-- boss doors: still **not sealing** (maybe because I teleport in?) — make them close **when the boss spawns**; confirm the camera focus works; on death the doors sink + the return portal activates at a back corner
-- boss movement: improve the **scuttle** — circle at distance longer, then rush in for a few attacks, and back off to scuttle again if it whiffs
-- boss navmesh hand-off: needs **walls in the boss arena** to actually test pathing around cover
-- footstep dust: I don't see any — verify it's still spawning (it was too bright once); keep it a subtle puff
-- hit-stop: **triple it** so I can see how it feels
-- room theming: only *sorta* themed — improve coherence + the prop clusters
-- treasure room: dial it in (ties into the chest-count todo above)
-- generation variety: more **Diablo-style** — random room sizes/shapes, more dead ends + loops, less samey; bigger map if perf allows
-- item icons + potions: the 3D thumbnails need a lot of improvement
-- paperdoll drag-drop: dragging and missing drops items on the floor — only drop when dragged **fully out** of the inventory; dropping on a slot that rejects it should **return the item to its original slot**
----
+## Near-term / needs tuning
+- [ ] Boss danger disc — make it **bigger** (tune `AttackZoneRadiusFrac`).
+- [ ] Boss navmesh hand-off — needs **walls in the boss arena** to actually test pathing around cover.
+- [ ] Footstep dust — I don't always see any; verify it's still spawning (it was too bright once). Keep it a subtle puff.
+- [ ] Room theming — only *sorta* themed; improve coherence + the prop clusters.
+- [ ] Item icons + potions — the 3D thumbnails need a lot of improvement.
+- [ ] Settings menu on the title screen.
 
 ## Notes / reminders
 - [ ] checkout rtk-ai
 
----
-
-# OPEN
-
 ## Gameplay
-
-- give one of the bosses a receptionist
-      maybe even play elevator music when you walk inside
-      and then you get told to take a seat
 
 - [ ] Adjust the death flow (DESIGN DECISION pending) — currently death keeps all progression and
       reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
@@ -177,8 +160,17 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 - [ ] Niagara replacements for: impact spark bursts (`AImpactBurst`), ambient dust (`AAmbientDust`),
       death poof (`ADeathPoof`), level-up burst, loot beams (`AItemPickup`), **boss spawn-in**
       (`ABossSpawnVFX` — pairs with the dissolve shader option B above), and the batch-3 effects above.
-- [ ] Add the Niagara plugin/module dependency and a small helper to spawn a system at a transform with
-      a tint param, so each call site is a one-liner.
+- [~] **Mage fireball art (`NS_Fireball` + `NS_FireballImpact`)** — the mage spell bolt (`AProjectile`)
+      currently shows a **Tier 0** code-driven look: an emissive orange orb + flickering point light (no
+      assets). The C++ is already scaffolded for the art (`AProjectile::EnableFireballVisual`): author a
+      Niagara system at **`/Game/VFX/NS_Fireball`** (in-flight: glowing core + additive fire material +
+      ember/spark trail + ribbon) and a hit burst at **`/Game/VFX/NS_FireballImpact`**. They auto-load by
+      path — once they exist the orb is hidden, the system plays in-flight, and the burst spawns on hit;
+      **no code change needed**. (Research notes: stylized = simple additive panner/SubUV, not fluid sim;
+      Infinity Blade: Effects has free fire textures. Optional later: charge-up VFX over cast frames 0-9.)
+- [ ] Niagara plugin/module dependency — **done** (`Niagara` added to `DungeonCrawler.Build.cs` for the
+      fireball). Still TODO: a small helper to spawn a system at a transform with a tint param so each
+      call site is a one-liner.
 
 ## Foundation / infrastructure (NOT gameplay or content — the missing plumbing)
 
@@ -214,21 +206,7 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
   - Tabletop: candles & candlesticks, plates/bowls, mugs/tankards, bottles & flasks,
     books/scrolls, quill + inkpot, food (bread, cheese, apple), coin stacks, gems,
     potion vials, maps/parchment, dice, knives, small pouches
-
-  models to make later:
-  - sacks
-  - broken pottery shards
-  - hay piles
-  - candelabra/floor candlesticks
-  - lantern
-  - chains
-  - cobwebs
-  - rugs/carpets
-  - statues
-  - gravestones
-  - cage (idk what happened here it wouldnt import, blend has been started)
-  - ladder
-  - coin/treasure piles
+  - (more models to make are listed in `ideas.md`)
 
 ## UI
 
@@ -241,28 +219,27 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 
 - [ ] Ambient music (dungeon background track; later boss-fight / town variants)
 
-## Monster ideas
-- eel
-- manta ray / sting ray
-- ant eater boss
-- goat
-- bear
-- dog
-- monkey
-- snake
-- squirrel
-
-boss idea:
-big clanker that eats tokens LOL
-
-later
-- add variety to floor/wall generation
+> Brainstorm / unscoped ideas (monsters, boss concepts, models to make) now live in `ideas.md`.
 
 ---
 
 # DONE
 
 ## Gameplay / combat
+- [x] **Stats page** — `FPlayerStats` on the profile: monsters/bosses killed, deaths, gold looted, chests
+      opened, fish caught, blackjack hands/won/lost (+ win rate), wall deflects. Reachable from the title
+      screen + pause menu; counters incremented at each gameplay site and persisted with the profile.
+- [x] **Safe starting room** — the start room is always a Rest room (bonfire, no monsters/traps/chests) for testing.
+- [x] **Chest spam fixed** — chests now spawn only in Treasure/Elite rooms (no more chests everywhere).
+- [x] **Generation variety** — bigger map (48→64), more rooms (8→13), wider room sizes (3–13), and additive
+      loop corridors (`LoopFraction`) so layouts branch/loop instead of a single chain.
+- [x] **Boss doors seal** — doors spawn `AlwaysSpawn` so they aren't shoved off the doorway; DevTeleportToBoss
+      now force-starts the encounter (`ABossArena::ForceStart`) so doors seal + intro fire even when teleporting in.
+- [x] **Boss scuttle rework** — orbit the player at ~`PreferredScuttleDist` for `ScuttleTime`, rush in, then
+      Retreat and circle again (new `EMoveState::Retreat` + tunables). Less beelining.
+- [x] **Drag-drop fix** — `UInventoryWidget::NativeOnDrop` absorbs in-window misses so the item returns to its
+      slot; only drops outside the window fall through to the world-drop path.
+- [x] **Hit-stop tuned** — bumped 3× (0.055 → 0.165s) for punch, then trimmed 30% to 0.1155s for feel.
 - [x] **Boss attack telegraph forward** — the danger disc (and the actual hit) is now a forward swipe zone
       pushed along the boss's facing and frozen at swing start (telegraph + impact stay in sync), instead of a
       ring centered under the body. Tunables: `AttackZoneForwardFrac` / `AttackZoneRadiusFrac` (MonsterCharacter).

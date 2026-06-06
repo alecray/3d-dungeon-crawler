@@ -19,7 +19,8 @@ public class DungeonCrawler : ModuleRules
 			"Slate",
 			"SlateCore",
 			"GameplayTags",
-			"ImageWrapper"
+			"ImageWrapper",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });

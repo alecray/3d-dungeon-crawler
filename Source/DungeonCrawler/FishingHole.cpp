@@ -30,7 +30,20 @@ AFishingHole::AFishingHole()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereFinder.Succeeded()) { Sphere = SphereFinder.Object; }
 
-	// Graybox water pool — the interact line-trace target (blocks Visibility only, so it doesn't wall the player).
+	// Real fishing-hole art (the pool/basin). Swaps in over the graybox; null until the model exists.
+	UStaticMesh* HoleArt = nullptr;
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> HoleFinder(TEXT("/Game/World/SM_Fishing_Hole.SM_Fishing_Hole"));
+	if (HoleFinder.Succeeded()) { HoleArt = HoleFinder.Object; }
+
+	HoleMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HoleMesh"));
+	HoleMesh->SetupAttachment(Root);
+	if (HoleArt) { HoleMesh->SetStaticMesh(HoleArt); }
+	HoleMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // purely visual; interaction stays on Water
+	HoleMesh->SetVisibility(HoleArt != nullptr);
+
+	// Water pool. When the real art is present this becomes an INVISIBLE interact-trace proxy (its known-good
+	// box collision keeps the cast/reel line-trace reliable regardless of the art's own collision); when the
+	// art is missing it's the blue graybox cube. Blocks Visibility only, so it never walls the player.
 	Water = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Water"));
 	Water->SetupAttachment(Root);
 	if (Cube) { Water->SetStaticMesh(Cube); }
@@ -39,6 +52,7 @@ AFishingHole::AFishingHole()
 	Water->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Water->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Water->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	Water->SetVisibility(HoleArt == nullptr); // hide the graybox cube once the real hole is in
 
 	// Bobber — sits on the water while a line is cast (hidden otherwise).
 	Bobber = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Bobber"));

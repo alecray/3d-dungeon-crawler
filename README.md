@@ -5,9 +5,13 @@ graybox so Blender assets can drop in later without code changes.
 
 ## Running
 
+> Path placeholders used below: **`<UE>`** = your Unreal Engine 5.7 install root (the folder containing
+> `Engine\`, e.g. `C:\Program Files\Epic Games\UE_5.7`); **`<PROJECT>`** = this repository's root (the
+> folder containing `DungeonCrawler.uproject`). Substitute your own locations.
+
 1. Build the editor target:
    ```
-   "Z:\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" DungeonCrawlerEditor Win64 Development -project="%CD%\DungeonCrawler.uproject" -waitmutex
+   "<UE>\Engine\Build\BatchFiles\Build.bat" DungeonCrawlerEditor Win64 Development -project="%CD%\DungeonCrawler.uproject" -waitmutex
    ```
 2. Open `DungeonCrawler.uproject` in Unreal Editor, then **Play**. The game mode builds the whole
    world at runtime — any empty level works; no map asset is needed.
@@ -17,6 +21,85 @@ graybox so Blender assets can drop in later without code changes.
 log, **K** for the skill tree, **1–8** to select the hotbar slot (swaps the held weapon), **Q** to use
 your unlocked active ability, **E** to interact with chests / pickups / NPCs / portals, **Esc** for the
 pause menu (Resume / Settings / **Dev Menu** / Quit). The full list is also in the pause → Settings panel.
+
+## Importing meshes (`Tools/import_meshes.py`)
+
+Reusable FBX **import pipelines** so you never have to re-toggle import settings between static and
+skeletal meshes again. It defines one locked-in preset for each type (static / skeletal), plus
+single-file and batch helpers. Defaults suit this project: Blender FBX exports (normals imported, not
+recomputed), Nanite **off** on static meshes, materials + textures imported, auto-collision on statics,
+morph targets on skeletals, optional skeleton reuse. All the shared knobs live in one `CONFIG` block at
+the top of the script — set your preferences once and both pipelines follow.
+
+**In-editor** (Output Log → Cmd bar set to *Python*):
+
+```python
+import importlib, import_meshes; importlib.reload(import_meshes)
+import_meshes.import_static(r"<PROJECT>\blends\world\SM_Tree.fbx", "/Game/World")
+import_meshes.import_skeletal(r"...\SK_Staff.fbx", "/Game/Weapons/Staff",
+                              skeleton="/Game/Weapons/Staff/SKEL_Staff")  # reuse a skeleton (optional)
+import_meshes.import_folder(r"...\blends\world", "/Game/World", kind="static")  # batch a folder
+```
+
+(For `import import_meshes` to resolve, add `Tools/` under **Project Settings → Plugins → Python →
+Additional Paths**, or run the full path once: `py "<PROJECT>/Tools/import_meshes.py"`.)
+
+**Headless** (editor closed) — **use forward slashes**, backslashes mangle the path (`\3` gets eaten):
+
+```
+"<UE>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<PROJECT>/DungeonCrawler.uproject" ^
+    -run=pythonscript -script="<PROJECT>/Tools/import_meshes.py static <PROJECT>/blends/.../SM_Foo.fbx /Game/World" ^
+    -unattended -nopause -nosplash
+```
+
+`-script` args: `static <fbx> <dest>` · `skeletal <fbx> <dest> [skeletonAssetPath]` ·
+`folder <srcDir> <dest> <static|skeletal>`. (Headless argv splits on spaces, so the **paths themselves
+must not contain spaces**; for spaced paths call the functions from a small runner `.py` instead.)
+
+**Adding another import pipeline** (e.g. animation-only, or a variant with different settings):
+
+1. Add a builder that returns a configured `unreal.FbxImportUI`, mirroring `build_static_options()` /
+   `build_skeletal_options()`. Set the type (`mesh_type_to_import` + `import_as_skeletal`/`import_mesh`/
+   `import_animations`) and tune the per-type data object (`static_mesh_import_data` /
+   `skeletal_mesh_import_data` / `anim_sequence_import_data`). Use the `_set()` helper — it logs-and-skips
+   any property name that differs in this engine build instead of crashing.
+2. Add a thin wrapper like `import_static()` that calls `_run(fbx, dest, your_options())`.
+3. Put any knob you want shared across pipelines in the `CONFIG` dict at the top.
+4. (Optional) add a verb to `_main()` so it's callable headlessly.
+
+> Note: this uses the legacy `FbxImportUI` path (stable + scriptable in UE 5.7). If a setting is ever
+> ignored, the script logs which property it skipped — switch that pipeline to the Interchange API if needed.
+
+## Building the town (`Tools/build_town.py`)
+
+The town hub level (`/Game/Maps/Town/L_Town`) is **authored by a headless Python script**, not spawned
+at runtime — `ATownGameMode` only ensures fallback lighting. Running the script (re)builds the whole
+clearing as placed, editable actors in `L_Town`: open-sky backdrop (SkyAtmosphere + atmosphere sun +
+real-time-capture SkyLight + height fog), the **invisible boundary ring** that keeps the player in, the
+enclosing forest (tree line + deeper trees), a distant vista ring, the hub stations (Shop / Blackjack /
+Fishing / enter-dungeon Portal / Bonfire), and scatter scenery.
+
+Run it with the editor **closed**:
+
+```
+"<UE>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<PROJECT>/DungeonCrawler.uproject" ^
+    -run=pythonscript -script="<PROJECT>/Tools/build_town.py" -unattended -nopause -nosplash
+```
+
+Key things to know:
+
+- **One knob sizes everything:** `CLEARING_HALF` (cm, default `1100` ≈ 22 m square) drives the boundary,
+  tree ring, station spacing, and scatter. Lower it to shrink the clearing, then re-run.
+- **Everything is anchored to the `PlayerStart`** and filed under the World Outliner folder **`TownHub`**.
+- **It's destructive-but-scoped:** on each run it deletes only actors already in the `TownHub` folder and
+  respawns them — so it won't touch hand-placed actors you keep outside that folder, but **manual edits to
+  `TownHub` actors are lost on re-run.** Save `L_Town` after a run; only re-run when you want to regenerate.
+- **The boundary** is four invisible `BlockAll` boxes (collision on, visibility off), labeled
+  **`Boundary1`–`Boundary4`**, hidden behind the tree line (the trees themselves have no collision). Toggle
+  the viewport collision view (Alt+C) to see them. See the "town clearing" note for resizing.
+
+(Other `Tools/*.py` headless scripts follow the same invocation pattern — e.g. `disable_nanite.py`,
+`place_blackjack.py`, `make_card_material.py`, `add_emissive_to_mbase.py`.)
 
 ## Core Feature Plan
 
