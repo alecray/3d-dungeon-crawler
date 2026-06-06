@@ -18,6 +18,8 @@ import unreal
 ELL = unreal.EditorLevelLibrary
 FOLDER = "TownHub"
 DUNGEON_MAP = "L_DungeonTest"
+CLEARING_HALF = 1100.0  # play-area half-extent in cm — the WHOLE clearing (boundary, tree ring, stations,
+                        # scatter) scales from this one knob. Lower it to shrink the clearing. (~22m square)
 CUBE = unreal.load_asset("/Engine/BasicShapes/Cube.Cube")
 TREE = unreal.load_asset("/Game/World/SM_Tree_1.SM_Tree_1")
 
@@ -142,7 +144,7 @@ if fogc:
 place(fog, label="HeightFog")
 
 # ===== 2) Invisible boundary ring (collision only) — hidden behind the tree line =====
-half, wall_h, wall_t = 1600.0, 700.0, 80.0
+half, wall_h, wall_t = CLEARING_HALF, 700.0, 80.0
 span = half * 2.0 + wall_t
 cz = floor_z + wall_h * 0.5
 spawn_block(sl + fwd * half + unreal.Vector(0, 0, cz - sl.z), sr, unreal.Vector(wall_t, span, wall_h), True, False, visible=False)
@@ -155,12 +157,12 @@ random.seed(1337)
 # Near ring: a dense wall of trees just outside the boundary = the edge of the clearing.
 for i in range(56):
     ang = (2.0 * math.pi * i) / 56 + random.uniform(-0.05, 0.05)
-    r = random.uniform(1850.0, 2550.0)
+    r = CLEARING_HALF + random.uniform(250.0, 950.0)
     spawn_tree(sl.x + math.cos(ang) * r, sl.y + math.sin(ang) * r, random.uniform(0.8, 1.4))
 # Deeper forest: bigger + sparser, receding into the distance for depth.
 for i in range(34):
     ang = random.uniform(0.0, 2.0 * math.pi)
-    r = random.uniform(2750.0, 6000.0)
+    r = CLEARING_HALF + random.uniform(1150.0, 4400.0)
     spawn_tree(sl.x + math.cos(ang) * r, sl.y + math.sin(ang) * r, random.uniform(1.3, 2.4))
 
 # ===== 4) Hub stations (skip any class already placed) =====
@@ -171,24 +173,27 @@ def station(cls, fwd_cm, right_cm, label):
     loc = hub_point(fwd_cm, right_cm)
     return place(ELL.spawn_actor_from_class(cls, loc, face_start(loc)), label=label)
 
-portal = station(unreal.Portal, 750.0, 0.0, "EnterDungeonPortal")
+# Station positions are fractions of the clearing half-extent so they re-space when it's resized.
+H = CLEARING_HALF
+portal = station(unreal.Portal, 0.66 * H, 0.0, "EnterDungeonPortal")
 if portal:
     cfg(portal, "target_map_name", DUNGEON_MAP)
     cfg(portal, "b_active", True)
-station(unreal.ShopNPC, 420.0, -620.0, "Shop")
-station(unreal.BlackjackTable, 420.0, 620.0, "Blackjack")
-station(unreal.FishingHole, -350.0, 700.0, "FishingHole")
-station(unreal.Bonfire, 250.0, 0.0, "Bonfire")
+station(unreal.ShopNPC, 0.38 * H, -0.56 * H, "Shop")
+station(unreal.BlackjackTable, 0.38 * H, 0.56 * H, "Blackjack")
+station(unreal.FishingHole, -0.32 * H, 0.62 * H, "FishingHole")
+station(unreal.Bonfire, 0.22 * H, 0.0, "Bonfire")
 
 # ===== 5) Scenery scatter =====
 # Lean natural for a forest clearing (rocks/mushrooms/bones), with a couple of crates/barrels by the stalls.
 scatter = [unreal.PropType.ROCKS, unreal.PropType.MUSHROOMS, unreal.PropType.ROCKS,
            unreal.PropType.BONES, unreal.PropType.MUSHROOMS, unreal.PropType.CRATE, unreal.PropType.BARREL]
 random.seed(99)
+scatter_reach = CLEARING_HALF * 0.85
 for i in range(10):
-    fc = random.uniform(-1100.0, 1100.0)
-    rc = random.uniform(-1100.0, 1100.0)
-    if abs(fc) < 250.0 and abs(rc) < 250.0:
+    fc = random.uniform(-scatter_reach, scatter_reach)
+    rc = random.uniform(-scatter_reach, scatter_reach)
+    if abs(fc) < CLEARING_HALF * 0.22 and abs(rc) < CLEARING_HALF * 0.22:
         continue
     loc = hub_point(fc, rc)
     rot = unreal.Rotator(0.0, 0.0, random.uniform(0.0, 360.0))
