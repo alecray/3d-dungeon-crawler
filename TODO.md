@@ -15,6 +15,10 @@ unsorted todo shortlist:
 - [ ] Room theming — only *sorta* themed; improve coherence + the prop clusters.
 - [ ] Item icons + potions — the 3D thumbnails need a lot of improvement.
 - [ ] Settings menu on the title screen.
+- [ ] Dash i-frames — basic invuln window shipped (`DashIFrameDuration` on `AFirstPersonCharacter`,
+      default 0.15s of a 0.2s dash). TUNE the duration in PIE (too forgiving vs. too tight). Later:
+      **tie i-frame count to equipment weight** (Souls-style — light load = more i-frames, heavy/fat-roll
+      = fewer), once equip weight exists as a stat.
 
 ## Notes / reminders
 - [ ] checkout rtk-ai

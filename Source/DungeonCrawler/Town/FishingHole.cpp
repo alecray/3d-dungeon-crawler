@@ -1,5 +1,6 @@
 #include "FishingHole.h"
 #include "FirstPersonCharacter.h"
+#include "FishingComponent.h"
 #include "InventoryComponent.h"
 #include "ItemTypes.h"
 #include "DungeonGameInstance.h"
@@ -199,7 +200,7 @@ void AFishingHole::ApplyWaterMaterial()
 
 void AFishingHole::SetStatus(const FString& S)
 {
-	if (Angler.IsValid()) { Angler->SetFishingStatus(S); }       // on-screen HUD line
+	if (Angler.IsValid()) { if (UFishingComponent* F = Angler->GetFishingComponent()) { F->SetFishingStatus(S); } } // on-screen HUD line
 	if (StatusText3D) { StatusText3D->SetText(FText::FromString(S)); } // kept in sync (hidden in-world by default)
 }
 
@@ -222,7 +223,8 @@ void AFishingHole::Interact(AFirstPersonCharacter* Player)
 	case EState::Idle:
 	{
 		// A rod is required to cast.
-		if (Player && !Player->HasFishingRod())
+		UFishingComponent* Fish = Player ? Player->GetFishingComponent() : nullptr;
+		if (!Fish || !Fish->HasFishingRod())
 		{
 			SetStatus(TEXT("You need a Fishing Rod to cast a line."));
 			break;
@@ -230,14 +232,11 @@ void AFishingHole::Interact(AFirstPersonCharacter* Player)
 		State = EState::Waiting;
 		if (Bobber) { Bobber->SetVisibility(true); }
 		if (CaughtFish) { CaughtFish->SetVisibility(false); }
-		if (Player)
-		{
-			Player->BeginFishing();
-			Player->PlayFishingPose(EFishingPose::Cast);
-			// settle from the cast animation into the waiting/idle loop after a beat
-			FTimerDelegate ToIdle = FTimerDelegate::CreateUObject(Player, &AFirstPersonCharacter::PlayFishingPose, EFishingPose::Idle);
-			GetWorldTimerManager().SetTimer(CastIdleTimer, ToIdle, FMath::Max(CastAnimTime, 0.05f), false);
-		}
+		Fish->BeginFishing();
+		Fish->PlayFishingPose(EFishingPose::Cast);
+		// settle from the cast animation into the waiting/idle loop after a beat
+		FTimerDelegate ToIdle = FTimerDelegate::CreateUObject(Fish, &UFishingComponent::PlayFishingPose, EFishingPose::Idle);
+		GetWorldTimerManager().SetTimer(CastIdleTimer, ToIdle, FMath::Max(CastAnimTime, 0.05f), false);
 		SetStatus(TEXT("You cast your line..."));
 		GetWorldTimerManager().SetTimer(BiteTimer, this, &AFishingHole::StartBite, FMath::FRandRange(MinWait, MaxWait), false);
 		break;
@@ -257,7 +256,7 @@ void AFishingHole::Interact(AFirstPersonCharacter* Player)
 		GetWorldTimerManager().ClearTimer(CastIdleTimer);
 		State = EState::Tension;
 		BiteLeft = 0.f;
-		if (Angler.IsValid()) { Angler->PlayFishingPose(EFishingPose::Tension); }
+		if (Angler.IsValid()) { if (UFishingComponent* F = Angler->GetFishingComponent()) { F->PlayFishingPose(EFishingPose::Tension); } }
 		SetStatus(TEXT("Something's on the line — hold on!"));
 		GetWorldTimerManager().SetTimer(TensionTimer, this, &AFishingHole::ResolveCatch, FMath::FRandRange(TensionMin, TensionMax), false);
 		break;
@@ -308,12 +307,12 @@ void AFishingHole::ResolveCatch()
 void AFishingHole::FinishFishing(const FString& EndStatus)
 {
 	if (!EndStatus.IsEmpty()) { SetStatus(EndStatus); }
-	if (Angler.IsValid())
+	if (UFishingComponent* F = Angler.IsValid() ? Angler->GetFishingComponent() : nullptr)
 	{
-		Angler->PlayFishingPose(EFishingPose::Reel);
+		F->PlayFishingPose(EFishingPose::Reel);
 		// Reel-in plays, then stow the rod (restore the equipped weapon) after a beat.
-		TWeakObjectPtr<AFirstPersonCharacter> A = Angler;
-		FTimerDelegate Stow = FTimerDelegate::CreateLambda([A]() { if (A.IsValid()) { A->EndFishing(); } });
+		TWeakObjectPtr<UFishingComponent> WeakFish = F;
+		FTimerDelegate Stow = FTimerDelegate::CreateLambda([WeakFish]() { if (WeakFish.IsValid()) { WeakFish->EndFishing(); } });
 		GetWorldTimerManager().SetTimer(EndTimer, Stow, FMath::Max(ReelAnimTime, 0.1f), false);
 	}
 }

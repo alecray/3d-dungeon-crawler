@@ -1,5 +1,6 @@
 #include "HUDWidget.h"
 #include "FirstPersonCharacter.h"
+#include "FishingComponent.h"
 #include "HealthComponent.h"
 #include "ResourceComponent.h"
 #include "StatsComponent.h"
@@ -280,7 +281,8 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 	}
 	if (FishingStatus)
 	{
-		const FString S = Player->GetFishingStatus();
+		const UFishingComponent* Fish = Player->GetFishingComponent();
+		const FString S = Fish ? Fish->GetFishingStatus() : FString();
 		if (S.IsEmpty())
 		{
 			FishingStatus->SetVisibility(ESlateVisibility::Collapsed);

@@ -6,6 +6,7 @@
 #include "HotbarComponent.h"
 #include "SkillTreeComponent.h"
 #include "EquipmentComponent.h"
+#include "FishingComponent.h"
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
@@ -102,6 +103,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Hotbar = CreateDefaultSubobject<UHotbarComponent>(TEXT("Hotbar"));
 	SkillTree = CreateDefaultSubobject<USkillTreeComponent>(TEXT("SkillTree"));
 	Equipment = CreateDefaultSubobject<UEquipmentComponent>(TEXT("Equipment"));
+	Fishing = CreateDefaultSubobject<UFishingComponent>(TEXT("Fishing"));
 
 	ProjectileClass = AProjectile::StaticClass();
 }
@@ -129,11 +131,6 @@ void AFirstPersonCharacter::BeginPlay()
 	CrossbowShootAnim.LoadSynchronous();
 	StaffSkeletalAsset.LoadSynchronous();
 	StaffCastAnim.LoadSynchronous();
-	FishingRodSkeletalAsset.LoadSynchronous();
-	FishingCastAnim.LoadSynchronous();
-	FishingIdleAnim.LoadSynchronous();
-	FishingTensionAnim.LoadSynchronous();
-	FishingReelAnim.LoadSynchronous();
 
 	if (Health)
 	{
@@ -322,50 +319,6 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 		CurrentStyle = ECombatStyle::Melee;
 		break;
 	}
-}
-
-bool AFirstPersonCharacter::HasFishingRod() const
-{
-	return Inventory && Inventory->HasItem(FName(TEXT("FishingRod")));
-}
-
-void AFirstPersonCharacter::BeginFishing()
-{
-	bFishing = true;
-	if (SwordMesh)
-	{
-		SwordMesh->SetSkeletalMesh(FishingRodSkeletalAsset.Get());
-		SwordMesh->SetVisibility(FishingRodSkeletalAsset.Get() != nullptr); // null until the rod mesh is imported
-	}
-}
-
-void AFirstPersonCharacter::PlayFishingPose(EFishingPose Pose)
-{
-	if (!SwordMesh) { return; }
-	UAnimSequence* Anim = nullptr;
-	bool bLoop = false;
-	switch (Pose)
-	{
-	case EFishingPose::Cast:    Anim = FishingCastAnim.Get();    bLoop = false; break;
-	case EFishingPose::Idle:    Anim = FishingIdleAnim.Get();    bLoop = true;  break;
-	case EFishingPose::Tension: Anim = FishingTensionAnim.Get(); bLoop = true;  break;
-	case EFishingPose::Reel:    Anim = FishingReelAnim.Get();    bLoop = false; break;
-	}
-	if (Anim) { SwordMesh->PlayAnimation(Anim, bLoop); } // no-op until the anim exists
-}
-
-void AFirstPersonCharacter::EndFishing()
-{
-	bFishing = false;
-	// Don't clear the status here — let it fade on its own (Tick fades it once !bFishing) so the final
-	// "Caught a Bass!" / "It got away..." line stays readable for a moment after the rod is stowed.
-	EquipActiveHotbarItem(); // restore the held weapon for the active hotbar slot
-}
-
-void AFirstPersonCharacter::SetFishingStatus(const FString& Status)
-{
-	FishingStatus = Status;
-	FishingStatusLeft = FishingStatusDuration;
 }
 
 void AFirstPersonCharacter::ApplyClassLoadout(ECharacterClass Class)
@@ -682,14 +635,6 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	// Fade the fishing status line when NOT actively fishing (transient messages like "Need a Fishing Rod").
-	// While fishing it persists until the next state change / EndFishing.
-	if (!bFishing && FishingStatusLeft > 0.f)
-	{
-		FishingStatusLeft -= DeltaSeconds;
-		if (FishingStatusLeft <= 0.f) { FishingStatus.Reset(); }
-	}
-
 	// Count hit-stop in REAL time (FApp delta is unaffected by global dilation) and restore when done.
 	if (bHitStopActive)
 	{
@@ -708,6 +653,16 @@ void AFirstPersonCharacter::Tick(float DeltaSeconds)
 	// Dash: tick the cooldown, and while a dash burst is active keep speed high + friction cut so it
 	// glides the full distance; when it ends, restore normal walking.
 	if (DashCooldownLeft > 0.f) { DashCooldownLeft = FMath::Max(0.f, DashCooldownLeft - DeltaSeconds); }
+	// End the dash i-frame window once it elapses (only clears the invulnerability we ourselves set).
+	if (bDashInvuln)
+	{
+		DashIFrameLeft -= DeltaSeconds;
+		if (DashIFrameLeft <= 0.f)
+		{
+			bDashInvuln = false;
+			if (Health) { Health->SetInvulnerable(false); }
+		}
+	}
 	if (StaminaDenyFlashLeft > 0.f) { StaminaDenyFlashLeft = FMath::Max(0.f, StaminaDenyFlashLeft - DeltaSeconds); }
 	if (ManaDenyFlashLeft > 0.f) { ManaDenyFlashLeft = FMath::Max(0.f, ManaDenyFlashLeft - DeltaSeconds); }
 	const bool bDashing = DashTimeLeft > 0.f;
@@ -998,6 +953,16 @@ void AFirstPersonCharacter::Dash(const FInputActionValue& /*Value*/)
 	DashCooldownLeft = DashCooldown;
 	Stamina->Drain(DashStaminaCost);
 	Stamina->SetRegenPaused(false);
+
+	// Dash i-frames: brief invulnerability at the start of the dodge so a well-timed dash rolls THROUGH a
+	// hit (Souls-style), not just out of its way. Skip if already invulnerable (god mode) so Tick's cleanup
+	// won't stomp it back off.
+	if (Health && DashIFrameDuration > 0.f && !Health->IsInvulnerable())
+	{
+		Health->SetInvulnerable(true);
+		bDashInvuln = true;
+		DashIFrameLeft = DashIFrameDuration;
+	}
 }
 
 void AFirstPersonCharacter::Move(const FInputActionValue& Value)

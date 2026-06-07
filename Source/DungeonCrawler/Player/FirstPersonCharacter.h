@@ -18,9 +18,11 @@ class UInventoryComponent;
 class UHotbarComponent;
 class USkillTreeComponent;
 class UEquipmentComponent;
+class UFishingComponent;
 class USkeletalMesh;
 class UAnimSequence;
 class AProjectile;
+enum class EFishingPose : uint8; // defined in FishingComponent.h
 struct FInputActionValue;
 struct FInputActionInstance;
 enum class ECharacterClass : uint8; // defined in CharacterClass.h
@@ -32,16 +34,6 @@ enum class ECombatStyle : uint8
 	Melee,
 	Ranged,
 	Mage
-};
-
-/** Which fishing animation the held rod is playing (drives the rod mesh's single-node anim). */
-UENUM(BlueprintType)
-enum class EFishingPose : uint8
-{
-	Cast,    // throwing the line out
-	Idle,    // line in the water, waiting for a bite
-	Tension, // fish on the line, deciding catch vs fail
-	Reel     // reeling in (success or fail)
 };
 
 /**
@@ -70,24 +62,17 @@ public:
 	UHotbarComponent* GetHotbarComponent() const { return Hotbar; }
 	USkillTreeComponent* GetSkillTreeComponent() const { return SkillTree; }
 	UEquipmentComponent* GetEquipmentComponent() const { return Equipment; }
+	UFishingComponent* GetFishingComponent() const { return Fishing; }
+
+	/** The in-view weapon mesh (sword/crossbow/staff, or the fishing rod while fishing). Used by UFishingComponent. */
+	USkeletalMeshComponent* GetHeldWeaponMesh() const { return SwordMesh; }
+
+	/** Swap the held weapon mesh + combat style to match the active hotbar slot (also used to restore the
+	 *  weapon after fishing). */
+	void EquipActiveHotbarItem();
 
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
-
-	// ---- Fishing (driven by AFishingHole) ----
-	/** True while fishing — the rod is shown in hand in place of the equipped weapon. */
-	bool IsFishing() const { return bFishing; }
-	/** True if a Fishing Rod is in the inventory (required to cast a line). */
-	bool HasFishingRod() const;
-	/** Swap the held weapon to the fishing rod and enter the fishing pose. */
-	void BeginFishing();
-	/** Play a rod animation: Cast/Reel play once; Idle/Tension loop. No-ops if the anim isn't authored yet. */
-	void PlayFishingPose(EFishingPose Pose);
-	/** Leave fishing: clear the status line and restore the equipped weapon. */
-	void EndFishing();
-	/** Set the on-screen fishing status line (shown by the HUD); it auto-fades. */
-	void SetFishingStatus(const FString& Status);
-	const FString& GetFishingStatus() const { return FishingStatus; }
 
 	/** Set while the player is seated at a blackjack table; suppresses the world interaction prompt. */
 	void SetBlackjackActive(bool bActive) { bBlackjackActive = bActive; }
@@ -165,20 +150,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TSoftObjectPtr<UAnimSequence> StaffCastAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")));
 
-	/** Fishing rod skeletal mesh, shown in hand while fishing. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TSoftObjectPtr<USkeletalMesh> FishingRodSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Tools/SK_Fishing_Rod.SK_Fishing_Rod")));
-
-	/** Fishing animations (null until authored — they no-op so the flow still works). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TSoftObjectPtr<UAnimSequence> FishingCastAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Cast.A_Fishing_Rod_Cast")));
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TSoftObjectPtr<UAnimSequence> FishingIdleAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Idle.A_Fishing_Rod_Idle")));
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TSoftObjectPtr<UAnimSequence> FishingTensionAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Tension.A_Fishing_Rod_Tension")));
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TSoftObjectPtr<UAnimSequence> FishingReelAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Reel_In.A_Fishing_Rod_Reel_In")));
-
 	// ---- Ranged / mage ----
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TSubclassOf<AProjectile> ProjectileClass;
@@ -220,6 +191,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
 	TObjectPtr<UEquipmentComponent> Equipment;
+
+	/** Fishing state/behaviour (rod swap, poses, status line); driven by AFishingHole. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fishing")
+	TObjectPtr<UFishingComponent> Fishing;
 
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()
@@ -331,6 +306,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float DashStaminaCost = 25.f;
 
+	/** Invincibility window at the START of a dash (s) — the Souls-style dodge "roll-through": time the dash
+	    into an attack and you take no damage. 0 disables i-frames (pure positional dodge). */
+	UPROPERTY(EditAnywhere, Category = "Movement")
+	float DashIFrameDuration = 0.15f;
+
 private:
 	bool bBlackjackActive = false; // true while seated at a blackjack table — hides the interact prompt
 
@@ -358,9 +338,6 @@ private:
 	void HandleItemDiscovered(FName ItemId);
 	void HandleHotbarChanged(UHotbarComponent* ChangedHotbar);
 	void OnHotbarKey(const FInputActionInstance& Instance);
-
-	/** Swap the held weapon mesh + combat style to match the active hotbar slot. */
-	void EquipActiveHotbarItem();
 
 	void MeleeAttack();
 	/** The actual swing hit (sweep + damage), fired on a timer partway through the swing animation. */
@@ -418,6 +395,8 @@ private:
 	float DashCooldownLeft = 0.f;          // remaining cooldown before the next dash
 	float DefaultGroundFriction = 8.f;     // captured in BeginPlay; restored after the dash glide
 	float DefaultBrakingWalk = 2048.f;
+	float DashIFrameLeft = 0.f;            // remaining dash invulnerability time
+	bool bDashInvuln = false;              // true while WE hold the dash i-frame invulnerability (so we only clear our own)
 
 	// ---- Game-feel: dash FOV kick + low-HP screen effect ----
 	UPROPERTY(EditAnywhere, Category = "Feel") float SprintFOVKick = 8.f;
@@ -431,10 +410,4 @@ private:
 
 	/** Player gold (persisted in the profile). */
 	int32 Gold = 0;
-
-	// ---- Fishing ----
-	bool bFishing = false;          // rod shown in hand instead of the weapon
-	FString FishingStatus;          // current on-screen status line (HUD reads it)
-	float FishingStatusLeft = 0.f;  // seconds the status line stays before fading
-	UPROPERTY(EditAnywhere, Category = "Fishing") float FishingStatusDuration = 4.5f;
 };
