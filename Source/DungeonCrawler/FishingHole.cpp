@@ -9,6 +9,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
 #include "Engine/StaticMesh.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
@@ -29,6 +30,10 @@ AFishingHole::AFishingHole()
 	UStaticMesh* Sphere = nullptr;
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereFinder.Succeeded()) { Sphere = SphereFinder.Object; }
+	// Cylinder gives the water an OVAL footprint (scale X/Y independently for an ellipse) instead of a square.
+	UStaticMesh* Cylinder = nullptr;
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CylFinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+	if (CylFinder.Succeeded()) { Cylinder = CylFinder.Object; }
 
 	// Real fishing-hole art (the pool/basin). Swaps in over the graybox; null until the model exists.
 	UStaticMesh* HoleArt = nullptr;
@@ -38,21 +43,32 @@ AFishingHole::AFishingHole()
 	HoleMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HoleMesh"));
 	HoleMesh->SetupAttachment(Root);
 	if (HoleArt) { HoleMesh->SetStaticMesh(HoleArt); }
-	HoleMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // purely visual; interaction stays on Water
+	// Solid basin: the art blocks the player (so you fish from the edge, not walk through the pond). Uses
+	// the mesh's collision — Tools/make_water_material.py sets SM_Fishing_Hole to complex-as-simple so its
+	// tris collide even without authored simple primitives. Also serves as the interact line-trace target.
+	HoleMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	HoleMesh->SetCollisionProfileName(TEXT("BlockAll"));
+	// ...but stay OUT of the interact line-trace (ECC_Visibility): the cast/reel trace casts the whole actor
+	// to AFishingHole, so if the rocks blocked Visibility the entire mesh would be fishable. Ignoring it here
+	// lets the trace pass through the art and land only on the Water box below — so only the water is fishable.
+	HoleMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
 	HoleMesh->SetVisibility(HoleArt != nullptr);
 
-	// Water pool. When the real art is present this becomes an INVISIBLE interact-trace proxy (its known-good
-	// box collision keeps the cast/reel line-trace reliable regardless of the art's own collision); when the
-	// art is missing it's the blue graybox cube. Blocks Visibility only, so it never walls the player.
+	// The model's own water surface (a material slot on SM_Fishing_Hole) gets the M_PondWater shader,
+	// applied at construction/runtime in ApplyWaterMaterial() — NOT here, so the CDO never references the
+	// material and the build script (Tools/make_water_material.py) can rebuild it freely.
+
+	// Water "pool" box — the VISIBLE water surface AND the sole fishing target. Its box footprint is sized to
+	// fill the basin from WaterExtent (see UpdateWaterBox); it blocks only Visibility (so it's the interact
+	// trace's target without ever walling the player) and gets M_PondWater in ApplyWaterMaterial.
 	Water = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Water"));
 	Water->SetupAttachment(Root);
-	if (Cube) { Water->SetStaticMesh(Cube); }
-	Water->SetRelativeScale3D(FVector(3.0f, 3.0f, WaterTop / 50.f));
-	Water->SetRelativeLocation(FVector(0.f, 0.f, WaterTop * 0.5f));
+	if (Cylinder) { Water->SetStaticMesh(Cylinder); } // oval surface
+	else if (Cube) { Water->SetStaticMesh(Cube); }    // fallback
 	Water->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	Water->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Water->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-	Water->SetVisibility(HoleArt == nullptr); // hide the graybox cube once the real hole is in
+	UpdateWaterBox(); // sizes/positions it from WaterExtent and makes it visible
 
 	// Bobber — sits on the water while a line is cast (hidden otherwise).
 	Bobber = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Bobber"));
@@ -94,11 +110,72 @@ void AFishingHole::BeginPlay()
 			MID->SetVectorParameterValue(TEXT("Color"), FLinearColor(1.f, 0.2f, 0.15f)); // red float
 		}
 	}
+	ApplyWaterMaterial(); // also (re)apply at runtime in case the asset wasn't present at construction
+}
+
+void AFishingHole::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+	UpdateWaterBox();     // re-size the surface live as WaterExtent is tuned in the editor
+	ApplyWaterMaterial(); // so the water shows in-editor too
+}
+
+void AFishingHole::UpdateWaterBox()
+{
+	if (!Water)
+	{
+		return;
+	}
+	// X/Y from the tunable footprint (cm -> unit-mesh scale; the BasicShapes Cylinder is 100cm across, so
+	// scale = extent/100 gives that diameter). A thin disc sits with its TOP at WaterHeight, so raising
+	// WaterHeight lifts the surface without changing its footprint.
+	const float SX = FMath::Max(WaterExtent.X, 1.f) / 100.f;
+	const float SY = FMath::Max(WaterExtent.Y, 1.f) / 100.f;
+	const float Thickness = 12.f; // cm
+	Water->SetRelativeScale3D(FVector(SX, SY, Thickness / 100.f));
+	Water->SetRelativeLocation(FVector(0.f, 0.f, WaterHeight - Thickness * 0.5f));
+	Water->SetVisibility(true);
+	WaterTopZ = WaterHeight; // bobber / cast logic ride the current surface height
+}
+
+void AFishingHole::ApplyWaterMaterial()
+{
+	// Runtime load (not a CDO FObjectFinder) so M_PondWater is never rooted by this class — that keeps it
+	// editable by Tools/make_water_material.py. Null until that script has run; then it just appears.
+	UMaterialInterface* WaterMat = Cast<UMaterialInterface>(
+		FSoftObjectPath(TEXT("/Game/World/M_PondWater.M_PondWater")).TryLoad());
+	if (!WaterMat)
+	{
+		return;
+	}
+	// Wrap M_PondWater in a dynamic instance so WaterColor can tint it: ShallowColor = WaterColor, DeepColor a
+	// darker shade for depth. Fall back to the raw material if the MID can't be made.
+	UMaterialInterface* Applied = WaterMat;
+	if (UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(WaterMat, this))
+	{
+		MID->SetVectorParameterValue(TEXT("ShallowColor"), WaterColor);
+		FLinearColor Deep = WaterColor * 0.35f;
+		Deep.A = 1.f;
+		MID->SetVectorParameterValue(TEXT("DeepColor"), Deep);
+		Applied = MID;
+	}
+	// The visible water is the Water box — shade it (independent of the art being present).
 	if (Water)
 	{
-		if (UMaterialInstanceDynamic* MID = Water->CreateAndSetMaterialInstanceDynamic(0))
+		Water->SetMaterial(0, Applied);
+	}
+	// Also shade the model's own water face (under the box) so nothing peeks through as a placeholder. Clear
+	// prior overrides first so flipping WaterMaterialSlot doesn't strand the shader on the old slot.
+	if (HoleMesh && HoleMesh->GetStaticMesh())
+	{
+		const int32 NumSlots = HoleMesh->GetNumMaterials();
+		for (int32 i = 0; i < NumSlots; ++i)
 		{
-			MID->SetVectorParameterValue(TEXT("Color"), FLinearColor(0.05f, 0.18f, 0.35f)); // water blue
+			HoleMesh->SetMaterial(i, nullptr);
+		}
+		if (WaterMaterialSlot >= 0 && WaterMaterialSlot < NumSlots)
+		{
+			HoleMesh->SetMaterial(WaterMaterialSlot, Applied);
 		}
 	}
 }

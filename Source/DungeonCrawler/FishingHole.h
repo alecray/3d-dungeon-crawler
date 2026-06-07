@@ -33,10 +33,34 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+	/** Loads M_PondWater (runtime, not in the CDO so the asset stays editable by the build script) and
+	    applies it to the Water box (and the HoleMesh water slot). Safe to call repeatedly. */
+	void ApplyWaterMaterial();
+
+	/** Sizes/positions the visible Water box from WaterExtent (X/Y only — the surface height is kept) and
+	    makes it the lone fishing target by keeping HoleMesh out of the interact (Visibility) trace. */
+	void UpdateWaterBox();
 
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<USceneComponent> Root;
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> HoleMesh; // real art (SM_Fishing_Hole)
-	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Water;   // interact target (invisible once art is in)
+	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Water;    // the visible water surface + fishing target
+
+	/** Footprint of the oval water surface, in cm (X = width, Y = length — set them unequal for an ellipse).
+	    Tune in the Details panel to fill the basin out to the rocks; OnConstruction re-sizes it live. */
+	UPROPERTY(EditAnywhere, Category = "Fishing|Water") FVector2D WaterExtent = FVector2D(1050.f, 1050.f);
+
+	/** Local height (cm) of the water surface — raise it to bring the water up toward the rim. The bobber and
+	    cast/reel logic follow this. */
+	UPROPERTY(EditAnywhere, Category = "Fishing|Water") float WaterHeight = 30.f;
+
+	/** Tint of the water. Drives M_PondWater's shallow color; the deep color is a darker shade of it. */
+	UPROPERTY(EditAnywhere, Category = "Fishing|Water") FLinearColor WaterColor = FLinearColor(0.10f, 0.45f, 0.55f, 1.0f);
+
+	/** Which SM_Fishing_Hole material slot also gets M_PondWater (the model's own water face, under the box).
+	    The model has 2 slots [0]=Material, [1]=Material_0 — flip this if the wrong face turns to water. */
+	UPROPERTY(EditAnywhere, Category = "Fishing|Meshes") int32 WaterMaterialSlot = 1;
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Bobber;  // on the water while cast
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> CaughtFish; // shown briefly on a catch
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UTextRenderComponent> StatusText3D;
