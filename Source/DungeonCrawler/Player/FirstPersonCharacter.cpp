@@ -147,7 +147,6 @@ void AFirstPersonCharacter::BeginPlay()
 		GI->ApplyHotbar(Hotbar);
 		if (GI->HasProfile())
 		{
-			Gold = GI->GetProfile().Gold;
 			// Apply saved settings (mouse sensitivity + master volume).
 			SetLookSensitivity(GI->GetProfile().MouseSensitivity);
 			if (UWorld* W = GetWorld())
@@ -223,26 +222,28 @@ void AFirstPersonCharacter::HandleStatsChanged(UStatsComponent* /*ChangedStats*/
 	}
 }
 
+int32 AFirstPersonCharacter::GetGold() const
+{
+	const UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance());
+	return GI ? GI->GetGold() : 0;
+}
+
 void AFirstPersonCharacter::AddGold(int32 Amount)
 {
-	Gold = FMath::Max(0, Gold + Amount);
-	if (Amount > 0)
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
 	{
-		if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
-		{
-			GI->GetStats().GoldLooted += Amount; // persisted by PersistProfile() below
-		}
+		GI->GrantGold(Amount); // updates gold + the GoldLooted stat
 	}
-	PersistProfile();
+	PersistProfile(); // captures the rest of the live state and writes to disk
 }
 
 bool AFirstPersonCharacter::TrySpendGold(int32 Amount)
 {
-	if (Amount <= 0 || Gold < Amount)
+	UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance());
+	if (!GI || !GI->SpendGold(Amount))
 	{
 		return false;
 	}
-	Gold -= Amount;
 	PersistProfile();
 	return true;
 }
@@ -251,7 +252,7 @@ void AFirstPersonCharacter::PersistProfile()
 {
 	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
 	{
-		GI->CaptureFromStats(Stats, Gold);
+		GI->CaptureFromStats(Stats);
 		GI->CaptureInventory(Inventory);
 		GI->CaptureHotbar(Hotbar);
 		GI->CaptureSkills(SkillTree);
@@ -876,9 +877,9 @@ void AFirstPersonCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-bool AFirstPersonCharacter::DevToggleNoClip()
+void AFirstPersonCharacter::SetNoClip(bool bEnabled)
 {
-	bNoClip = !bNoClip;
+	bNoClip = bEnabled;
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
 		Move->SetMovementMode(bNoClip ? MOVE_Flying : MOVE_Walking);
@@ -887,26 +888,6 @@ bool AFirstPersonCharacter::DevToggleNoClip()
 	if (UCapsuleComponent* Capsule = GetCapsuleComponent())
 	{
 		Capsule->SetCollisionEnabled(bNoClip ? ECollisionEnabled::NoCollision : ECollisionEnabled::QueryAndPhysics);
-	}
-	return bNoClip;
-}
-
-bool AFirstPersonCharacter::DevToggleGodMode()
-{
-	if (Health)
-	{
-		Health->SetInvulnerable(!Health->IsInvulnerable());
-		return Health->IsInvulnerable();
-	}
-	return false;
-}
-
-void AFirstPersonCharacter::DevKill()
-{
-	if (Health)
-	{
-		Health->SetInvulnerable(false); // a dev kill always lands, even with god mode on
-		Health->Kill();
 	}
 }
 

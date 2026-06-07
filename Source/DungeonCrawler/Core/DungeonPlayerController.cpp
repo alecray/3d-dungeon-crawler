@@ -12,6 +12,7 @@
 #include "CollectionLogWidget.h"
 #include "LootChest.h"
 #include "FirstPersonCharacter.h"
+#include "HealthComponent.h"
 #include "CharacterClass.h"
 #include "MainMenuWidget.h"
 #include "LowHealthVignetteWidget.h"
@@ -197,6 +198,41 @@ void ADungeonPlayerController::DevRevealMap()
 void ADungeonPlayerController::DevTeleportHome()
 {
 	FadeToBlackAndTravel(TEXT("L_Town"));
+}
+
+bool ADungeonPlayerController::DevToggleNoClip()
+{
+	if (AFirstPersonCharacter* P = Cast<AFirstPersonCharacter>(GetPawn()))
+	{
+		P->SetNoClip(!P->IsNoClip());
+		return P->IsNoClip();
+	}
+	return false;
+}
+
+bool ADungeonPlayerController::DevToggleGodMode()
+{
+	if (AFirstPersonCharacter* P = Cast<AFirstPersonCharacter>(GetPawn()))
+	{
+		if (UHealthComponent* H = P->GetHealthComponent())
+		{
+			H->SetInvulnerable(!H->IsInvulnerable());
+			return H->IsInvulnerable();
+		}
+	}
+	return false;
+}
+
+void ADungeonPlayerController::DevKill()
+{
+	if (AFirstPersonCharacter* P = Cast<AFirstPersonCharacter>(GetPawn()))
+	{
+		if (UHealthComponent* H = P->GetHealthComponent())
+		{
+			H->SetInvulnerable(false); // a dev kill always lands, even with god mode on
+			H->Kill();
+		}
+	}
 }
 
 void ADungeonPlayerController::DevTeleportToBoss()

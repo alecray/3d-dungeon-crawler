@@ -90,15 +90,14 @@ public:
 	 *  Forwards to the combat component. */
 	double GetLastHitLandedTime() const;
 
-	// ---- Gold (shop) ----
-	int32 GetGold() const { return Gold; }
+	// ---- Gold (shop) — owned by the GameInstance profile; these forward to it then persist. ----
+	int32 GetGold() const;
 	void AddGold(int32 Amount);          // adds (clamped >= 0) and saves
 	bool TrySpendGold(int32 Amount);     // false if insufficient; otherwise deducts and saves
 
-	// ---- Dev tools (invoked from the pause menu's Dev panel) ----
-	bool DevToggleNoClip();   // fly through walls; returns the new on/off state
-	bool DevToggleGodMode();  // invulnerability; returns the new on/off state
-	void DevKill();           // force player death
+	// ---- No-clip (dev fly-through; toggled by the controller's dev menu, read by Dash/footsteps) ----
+	void SetNoClip(bool bEnabled);
+	bool IsNoClip() const { return bNoClip; }
 
 	/** Captures and writes the player profile to disk (e.g. before traveling between levels). */
 	void SaveNow() { PersistProfile(); }
@@ -330,7 +329,4 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpDesat = 0.5f;   // desaturation at 0 HP
 	float BaseFOV = 90.f;
 	int32 LastLevel = 1;  // to detect level-ups for the celebration burst
-
-	/** Player gold (persisted in the profile). */
-	int32 Gold = 0;
 };

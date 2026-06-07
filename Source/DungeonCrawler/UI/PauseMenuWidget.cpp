@@ -320,18 +320,18 @@ void UPauseMenuWidget::OnDevMenuClicked()
 
 void UPauseMenuWidget::OnDevNoClip()
 {
-	if (AFirstPersonCharacter* P = GetPlayer())
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
 	{
-		const bool bOn = P->DevToggleNoClip();
+		const bool bOn = PC->DevToggleNoClip();
 		if (NoClipLabel) { NoClipLabel->SetText(FText::FromString(bOn ? TEXT("No Clip: ON") : TEXT("No Clip: OFF"))); }
 	}
 }
 
 void UPauseMenuWidget::OnDevGodMode()
 {
-	if (AFirstPersonCharacter* P = GetPlayer())
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
 	{
-		const bool bOn = P->DevToggleGodMode();
+		const bool bOn = PC->DevToggleGodMode();
 		if (GodModeLabel) { GodModeLabel->SetText(FText::FromString(bOn ? TEXT("God Mode: ON") : TEXT("God Mode: OFF"))); }
 	}
 }
@@ -346,9 +346,11 @@ void UPauseMenuWidget::OnDevReveal()
 
 void UPauseMenuWidget::OnDevKill()
 {
-	ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer());
-	if (PC) { PC->ClosePauseMenu(); } // unpause so the death flow can run
-	if (AFirstPersonCharacter* P = GetPlayer()) { P->DevKill(); }
+	if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetOwningPlayer()))
+	{
+		PC->ClosePauseMenu(); // unpause so the death flow can run
+		PC->DevKill();
+	}
 }
 
 void UPauseMenuWidget::OnDevHome()

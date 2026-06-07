@@ -30,8 +30,16 @@ public:
 	FPlayerStats& GetStats() { return Profile.Stats; }
 	const FPlayerStats& GetStats() const { return Profile.Stats; }
 
-	/** Copy a stats component's values into the in-memory profile. */
-	void CaptureFromStats(const UStatsComponent* Stats, int32 Gold);
+	/** Copy a stats component's values into the in-memory profile. (Gold is owned here; see GrantGold/SpendGold.) */
+	void CaptureFromStats(const UStatsComponent* Stats);
+
+	// ---- Gold (lives in the saved profile; the player pawn forwards GetGold/AddGold/TrySpendGold to these) ----
+	int32 GetGold() const { return Profile.Gold; }
+	/** Add gold (clamped >= 0); positive amounts also count toward the GoldLooted stat. Does NOT save on its
+	    own — the caller persists the profile (so a gold change saves alongside the rest of the live state). */
+	void GrantGold(int32 Amount);
+	/** Spend gold if affordable (returns false with no change otherwise). Does NOT save on its own. */
+	bool SpendGold(int32 Amount);
 
 	/** Apply the in-memory profile onto a stats component (e.g. on player spawn). */
 	void ApplyToStats(UStatsComponent* Stats) const;

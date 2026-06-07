@@ -58,6 +58,9 @@ public:
 	void DevRevealMap();
 	void DevTeleportHome();
 	void DevTeleportToBoss();
+	bool DevToggleNoClip();   // fly through walls; returns the new on/off state
+	bool DevToggleGodMode();  // invulnerability; returns the new on/off state
+	void DevKill();           // force player death
 
 protected:
 	virtual void BeginPlay() override;

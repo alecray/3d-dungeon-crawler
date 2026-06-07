@@ -25,7 +25,7 @@ FString UDungeonGameInstance::GetGameVersion()
 	return FString::Printf(TEXT("v%s"), *Version);
 }
 
-void UDungeonGameInstance::CaptureFromStats(const UStatsComponent* Stats, int32 Gold)
+void UDungeonGameInstance::CaptureFromStats(const UStatsComponent* Stats)
 {
 	if (!Stats)
 	{
@@ -37,7 +37,26 @@ void UDungeonGameInstance::CaptureFromStats(const UStatsComponent* Stats, int32 
 	Profile.XP = Stats->GetXP();
 	Profile.SkillPoints = Stats->GetSkillPoints();
 	Profile.AttributePoints = Stats->GetAttributePoints();
-	Profile.Gold = Gold;
+	// Gold is maintained directly by GrantGold/SpendGold — don't clobber it here.
+}
+
+void UDungeonGameInstance::GrantGold(int32 Amount)
+{
+	Profile.Gold = FMath::Max(0, Profile.Gold + Amount);
+	if (Amount > 0)
+	{
+		Profile.Stats.GoldLooted += Amount;
+	}
+}
+
+bool UDungeonGameInstance::SpendGold(int32 Amount)
+{
+	if (Amount <= 0 || Profile.Gold < Amount)
+	{
+		return false;
+	}
+	Profile.Gold -= Amount;
+	return true;
 }
 
 void UDungeonGameInstance::ApplyToStats(UStatsComponent* Stats) const
