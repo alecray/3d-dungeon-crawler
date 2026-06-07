@@ -108,6 +108,19 @@ void UInventoryComponent::RemoveAt(int32 Index, int32 Count)
 	NotifyChanged();
 }
 
+int32 UInventoryComponent::GetItemCount(FName ItemId) const
+{
+	int32 Total = 0;
+	for (const FInventorySlot& S : Slots)
+	{
+		if (S.ItemId == ItemId)
+		{
+			Total += S.Count;
+		}
+	}
+	return Total;
+}
+
 void UInventoryComponent::SetSlots(const TArray<FInventorySlot>& In)
 {
 	Slots = In;

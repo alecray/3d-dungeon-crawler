@@ -28,6 +28,7 @@ private:
 	UPROPERTY() TObjectPtr<UProgressBar> StaminaBar;
 	UPROPERTY() TObjectPtr<UTextBlock> LevelText;
 	UPROPERTY() TObjectPtr<UTextBlock> InteractPrompt; // "[E] Open" when looking at an interactable
+	UPROPERTY() TObjectPtr<UTextBlock> FishingStatus;  // fishing status line ("It's biting — REEL!") shown while fishing
 
 	UPROPERTY() TObjectPtr<UTextBlock> DamagePopup;    // "-N" that pops over the HP bar when you take damage
 

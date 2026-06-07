@@ -39,7 +39,7 @@ const TArray<FName>& AShopNPC::GetWares() const
 		DefaultStock = {
 			FName(TEXT("HealthPotion")), FName(TEXT("ManaPotion")), FName(TEXT("StaminaPotion")),
 			FName(TEXT("Sword")), FName(TEXT("Crossbow")), FName(TEXT("Wand")), FName(TEXT("IronSword")),
-			FName(TEXT("LeatherArmor"))
+			FName(TEXT("LeatherArmor")), FName(TEXT("FishingRod"))
 		};
 	}
 	return DefaultStock;

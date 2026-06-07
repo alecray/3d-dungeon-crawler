@@ -6,7 +6,9 @@
 #include "BossSpawnVFX.h"
 
 #include "AIController.h"
+#include "Animation/AnimSequence.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Pawn.h"
@@ -193,14 +195,29 @@ void ABossMonster::Tick(float DeltaSeconds)
 void ABossMonster::PlayIntro()
 {
 	bIntroPlaying = true;
-	IntroTimeLeft = FMath::Max(0.1f, IntroDuration);
 
-	// Stop any movement and start the body compressed so it can rise/roar out of the ground.
+	// Stop any movement for the duration of the spawn.
 	GetCharacterMovement()->StopMovementImmediately();
-	if (BodyRoot)
+
+	// Play the skeletal spawn animation (rise/roar out of the ground) if present, and sync the intro-freeze
+	// length to it so the base locomotion resumes exactly when it ends (the boss Tick skips Super::Tick while
+	// bIntroPlaying, so nothing overwrites this one-shot). If there's no skeletal spawn anim, fall back to the
+	// procedural body-scale "pop" (BodyRoot is the hidden graybox when the skeletal body is in use).
+	if (!SpawnAnim && !SpawnAnimPath.IsEmpty())
 	{
-		BodyRoot->SetRelativeScale3D(FVector(BodyScale * 0.2f));
+		SpawnAnim = Cast<UAnimSequence>(FSoftObjectPath(SpawnAnimPath).TryLoad());
 	}
+	if (SpawnAnim && GetMesh() && GetMesh()->GetSkeletalMeshAsset())
+	{
+		GetMesh()->PlayAnimation(SpawnAnim, /*bLooping*/ false);
+		IntroDuration = FMath::Max(0.1f, SpawnAnim->GetPlayLength());
+	}
+	else if (BodyRoot)
+	{
+		BodyRoot->SetRelativeScale3D(FVector(BodyScale * 0.2f)); // graybox: compressed, ready to rise
+	}
+
+	IntroTimeLeft = FMath::Max(0.1f, IntroDuration);
 
 	// Dramatic code-driven spawn-in VFX at the boss's feet, lasting the intro (ground flare + energy
 	// pillar + rising shard swirl + debris ring).

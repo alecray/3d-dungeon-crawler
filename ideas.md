@@ -55,14 +55,3 @@ Game loop:
 - felling a boss also unlocks the next upgraded variant of that boss
 - end game: complete the collection log, slay all the bosses
 
-
-prompt: 
-I've added the fishing rod model, SK_Fishing_Rod. Please hook this up.
-- The fishing rod should be required to "Cast" for a fish at the fishing pond
-- Add the fishing rod as a purchaseable item from the shop
-- Hook up the following animations:
-  - "A_Fishing_Rod_Cast" (when casting a line out)
-  - "A_Fishing_Rod_Idle" (when you have a line in and you're waiting for a fish to bite)
-  - "A_Fishing_Rod_Reel_In" (when clicking to reel in a fish)
-  
-  animations. I haven't built these yet but that's what they will be called, so go ahead and connect them in code. They should trigger when you cast out to throw the bobber, and when you reel the bobber back in. 

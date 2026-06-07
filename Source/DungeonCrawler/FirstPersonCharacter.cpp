@@ -153,6 +153,15 @@ void AFirstPersonCharacter::BeginPlay()
 	{
 		StaffCastAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")).TryLoad());
 	}
+	// Fishing rod mesh + animations (held while fishing). Anims are null until authored — the flow no-ops them.
+	if (!FishingRodSkeletalAsset)
+	{
+		FishingRodSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Tools/SK_Fishing_Rod.SK_Fishing_Rod")).TryLoad());
+	}
+	if (!FishingCastAnim)    { FishingCastAnim    = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Cast.A_Fishing_Rod_Cast")).TryLoad()); }
+	if (!FishingIdleAnim)    { FishingIdleAnim    = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Idle.A_Fishing_Rod_Idle")).TryLoad()); }
+	if (!FishingTensionAnim) { FishingTensionAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Tension.A_Fishing_Rod_Tension")).TryLoad()); }
+	if (!FishingReelAnim)    { FishingReelAnim    = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Reel_In.A_Fishing_Rod_Reel_In")).TryLoad()); }
 
 	if (Health)
 	{
@@ -341,6 +350,50 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 		CurrentStyle = ECombatStyle::Melee;
 		break;
 	}
+}
+
+bool AFirstPersonCharacter::HasFishingRod() const
+{
+	return Inventory && Inventory->HasItem(FName(TEXT("FishingRod")));
+}
+
+void AFirstPersonCharacter::BeginFishing()
+{
+	bFishing = true;
+	if (SwordMesh)
+	{
+		SwordMesh->SetSkeletalMesh(FishingRodSkeletalAsset);
+		SwordMesh->SetVisibility(FishingRodSkeletalAsset != nullptr); // null until the rod mesh is imported
+	}
+}
+
+void AFirstPersonCharacter::PlayFishingPose(EFishingPose Pose)
+{
+	if (!SwordMesh) { return; }
+	UAnimSequence* Anim = nullptr;
+	bool bLoop = false;
+	switch (Pose)
+	{
+	case EFishingPose::Cast:    Anim = FishingCastAnim;    bLoop = false; break;
+	case EFishingPose::Idle:    Anim = FishingIdleAnim;    bLoop = true;  break;
+	case EFishingPose::Tension: Anim = FishingTensionAnim; bLoop = true;  break;
+	case EFishingPose::Reel:    Anim = FishingReelAnim;    bLoop = false; break;
+	}
+	if (Anim) { SwordMesh->PlayAnimation(Anim, bLoop); } // no-op until the anim exists
+}
+
+void AFirstPersonCharacter::EndFishing()
+{
+	bFishing = false;
+	// Don't clear the status here — let it fade on its own (Tick fades it once !bFishing) so the final
+	// "Caught a Bass!" / "It got away..." line stays readable for a moment after the rod is stowed.
+	EquipActiveHotbarItem(); // restore the held weapon for the active hotbar slot
+}
+
+void AFirstPersonCharacter::SetFishingStatus(const FString& Status)
+{
+	FishingStatus = Status;
+	FishingStatusLeft = FishingStatusDuration;
 }
 
 void AFirstPersonCharacter::ApplyClassLoadout(ECharacterClass Class)
@@ -656,6 +709,14 @@ void AFirstPersonCharacter::CameraKick(float Scale)
 void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	// Fade the fishing status line when NOT actively fishing (transient messages like "Need a Fishing Rod").
+	// While fishing it persists until the next state change / EndFishing.
+	if (!bFishing && FishingStatusLeft > 0.f)
+	{
+		FishingStatusLeft -= DeltaSeconds;
+		if (FishingStatusLeft <= 0.f) { FishingStatus.Reset(); }
+	}
 
 	// Count hit-stop in REAL time (FApp delta is unaffected by global dilation) and restore when done.
 	if (bHitStopActive)

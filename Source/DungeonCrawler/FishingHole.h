@@ -45,7 +45,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<USceneComponent> Root;
 	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> HoleMesh; // real art (SM_Fishing_Hole)
-	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Water;    // the visible water surface + fishing target
+	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> Water;    // the visible water surface
+	UPROPERTY(VisibleAnywhere, Category = "Fishing") TObjectPtr<UStaticMeshComponent> CastVolume; // invisible tall interact target (the fishing trigger)
 
 	/** Footprint of the oval water surface, in cm (X = width, Y = length — set them unequal for an ellipse).
 	    Tune in the Details panel to fill the basin out to the rocks; OnConstruction re-sizes it live. */
@@ -73,11 +74,27 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Fishing") float MaxWait = 7.f;
 	UPROPERTY(EditAnywhere, Category = "Fishing") float BiteWindow = 1.3f;
 
+	/** How far above the water the invisible "cast" interact box rises, so the prompt shows when looking more
+	    level instead of only when staring straight down at the pond. */
+	UPROPERTY(EditAnywhere, Category = "Fishing|Water") float CastPromptHeight = 320.f;
+
+	/** Chance (0..1) a hooked fish is landed; otherwise it gets away after the tension struggle. */
+	UPROPERTY(EditAnywhere, Category = "Fishing") float CatchChance = 0.7f;
+	/** Random "fish on the line, deciding catch vs fail" delay (s) — the rod Tension anim plays during it. */
+	UPROPERTY(EditAnywhere, Category = "Fishing") float TensionMin = 1.4f;
+	UPROPERTY(EditAnywhere, Category = "Fishing") float TensionMax = 3.2f;
+	/** How long the cast animation runs before the rod settles into the waiting/idle loop (s). */
+	UPROPERTY(EditAnywhere, Category = "Fishing") float CastAnimTime = 0.8f;
+	/** Beat after a reel-in before the rod is put away and the weapon restored (s). */
+	UPROPERTY(EditAnywhere, Category = "Fishing") float ReelAnimTime = 1.2f;
+
 private:
-	enum class EState : uint8 { Idle, Waiting, Biting };
+	enum class EState : uint8 { Idle, Waiting, Biting, Tension };
 
 	void StartBite();
-	void SetStatus(const FString& S);
+	void ResolveCatch();                            // tension delay elapsed → roll catch vs fail
+	void FinishFishing(const FString& EndStatus);   // reel-in pose + status, then put the rod away after a beat
+	void SetStatus(const FString& S);               // routes to the angler's HUD (and the 3D text if shown)
 	FName RollFish() const;
 	void ShowCatch(FName FishId);
 
@@ -88,6 +105,9 @@ private:
 	float WaterTopZ = 0.f;
 
 	FTimerHandle BiteTimer;
+	FTimerHandle CastIdleTimer; // cast anim → idle/waiting loop
+	FTimerHandle TensionTimer;  // fish-on-line decide delay
+	FTimerHandle EndTimer;      // reel-in anim → restore the weapon
 	UPROPERTY() TWeakObjectPtr<AFirstPersonCharacter> Angler;
 	UPROPERTY() TObjectPtr<UStaticMesh> CubeMesh;
 };

@@ -70,6 +70,19 @@ bool UHUDWidget::Initialize()
 		PS->SetAutoSize(true);
 	}
 
+	// Fishing status line, centered just above the crosshair while fishing (separate from the interact prompt).
+	FishingStatus = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FishingStatus"));
+	FishingStatus->SetVisibility(ESlateVisibility::Collapsed);
+	FishingStatus->SetJustification(ETextJustify::Center);
+	FishingStatus->SetColorAndOpacity(FSlateColor(FLinearColor(0.70f, 0.90f, 1.0f)));
+	if (UCanvasPanelSlot* PS = Root->AddChildToCanvas(FishingStatus))
+	{
+		PS->SetAnchors(FAnchors(0.5f, 0.5f));
+		PS->SetAlignment(FVector2D(0.5f, 1.f));
+		PS->SetPosition(FVector2D(0.f, -60.f));
+		PS->SetAutoSize(true);
+	}
+
 	// Hit marker ("✕"), centered, flashes when a hit lands.
 	HitMarker = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("HitMarker"));
 	HitMarker->SetText(FText::FromString(TEXT("✕")));
@@ -263,6 +276,19 @@ void UHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		{
 			InteractPrompt->SetText(FText::FromString(FString::Printf(TEXT("[E] %s"), *Verb)));
 			InteractPrompt->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+	if (FishingStatus)
+	{
+		const FString S = Player->GetFishingStatus();
+		if (S.IsEmpty())
+		{
+			FishingStatus->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			FishingStatus->SetText(FText::FromString(S));
+			FishingStatus->SetVisibility(ESlateVisibility::HitTestInvisible);
 		}
 	}
 }

@@ -190,6 +190,13 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	FString AttackAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Attack.A_Hermit_Crab_Boss_Attack");
 
+	/** Spawn/intro animation (the rise-out-of-the-ground roar) played by PlayIntro. The intro freeze is
+	    synced to its length. Empty/missing -> falls back to the procedural body-scale "pop". */
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	FString SpawnAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Spawn.A_Hermit_Crab_Boss_Spawn");
+
+	UPROPERTY() TObjectPtr<UAnimSequence> SpawnAnim; // loaded from SpawnAnimPath on first PlayIntro
+
 	/** Fallback static mesh shown only while the skeletal rig isn't imported yet. */
 	UPROPERTY(VisibleAnywhere, Category = "Boss|Mesh")
 	TObjectPtr<UStaticMeshComponent> CrabMesh;

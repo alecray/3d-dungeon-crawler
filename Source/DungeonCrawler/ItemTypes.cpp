@@ -200,6 +200,9 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("GoldenCarp"),  TEXT("Golden Carp"),  EItemType::Treasure, EItemRarity::Epic,      5, 120));
 		Items.Add(MakeItem(TEXT("OldBoot"),     TEXT("Old Boot"),     EItemType::Material, EItemRarity::Common,    20, 1)); // junk catch
 
+		// Tools.
+		Items.Add(MakeItem(TEXT("FishingRod"),  TEXT("Fishing Rod"),  EItemType::Misc,     EItemRarity::Common,     1, 35)); // required to fish
+
 		// Equipment slot + stat bonuses (applied while equipped).
 		auto SetEquip = [&Items](const TCHAR* Id, EEquipSlot Slot, const FItemBonuses& Bonuses)
 		{
@@ -247,6 +250,7 @@ namespace ItemDatabase
 		SetDesc(TEXT("GoldAmulet"),    TEXT("A gilded amulet. +25 max mana."));
 		SetDesc(TEXT("RubyRing"),      TEXT("A ruby ring. +6% spell damage."));
 		SetDesc(TEXT("IronRing"),      TEXT("An iron band. +6% melee damage."));
+		SetDesc(TEXT("FishingRod"),    TEXT("A simple fishing rod. Needed to cast a line at the fishing hole."));
 
 		// Icon meshes (rendered into UI thumbnails). Weapons reuse their skeletal meshes; items
 		// without a mesh fall back to the rarity color.
@@ -259,6 +263,7 @@ namespace ItemDatabase
 		SetSkelIcon(TEXT("IronSword"),  TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
 		SetSkelIcon(TEXT("RunedBlade"), TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
 		SetSkelIcon(TEXT("Crossbow"),   TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow"));
+		SetSkelIcon(TEXT("FishingRod"), TEXT("/Game/Tools/SK_Fishing_Rod.SK_Fishing_Rod"));
 
 		// Potions share one mesh/material (SK_Potion + MI_Potion) and recolor via a texture parameter.
 		auto SetPotionIcon = [&Items](const TCHAR* Id, const TCHAR* TexturePath)

@@ -34,6 +34,16 @@ enum class ECombatStyle : uint8
 	Mage
 };
 
+/** Which fishing animation the held rod is playing (drives the rod mesh's single-node anim). */
+UENUM(BlueprintType)
+enum class EFishingPose : uint8
+{
+	Cast,    // throwing the line out
+	Idle,    // line in the water, waiting for a bite
+	Tension, // fish on the line, deciding catch vs fail
+	Reel     // reeling in (success or fail)
+};
+
 /**
  * Player-controlled first-person character: an eye-height camera that follows the controller
  * rotation, two graybox cube "hands" parented to the camera, and WASD + mouse-look movement
@@ -63,6 +73,21 @@ public:
 
 	/** Verb for the interactable currently under the crosshair (e.g. "Open"), or empty if none. */
 	FString GetInteractionPrompt() const;
+
+	// ---- Fishing (driven by AFishingHole) ----
+	/** True while fishing — the rod is shown in hand in place of the equipped weapon. */
+	bool IsFishing() const { return bFishing; }
+	/** True if a Fishing Rod is in the inventory (required to cast a line). */
+	bool HasFishingRod() const;
+	/** Swap the held weapon to the fishing rod and enter the fishing pose. */
+	void BeginFishing();
+	/** Play a rod animation: Cast/Reel play once; Idle/Tension loop. No-ops if the anim isn't authored yet. */
+	void PlayFishingPose(EFishingPose Pose);
+	/** Leave fishing: clear the status line and restore the equipped weapon. */
+	void EndFishing();
+	/** Set the on-screen fishing status line (shown by the HUD); it auto-fades. */
+	void SetFishingStatus(const FString& Status);
+	const FString& GetFishingStatus() const { return FishingStatus; }
 
 	/** Set while the player is seated at a blackjack table; suppresses the world interaction prompt. */
 	void SetBlackjackActive(bool bActive) { bBlackjackActive = bActive; }
@@ -138,6 +163,21 @@ protected:
 	/** Staff spell-cast animation. Defaults to /Game/Weapons/Staff/A_Staff_Cast. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<UAnimSequence> StaffCastAnim;
+
+	/** Fishing rod skeletal mesh, shown in hand while fishing. Defaults to /Game/Tools/SK_Fishing_Rod. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
+	TObjectPtr<USkeletalMesh> FishingRodSkeletalAsset;
+
+	/** Fishing animations (soft-loaded by name; null until authored — they no-op so the flow still works).
+	 *  /Game/Tools/A_Fishing_Rod_{Cast,Idle,Tension,Reel_In}. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
+	TObjectPtr<UAnimSequence> FishingCastAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
+	TObjectPtr<UAnimSequence> FishingIdleAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
+	TObjectPtr<UAnimSequence> FishingTensionAnim;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
+	TObjectPtr<UAnimSequence> FishingReelAnim;
 
 	// ---- Ranged / mage ----
 	UPROPERTY(EditAnywhere, Category = "Combat")
@@ -391,4 +431,10 @@ private:
 
 	/** Player gold (persisted in the profile). */
 	int32 Gold = 0;
+
+	// ---- Fishing ----
+	bool bFishing = false;          // rod shown in hand instead of the weapon
+	FString FishingStatus;          // current on-screen status line (HUD reads it)
+	float FishingStatusLeft = 0.f;  // seconds the status line stays before fading
+	UPROPERTY(EditAnywhere, Category = "Fishing") float FishingStatusDuration = 4.5f;
 };

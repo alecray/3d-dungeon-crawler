@@ -11,7 +11,7 @@ unsorted todo shortlist:
 ## Near-term / needs tuning
 - [ ] Boss danger disc — make it **bigger** (tune `AttackZoneRadiusFrac`).
 - [ ] Boss navmesh hand-off — needs **walls in the boss arena** to actually test pathing around cover.
-- [ ] Footstep dust — I don't always see any; verify it's still spawning (it was too bright once). Keep it a subtle puff.
+- [x] Footstep dust — I don't always see any; verify it's still spawning (it was too bright once). Keep it a subtle puff.
 - [ ] Room theming — only *sorta* themed; improve coherence + the prop clusters.
 - [ ] Item icons + potions — the 3D thumbnails need a lot of improvement.
 - [ ] Settings menu on the title screen.

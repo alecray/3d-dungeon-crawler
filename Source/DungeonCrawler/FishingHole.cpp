@@ -58,17 +58,27 @@ AFishingHole::AFishingHole()
 	// applied at construction/runtime in ApplyWaterMaterial() — NOT here, so the CDO never references the
 	// material and the build script (Tools/make_water_material.py) can rebuild it freely.
 
-	// Water "pool" box — the VISIBLE water surface AND the sole fishing target. Its box footprint is sized to
-	// fill the basin from WaterExtent (see UpdateWaterBox); it blocks only Visibility (so it's the interact
-	// trace's target without ever walling the player) and gets M_PondWater in ApplyWaterMaterial.
+	// Water "pool" box — the VISIBLE water surface (purely visual now). Its oval footprint is sized from
+	// WaterExtent (see UpdateWaterBox) and it gets M_PondWater in ApplyWaterMaterial. The fishing interact
+	// target is CastVolume below, not this.
 	Water = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Water"));
 	Water->SetupAttachment(Root);
 	if (Cylinder) { Water->SetStaticMesh(Cylinder); } // oval surface
 	else if (Cube) { Water->SetStaticMesh(Cube); }    // fallback
-	Water->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	Water->SetCollisionResponseToAllChannels(ECR_Ignore);
-	Water->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-	UpdateWaterBox(); // sizes/positions it from WaterExtent and makes it visible
+	Water->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// CastVolume — the invisible interact target. A tall box rising CastPromptHeight above the water (same
+	// X/Y footprint), so the "Cast a line" prompt shows when looking roughly level at the pond, not only when
+	// staring straight down. Blocks ONLY ECC_Visibility (the interact line-trace), never the player.
+	CastVolume = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CastVolume"));
+	CastVolume->SetupAttachment(Root);
+	if (Cube) { CastVolume->SetStaticMesh(Cube); }
+	CastVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CastVolume->SetCollisionResponseToAllChannels(ECR_Ignore);
+	CastVolume->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	CastVolume->SetVisibility(false);
+
+	UpdateWaterBox(); // sizes/positions the water + cast volume from WaterExtent
 
 	// Bobber — sits on the water while a line is cast (hidden otherwise).
 	Bobber = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Bobber"));
@@ -96,6 +106,7 @@ AFishingHole::AFishingHole()
 	StatusText3D->SetWorldSize(22.f);
 	StatusText3D->SetTextRenderColor(FColor(160, 220, 255));
 	StatusText3D->SetText(FText::FromString(TEXT("Fishing Hole")));
+	StatusText3D->SetVisibility(false); // fishing status now shows on the HUD, not floating in the world
 
 	WaterTopZ = WaterTop;
 }
@@ -122,19 +133,25 @@ void AFishingHole::OnConstruction(const FTransform& Transform)
 
 void AFishingHole::UpdateWaterBox()
 {
-	if (!Water)
-	{
-		return;
-	}
-	// X/Y from the tunable footprint (cm -> unit-mesh scale; the BasicShapes Cylinder is 100cm across, so
-	// scale = extent/100 gives that diameter). A thin disc sits with its TOP at WaterHeight, so raising
-	// WaterHeight lifts the surface without changing its footprint.
+	// X/Y from the tunable footprint (cm -> unit-mesh scale; the BasicShapes Cylinder/Cube are 100cm across,
+	// so scale = extent/100 gives that diameter).
 	const float SX = FMath::Max(WaterExtent.X, 1.f) / 100.f;
 	const float SY = FMath::Max(WaterExtent.Y, 1.f) / 100.f;
-	const float Thickness = 12.f; // cm
-	Water->SetRelativeScale3D(FVector(SX, SY, Thickness / 100.f));
-	Water->SetRelativeLocation(FVector(0.f, 0.f, WaterHeight - Thickness * 0.5f));
-	Water->SetVisibility(true);
+	if (Water)
+	{
+		// A thin disc sits with its TOP at WaterHeight, so raising WaterHeight lifts the surface.
+		const float Thickness = 12.f; // cm
+		Water->SetRelativeScale3D(FVector(SX, SY, Thickness / 100.f));
+		Water->SetRelativeLocation(FVector(0.f, 0.f, WaterHeight - Thickness * 0.5f));
+		Water->SetVisibility(true);
+	}
+	if (CastVolume)
+	{
+		// Tall invisible interact box rising from the water surface upward by CastPromptHeight.
+		const float H = FMath::Max(CastPromptHeight, 20.f);
+		CastVolume->SetRelativeScale3D(FVector(SX, SY, H / 100.f));
+		CastVolume->SetRelativeLocation(FVector(0.f, 0.f, WaterHeight + H * 0.5f));
+	}
 	WaterTopZ = WaterHeight; // bobber / cast logic ride the current surface height
 }
 
@@ -182,7 +199,8 @@ void AFishingHole::ApplyWaterMaterial()
 
 void AFishingHole::SetStatus(const FString& S)
 {
-	if (StatusText3D) { StatusText3D->SetText(FText::FromString(S)); }
+	if (Angler.IsValid()) { Angler->SetFishingStatus(S); }       // on-screen HUD line
+	if (StatusText3D) { StatusText3D->SetText(FText::FromString(S)); } // kept in sync (hidden in-world by default)
 }
 
 FString AFishingHole::GetPrompt() const
@@ -191,6 +209,7 @@ FString AFishingHole::GetPrompt() const
 	{
 	case EState::Waiting: return TEXT("Reel in");
 	case EState::Biting:  return TEXT("REEL IN!");
+	case EState::Tension: return FString();       // auto-resolving — no interact prompt
 	default:              return TEXT("Cast a line");
 	}
 }
@@ -201,21 +220,68 @@ void AFishingHole::Interact(AFirstPersonCharacter* Player)
 	switch (State)
 	{
 	case EState::Idle:
+	{
+		// A rod is required to cast.
+		if (Player && !Player->HasFishingRod())
+		{
+			SetStatus(TEXT("You need a Fishing Rod to cast a line."));
+			break;
+		}
 		State = EState::Waiting;
 		if (Bobber) { Bobber->SetVisibility(true); }
 		if (CaughtFish) { CaughtFish->SetVisibility(false); }
-		SetStatus(TEXT("Waiting for a bite..."));
+		if (Player)
+		{
+			Player->BeginFishing();
+			Player->PlayFishingPose(EFishingPose::Cast);
+			// settle from the cast animation into the waiting/idle loop after a beat
+			FTimerDelegate ToIdle = FTimerDelegate::CreateUObject(Player, &AFirstPersonCharacter::PlayFishingPose, EFishingPose::Idle);
+			GetWorldTimerManager().SetTimer(CastIdleTimer, ToIdle, FMath::Max(CastAnimTime, 0.05f), false);
+		}
+		SetStatus(TEXT("You cast your line..."));
 		GetWorldTimerManager().SetTimer(BiteTimer, this, &AFishingHole::StartBite, FMath::FRandRange(MinWait, MaxWait), false);
 		break;
+	}
 
 	case EState::Waiting:
+		// Reel in early — nothing on the line.
 		GetWorldTimerManager().ClearTimer(BiteTimer);
+		GetWorldTimerManager().ClearTimer(CastIdleTimer);
 		State = EState::Idle;
 		if (Bobber) { Bobber->SetVisibility(false); }
-		SetStatus(TEXT("Reeled in early — nothing."));
+		FinishFishing(TEXT("Reeled in early — nothing."));
 		break;
 
 	case EState::Biting:
+		// Hooked it! The tension struggle now decides catch vs fail over a random delay.
+		GetWorldTimerManager().ClearTimer(CastIdleTimer);
+		State = EState::Tension;
+		BiteLeft = 0.f;
+		if (Angler.IsValid()) { Angler->PlayFishingPose(EFishingPose::Tension); }
+		SetStatus(TEXT("Something's on the line — hold on!"));
+		GetWorldTimerManager().SetTimer(TensionTimer, this, &AFishingHole::ResolveCatch, FMath::FRandRange(TensionMin, TensionMax), false);
+		break;
+
+	case EState::Tension:
+		break; // auto-resolving — ignore further presses
+	}
+}
+
+void AFishingHole::StartBite()
+{
+	if (State != EState::Waiting) { return; }
+	State = EState::Biting;
+	BiteLeft = BiteWindow;
+	SetStatus(TEXT("It's biting — REEL!"));
+}
+
+void AFishingHole::ResolveCatch()
+{
+	if (State != EState::Tension) { return; }
+	State = EState::Idle;
+	if (Bobber) { Bobber->SetVisibility(false); }
+
+	if (FMath::FRand() <= CatchChance)
 	{
 		const FName Fish = RollFish();
 		if (Angler.IsValid())
@@ -230,21 +296,26 @@ void AFishingHole::Interact(AFirstPersonCharacter* Player)
 				GI->SaveProfile();
 			}
 		}
-		State = EState::Idle;
-		BiteLeft = 0.f;
-		if (Bobber) { Bobber->SetVisibility(false); }
-		ShowCatch(Fish);
-		break;
+		ShowCatch(Fish);          // sets the "Caught a X!" status + shows the fish
+		FinishFishing(FString()); // keep ShowCatch's status; just reel-in + stow the rod
 	}
+	else
+	{
+		FinishFishing(TEXT("It got away..."));
 	}
 }
 
-void AFishingHole::StartBite()
+void AFishingHole::FinishFishing(const FString& EndStatus)
 {
-	if (State != EState::Waiting) { return; }
-	State = EState::Biting;
-	BiteLeft = BiteWindow;
-	SetStatus(TEXT("It's biting — REEL!"));
+	if (!EndStatus.IsEmpty()) { SetStatus(EndStatus); }
+	if (Angler.IsValid())
+	{
+		Angler->PlayFishingPose(EFishingPose::Reel);
+		// Reel-in plays, then stow the rod (restore the equipped weapon) after a beat.
+		TWeakObjectPtr<AFirstPersonCharacter> A = Angler;
+		FTimerDelegate Stow = FTimerDelegate::CreateLambda([A]() { if (A.IsValid()) { A->EndFishing(); } });
+		GetWorldTimerManager().SetTimer(EndTimer, Stow, FMath::Max(ReelAnimTime, 0.1f), false);
+	}
 }
 
 FName AFishingHole::RollFish() const
@@ -292,9 +363,10 @@ void AFishingHole::Tick(float DeltaSeconds)
 
 	if (Bobber && Bobber->IsVisible())
 	{
-		// Gentle bob while waiting; a fast shake while biting.
-		const float Amp = (State == EState::Biting) ? 9.f : 2.5f;
-		const float Speed = (State == EState::Biting) ? 22.f : 3.f;
+		// Gentle bob while waiting; a fast shake while a fish is biting or fighting on the line.
+		const bool bAgitated = (State == EState::Biting || State == EState::Tension);
+		const float Amp = bAgitated ? 9.f : 2.5f;
+		const float Speed = bAgitated ? 22.f : 3.f;
 		const float Z = WaterTopZ + 8.f + FMath::Sin(BobPhase * Speed) * Amp;
 		Bobber->SetRelativeLocation(FVector(0.f, 110.f, Z));
 	}
@@ -304,9 +376,11 @@ void AFishingHole::Tick(float DeltaSeconds)
 		BiteLeft -= DeltaSeconds;
 		if (BiteLeft <= 0.f)
 		{
+			// Missed the reel window — the fish slips off.
+			GetWorldTimerManager().ClearTimer(CastIdleTimer);
 			State = EState::Idle;
 			if (Bobber) { Bobber->SetVisibility(false); }
-			SetStatus(TEXT("It got away..."));
+			FinishFishing(TEXT("It got away..."));
 		}
 	}
 

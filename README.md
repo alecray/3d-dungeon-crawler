@@ -70,6 +70,24 @@ must not contain spaces**; for spaced paths call the functions from a small runn
 > Note: this uses the legacy `FbxImportUI` path (stable + scriptable in UE 5.7). If a setting is ever
 > ignored, the script logs which property it skipped — switch that pipeline to the Interchange API if needed.
 
+### Drag-drop presets in the Import dialog (Interchange Pipeline Stacks)
+
+For when you import by **dragging an FBX into the Content Browser**, the project also registers two custom
+**Interchange pipeline presets** so the import dialog's **"Pipeline Stack Preset"** dropdown offers
+**"Static Meshes"** and **"Skeletal Meshes"** — each a pipeline asset locked to its type
+(`ForceAllMeshAsType`), with its **own remembered settings**. Pick the matching preset and you stop
+re-tweaking the dialog between types. (This is the drag-drop equivalent of `import_meshes.py`; both work.)
+
+- Preset assets: `/Game/Pipelines/PL_StaticMesh`, `/Game/Pipelines/PL_SkeletalMesh`, built by
+  **`Tools/make_interchange_presets.py`** (run headless with the editor closed, same invocation pattern as
+  above). Re-run it if the assets are missing.
+- Registration: `Config/DefaultEngine.ini` → `[/Script/InterchangeEngine.InterchangeProjectSettings]`
+  `ContentImportSettings.PipelineStacks` (our two stacks prepended to the engine defaults). Editing this
+  needs an **editor restart** to take effect. `DefaultPipelineStack` is left as `"Assets"`, so default
+  behavior is unchanged — the new presets are just selectable.
+- To add another preset (e.g. "Animations"): add a stack in that ini line pointing at a new
+  `/Game/Pipelines/PL_*` asset, and create that asset in `make_interchange_presets.py`.
+
 ## Building the town (`Tools/build_town.py`)
 
 The town hub level (`/Game/Maps/Town/L_Town`) is **authored by a headless Python script**, not spawned
@@ -100,6 +118,29 @@ Key things to know:
 
 (Other `Tools/*.py` headless scripts follow the same invocation pattern — e.g. `disable_nanite.py`,
 `place_blackjack.py`, `make_card_material.py`, `add_emissive_to_mbase.py`.)
+
+## Rebuilding the pond water (`Tools/make_water_material.py`)
+
+The fishing pond's water material **`/Game/World/M_PondWater`** is authored entirely in code — rerun the
+script to rebuild it after editing the recipe:
+
+```
+<UE>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe <PROJECT>/DungeonCrawler.uproject ^
+    -run=pythonscript -script="<PROJECT>/Tools/make_water_material.py" -unattended -nopause -nosplash
+```
+
+- **Run with the editor CLOSED** (it deletes + recreates the asset). Use forward slashes in the `-script`
+  path and run it from PowerShell. `AFishingHole` soft-loads `M_PondWater` at runtime (not in the CDO), so
+  the script can freely rebuild it; the actor tints it per-instance via an MID (its **Water Color** knob
+  drives `ShallowColor`).
+- It's a **clarity-first** stylized pond: depth-based shallow→deep color, low opacity + **refraction (IOR
+  ~1.18)** so you see the bottom, a gentle **smooth gradient-noise** normal, a clamped Fresnel sky-rim, and
+  a thin foam line. Everything is a material parameter — tune `RefractionIOR`, `ShallowOpacity`/
+  `DeepOpacity`, `EdgeColor`, `RippleStrength`/`RippleScale`, `Roughness` live on the material.
+- **Gotcha (don't regress):** never drive the normal with `MaterialExpressionVectorNoise` — it's per-pixel
+  cellular noise with no mip-filtering and aliases into TV static. Use smooth `MaterialExpressionNoise`
+  (Gradient) or a panned tiling normal map. And keep emissive "sparkle" off — the locked-bright exposure
+  clips it to white. The script also sets `SM_Fishing_Hole` to complex-as-simple collision.
 
 ## Core Feature Plan
 

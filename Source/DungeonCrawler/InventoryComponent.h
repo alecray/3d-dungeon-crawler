@@ -39,6 +39,11 @@ public:
 	const FInventorySlot& GetSlot(int32 Index) const { return Slots[Index]; }
 	const TArray<FInventorySlot>& GetSlots() const { return Slots; }
 
+	/** Total count of an item across all stacks (0 if none). */
+	int32 GetItemCount(FName ItemId) const;
+	/** True if the inventory holds at least one of ItemId. */
+	bool HasItem(FName ItemId) const { return GetItemCount(ItemId) > 0; }
+
 	void SetSlots(const TArray<FInventorySlot>& In);
 
 	FOnInventoryChanged OnInventoryChanged;
