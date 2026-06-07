@@ -22,19 +22,12 @@ class UFishingComponent;
 class USkeletalMesh;
 class UAnimSequence;
 class AProjectile;
+class UCombatComponent;
 enum class EFishingPose : uint8; // defined in FishingComponent.h
+enum class ECombatStyle : uint8; // defined in CombatComponent.h
 struct FInputActionValue;
 struct FInputActionInstance;
 enum class ECharacterClass : uint8; // defined in CharacterClass.h
-
-/** How the equipped weapon attacks (ranged/mage behaviour arrives in Phase 3). */
-UENUM(BlueprintType)
-enum class ECombatStyle : uint8
-{
-	Melee,
-	Ranged,
-	Mage
-};
 
 /**
  * Player-controlled first-person character: an eye-height camera that follows the controller
@@ -63,9 +56,17 @@ public:
 	USkillTreeComponent* GetSkillTreeComponent() const { return SkillTree; }
 	UEquipmentComponent* GetEquipmentComponent() const { return Equipment; }
 	UFishingComponent* GetFishingComponent() const { return Fishing; }
+	UCombatComponent* GetCombatComponent() const { return Combat; }
 
-	/** The in-view weapon mesh (sword/crossbow/staff, or the fishing rod while fishing). Used by UFishingComponent. */
+	/** The in-view weapon mesh (sword/crossbow/staff, or the fishing rod while fishing). Used by the
+	 *  fishing + combat components to swap meshes / play animations. */
 	USkeletalMeshComponent* GetHeldWeaponMesh() const { return SwordMesh; }
+
+	/** The first-person camera, used by UCombatComponent for attack traces and projectile spawns. */
+	UCameraComponent* GetFirstPersonCamera() const { return FirstPersonCamera; }
+
+	/** True once the player has died (the death flow has started). */
+	bool IsDead() const { return bDead; }
 
 	/** Swap the held weapon mesh + combat style to match the active hotbar slot (also used to restore the
 	 *  weapon after fishing). */
@@ -85,8 +86,9 @@ public:
 	float GetStaminaDenyFlash() const { return StaminaDenyFlashLeft / FMath::Max(0.01f, ResourceDenyFlashDuration); }
 	float GetManaDenyFlash() const { return ManaDenyFlashLeft / FMath::Max(0.01f, ResourceDenyFlashDuration); }
 
-	/** World time the player last landed a damaging hit; the HUD polls this to flash the hit marker. */
-	double GetLastHitLandedTime() const { return LastHitLandedTime; }
+	/** World time the player last landed a damaging hit; the HUD polls this to flash the hit marker.
+	 *  Forwards to the combat component. */
+	double GetLastHitLandedTime() const;
 
 	// ---- Gold (shop) ----
 	int32 GetGold() const { return Gold; }
@@ -125,47 +127,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TSoftObjectPtr<USkeletalMesh> SwordSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword")));
 
-	/** Swing animation played on attack. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TSoftObjectPtr<UAnimSequence> SwingAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack")));
-
-	/** Deflect/bounce animation played when a melee swing strikes a solid, non-damageable surface (wall,
-	 *  prop) instead of an enemy. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TSoftObjectPtr<UAnimSequence> DeflectAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Sword/A_Sword_Deflect.A_Sword_Deflect")));
-
 	/** Optional crossbow skeletal mesh (equipping the Crossbow item swaps to it). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TSoftObjectPtr<USkeletalMesh> CrossbowSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow")));
 
-	/** Crossbow fire animation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TSoftObjectPtr<UAnimSequence> CrossbowShootAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/A_Crossbow_Shoot.A_Crossbow_Shoot")));
-
 	/** Optional staff/wand skeletal mesh (equipping a Staff item swaps to it; null = no held mesh yet). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
 	TSoftObjectPtr<USkeletalMesh> StaffSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/SK_Staff.SK_Staff")));
-
-	/** Staff spell-cast animation. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TSoftObjectPtr<UAnimSequence> StaffCastAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")));
-
-	// ---- Ranged / mage ----
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	TSubclassOf<AProjectile> ProjectileClass;
-
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float MeleeStaminaCost = 10.f;
-
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float RangedStaminaCost = 12.f;
-
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float SpellManaCost = 18.f;
-
-	/** Base projectile damage (scaled by Dexterity for ranged / Intelligence for mage). */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float ProjectileDamage = 18.f;
 
 	// ---- Stats & resources ----
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
@@ -195,6 +163,10 @@ protected:
 	/** Fishing state/behaviour (rod swap, poses, status line); driven by AFishingHole. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Fishing")
 	TObjectPtr<UFishingComponent> Fishing;
+
+	/** Attack execution (melee/ranged/mage), abilities, hit-stop + camera kick. Bound to the Attack/Q inputs. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	TObjectPtr<UCombatComponent> Combat;
 
 	// ---- Enhanced Input (created & configured in C++, no assets) ----
 	UPROPERTY()
@@ -268,23 +240,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Sword")
 	float BobBlendSpeed = 8.f;
 
-	// ---- Melee attack (sword swing) ----
-	/** Reach of a melee swing from the camera (cm). */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackRange = 220.f;
-
-	/** Radius of the swing's sphere sweep (cm). */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackRadius = 45.f;
-
-	/** Damage dealt per landed swing. */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackDamage = 22.f;
-
-	/** Minimum seconds between swings. */
-	UPROPERTY(EditAnywhere, Category = "Combat")
-	float AttackCooldown = 0.45f;
-
 	// ---- Movement / dash ----
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float WalkSpeed = 450.f;
@@ -317,20 +272,11 @@ private:
 	// Input handlers
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
-	void Attack(const FInputActionValue& Value);
 	void Dash(const FInputActionValue& Value);
 	void Interact(const FInputActionValue& Value);
 	void ToggleInventory(const FInputActionValue& Value);
 	void ToggleCollectionLog(const FInputActionValue& Value);
 	void ToggleSkillTree(const FInputActionValue& Value);
-
-	/** Q: use the active ability for the current combat style (if unlocked + off cooldown + affordable). */
-	void UseAbility(const FInputActionValue& Value);
-	/** Damages every monster within Radius of the player (Whirlwind / Nova). */
-	void PerformAreaBurst(float Radius, float Damage);
-
-	/** Per-ability "ready again at" world time (cooldowns). */
-	TMap<EActiveAbility, float> AbilityReadyTime;
 
 	void HandleDeath(UHealthComponent* DeadComponent);
 	void HandleStatsChanged(UStatsComponent* ChangedStats);
@@ -338,26 +284,6 @@ private:
 	void HandleItemDiscovered(FName ItemId);
 	void HandleHotbarChanged(UHotbarComponent* ChangedHotbar);
 	void OnHotbarKey(const FInputActionInstance& Instance);
-
-	void MeleeAttack();
-	/** The actual swing hit (sweep + damage), fired on a timer partway through the swing animation. */
-	void DoMeleeHit();
-	/** Plays the deflect/bounce reaction when a swing hits a solid non-damageable surface. */
-	void PlayMeleeDeflect(const FVector& ImpactPoint);
-	FTimerHandle MeleeHitTimer;
-	/** Delays the mage spell bolt until the cast animation's release frame (see Attack/Mage). */
-	FTimerHandle MageCastTimer;
-
-	/** Briefly slows global time for impact "hit-stop" (restored after Duration real seconds). */
-	void TriggerHitStop(float Duration = 0.1155f, float Dilation = 0.04f); // 0.165 - 30% (was 0.055; bumped 3x, then trimmed)
-	/** Plays the short combat camera-kick shake at the given scale. */
-	void CameraKick(float Scale);
-
-	// Hit-stop bookkeeping (counted in real time so the dilation actually un-freezes).
-	bool bHitStopActive = false;
-	float HitStopRealLeft = 0.f;
-	/** Fires the center bolt plus ExtraProjectiles additional bolts in a horizontal spread. */
-	void FireProjectile(float Damage, int32 ExtraProjectiles = 0, bool bFireball = false);
 
 	/** Push current stats into the GameInstance profile and write it to disk. */
 	void PersistProfile();
@@ -380,7 +306,6 @@ private:
 	float StepAccum = 0.f;
 	UPROPERTY(EditAnywhere, Category = "Feel") float FootstepInterval = 175.f;
 
-	float LastAttackTime = -1000.f;
 	bool bDead = false;
 	bool bNoClip = false;
 
@@ -405,8 +330,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Feel") float LowHpDesat = 0.5f;   // desaturation at 0 HP
 	float BaseFOV = 90.f;
 	int32 LastLevel = 1;  // to detect level-ups for the celebration burst
-	double LastHitLandedTime = -1.0; // world time of the last damaging melee hit (HUD hit marker)
-	ECombatStyle CurrentStyle = ECombatStyle::Melee;
 
 	/** Player gold (persisted in the profile). */
 	int32 Gold = 0;

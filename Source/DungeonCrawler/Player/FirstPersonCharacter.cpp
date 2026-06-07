@@ -7,6 +7,7 @@
 #include "SkillTreeComponent.h"
 #include "EquipmentComponent.h"
 #include "FishingComponent.h"
+#include "CombatComponent.h"
 #include "ItemTypes.h"
 #include "MonsterCharacter.h"
 #include "LootChest.h"
@@ -104,8 +105,7 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	SkillTree = CreateDefaultSubobject<USkillTreeComponent>(TEXT("SkillTree"));
 	Equipment = CreateDefaultSubobject<UEquipmentComponent>(TEXT("Equipment"));
 	Fishing = CreateDefaultSubobject<UFishingComponent>(TEXT("Fishing"));
-
-	ProjectileClass = AProjectile::StaticClass();
+	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("Combat"));
 }
 
 void AFirstPersonCharacter::BeginPlay()
@@ -124,13 +124,10 @@ void AFirstPersonCharacter::BeginPlay()
 	// Force-load the weapon/tool assets up front so the .Get() at each use site below is valid. Each soft
 	// ref defaults to its conventional content path (set in the header) and can be overridden per-instance
 	// in the editor; LoadSynchronous returns null for an unset/unauthored clip, which the call sites no-op.
+	// Weapon meshes for the held-mesh swap (attack anims live on the combat component now).
 	SwordSkeletalAsset.LoadSynchronous();
-	SwingAnim.LoadSynchronous();
-	DeflectAnim.LoadSynchronous();
 	CrossbowSkeletalAsset.LoadSynchronous();
-	CrossbowShootAnim.LoadSynchronous();
 	StaffSkeletalAsset.LoadSynchronous();
-	StaffCastAnim.LoadSynchronous();
 
 	if (Health)
 	{
@@ -297,28 +294,30 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 	const FName ItemId = Hotbar->GetActiveItem();
 	const EEquipKind Kind = ItemDatabase::Contains(ItemId) ? ItemDatabase::Get(ItemId).EquipKind : EEquipKind::None;
 
+	ECombatStyle Style = ECombatStyle::Melee;
 	switch (Kind)
 	{
 	case EEquipKind::Sword:
 		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset.Get());
 		SwordMesh->SetVisibility(SwordSkeletalAsset.Get() != nullptr);
-		CurrentStyle = ECombatStyle::Melee;
+		Style = ECombatStyle::Melee;
 		break;
 	case EEquipKind::Crossbow:
 		SwordMesh->SetSkeletalMesh(CrossbowSkeletalAsset.Get());
 		SwordMesh->SetVisibility(CrossbowSkeletalAsset.Get() != nullptr);
-		CurrentStyle = ECombatStyle::Ranged;
+		Style = ECombatStyle::Ranged;
 		break;
 	case EEquipKind::Staff:
 		SwordMesh->SetSkeletalMesh(StaffSkeletalAsset.Get());
 		SwordMesh->SetVisibility(StaffSkeletalAsset.Get() != nullptr); // graybox: hidden until a staff mesh exists
-		CurrentStyle = ECombatStyle::Mage;
+		Style = ECombatStyle::Mage;
 		break;
 	default:
 		SwordMesh->SetVisibility(false); // nothing equippable in the active slot
-		CurrentStyle = ECombatStyle::Melee;
+		Style = ECombatStyle::Melee;
 		break;
 	}
+	if (Combat) { Combat->SetStyle(Style); }
 }
 
 void AFirstPersonCharacter::ApplyClassLoadout(ECharacterClass Class)
@@ -522,129 +521,14 @@ void AFirstPersonCharacter::ToggleSkillTree(const FInputActionValue& /*Value*/)
 	}
 }
 
-void AFirstPersonCharacter::UseAbility(const FInputActionValue& /*Value*/)
+double AFirstPersonCharacter::GetLastHitLandedTime() const
 {
-	UWorld* World = GetWorld();
-	if (bDead || !World || !SkillTree)
-	{
-		return;
-	}
-
-	// The ability available depends on the active combat style.
-	EActiveAbility Ability = EActiveAbility::None;
-	switch (CurrentStyle)
-	{
-	case ECombatStyle::Melee:  Ability = EActiveAbility::Whirlwind; break;
-	case ECombatStyle::Ranged: Ability = EActiveAbility::Volley;    break;
-	case ECombatStyle::Mage:   Ability = EActiveAbility::Nova;      break;
-	default: break;
-	}
-	if (!SkillTree->HasAbility(Ability))
-	{
-		return; // not unlocked for this style
-	}
-
-	const float Now = World->GetTimeSeconds();
-	if (const float* ReadyAt = AbilityReadyTime.Find(Ability))
-	{
-		if (Now < *ReadyAt)
-		{
-			return; // still on cooldown
-		}
-	}
-
-	switch (Ability)
-	{
-	case EActiveAbility::Whirlwind:
-		if (Stamina && Stamina->Spend(25.f))
-		{
-			if (SwordMesh && SwingAnim.Get()) { SwordMesh->PlayAnimation(SwingAnim.Get(), false); }
-			PerformAreaBurst(350.f, AttackDamage * 1.5f * (Stats ? Stats->GetMeleeDamageMult() : 1.f));
-			AbilityReadyTime.Add(Ability, Now + 6.f);
-		}
-		break;
-
-	case EActiveAbility::Volley:
-		if (Stamina && Stamina->Spend(22.f))
-		{
-			if (SwordMesh && CrossbowShootAnim.Get()) { SwordMesh->PlayAnimation(CrossbowShootAnim.Get(), false); }
-			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), /*ExtraProjectiles*/ 6);
-			AbilityReadyTime.Add(Ability, Now + 5.f);
-		}
-		break;
-
-	case EActiveAbility::Nova:
-		if (Mana && Mana->Spend(30.f))
-		{
-			if (SwordMesh && StaffCastAnim.Get()) { SwordMesh->PlayAnimation(StaffCastAnim.Get(), false); }
-			PerformAreaBurst(400.f, ProjectileDamage * 2.f * (Stats ? Stats->GetSpellDamageMult() : 1.f));
-			AbilityReadyTime.Add(Ability, Now + 7.f);
-		}
-		break;
-
-	default:
-		break;
-	}
-}
-
-void AFirstPersonCharacter::PerformAreaBurst(float Radius, float Damage)
-{
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-	const FVector Center = GetActorLocation();
-	const float RadiusSq = Radius * Radius;
-
-	for (TActorIterator<AMonsterCharacter> It(World); It; ++It)
-	{
-		AMonsterCharacter* Monster = *It;
-		if (!Monster || FVector::DistSquared(Monster->GetActorLocation(), Center) > RadiusSq)
-		{
-			continue;
-		}
-		Monster->ApplyHitDamage(Damage, Center);
-	}
-
-	// Graybox VFX feedback at the player.
-	FActorSpawnParameters P;
-	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	World->SpawnActor<ADeathPoof>(ADeathPoof::StaticClass(), FTransform(Center + FVector(0.f, 0.f, 40.f)), P);
-}
-
-void AFirstPersonCharacter::TriggerHitStop(float Duration, float Dilation)
-{
-	if (UWorld* World = GetWorld())
-	{
-		UGameplayStatics::SetGlobalTimeDilation(World, Dilation);
-		bHitStopActive = true;
-		HitStopRealLeft = Duration;
-	}
-}
-
-void AFirstPersonCharacter::CameraKick(float Scale)
-{
-	if (APlayerController* PC = Cast<APlayerController>(GetController()))
-	{
-		PC->ClientStartCameraShake(UHitCameraShake::StaticClass(), Scale);
-	}
+	return Combat ? Combat->GetLastHitLandedTime() : -1.0;
 }
 
 void AFirstPersonCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	// Count hit-stop in REAL time (FApp delta is unaffected by global dilation) and restore when done.
-	if (bHitStopActive)
-	{
-		HitStopRealLeft -= FApp::GetDeltaTime();
-		if (HitStopRealLeft <= 0.f)
-		{
-			bHitStopActive = false;
-			UGameplayStatics::SetGlobalTimeDilation(GetWorld(), 1.f);
-		}
-	}
 
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	const float Speed2D = GetVelocity().Size2D();
@@ -895,13 +779,13 @@ void AFirstPersonCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFirstPersonCharacter::Look);
 		EIC->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-		EIC->BindAction(AttackAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Attack);
+		EIC->BindAction(AttackAction, ETriggerEvent::Started, Combat.Get(), &UCombatComponent::Attack);
 		EIC->BindAction(DashAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Dash);
 		EIC->BindAction(InteractAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::Interact);
 		EIC->BindAction(InventoryToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleInventory);
 		EIC->BindAction(CollectionToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleCollectionLog);
 		EIC->BindAction(SkillTreeToggleAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::ToggleSkillTree);
-		EIC->BindAction(AbilityAction, ETriggerEvent::Started, this, &AFirstPersonCharacter::UseAbility);
+		EIC->BindAction(AbilityAction, ETriggerEvent::Started, Combat.Get(), &UCombatComponent::UseAbility);
 		for (UInputAction* HotbarAct : HotbarActions)
 		{
 			if (HotbarAct)
@@ -990,234 +874,6 @@ void AFirstPersonCharacter::Look(const FInputActionValue& Value)
 		// Negate pitch so moving the mouse up looks up (positive pitch input looks down).
 		AddControllerPitchInput(-Axis.Y * LookSensitivity);
 	}
-}
-
-void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
-{
-	UWorld* World = GetWorld();
-	if (bDead || !World || !FirstPersonCamera)
-	{
-		return;
-	}
-
-	// Skill-tree combat modifiers (attack speed, multishot, cost reduction, lifesteal).
-	const FSkillModifiers Mods = SkillTree ? SkillTree->GetModifiers() : FSkillModifiers();
-
-	const float Now = World->GetTimeSeconds();
-	const float EffectiveCooldown = AttackCooldown / (1.f + FMath::Max(0.f, Mods.AttackSpeedPct));
-	if (Now - LastAttackTime < EffectiveCooldown)
-	{
-		return;
-	}
-
-	switch (CurrentStyle)
-	{
-	case ECombatStyle::Ranged:
-		// Crossbow bolt: costs stamina (reducible), scales with Dexterity, may fire extra bolts.
-		if (Stamina && Stamina->Spend(RangedStaminaCost * (1.f - FMath::Clamp(Mods.StaminaCostPct, 0.f, 0.8f))))
-		{
-			LastAttackTime = Now;
-			if (SwordMesh && CrossbowShootAnim.Get()) { SwordMesh->PlayAnimation(CrossbowShootAnim.Get(), false); }
-			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), Mods.ExtraProjectiles);
-		}
-		else { FlagStaminaDenied(); }
-		break;
-
-	case ECombatStyle::Mage:
-		// Spell bolt: costs mana (reducible), scales with Intelligence, may fire extra bolts.
-		if (Mana && Mana->Spend(SpellManaCost * (1.f - FMath::Clamp(Mods.ManaCostPct, 0.f, 0.8f))))
-		{
-			LastAttackTime = Now;
-			if (SwordMesh && StaffCastAnim.Get()) { SwordMesh->PlayAnimation(StaffCastAnim.Get(), false); }
-
-			// Release the bolt on frame 9 of the cast anim so it leaves the staff in sync with the gesture
-			// (falls back to an immediate cast if the clip is missing/shorter than the release frame).
-			const float SpellDamage = ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f);
-			const int32 ExtraBolts = Mods.ExtraProjectiles;
-			float CastDelay = 0.f;
-			if (UAnimSequence* CastAnim = StaffCastAnim.Get())
-			{
-				const double Fps = CastAnim->GetSamplingFrameRate().AsDecimal();
-				const float SafeFps = (Fps > 1.0) ? (float)Fps : 30.f;
-				CastDelay = FMath::Clamp(9.f / SafeFps, 0.f, CastAnim->GetPlayLength());
-			}
-			if (CastDelay > 0.f)
-			{
-				FTimerDelegate Del = FTimerDelegate::CreateUObject(this, &AFirstPersonCharacter::FireProjectile, SpellDamage, ExtraBolts, /*bFireball*/ true);
-				World->GetTimerManager().SetTimer(MageCastTimer, Del, CastDelay, false);
-			}
-			else
-			{
-				FireProjectile(SpellDamage, ExtraBolts, /*bFireball*/ true);
-			}
-		}
-		else { FlagManaDenied(); }
-		break;
-
-	case ECombatStyle::Melee:
-	default:
-		// Melee swing: costs stamina (reducible), gating the swing when too tired — same as ranged/mage.
-		if (Stamina && !Stamina->Spend(MeleeStaminaCost * (1.f - FMath::Clamp(Mods.StaminaCostPct, 0.f, 0.8f))))
-		{
-			FlagStaminaDenied();
-			break; // out of stamina: no swing this press
-		}
-		LastAttackTime = Now;
-		MeleeAttack();
-		break;
-	}
-}
-
-void AFirstPersonCharacter::MeleeAttack()
-{
-	UWorld* World = GetWorld();
-	if (!World || !FirstPersonCamera)
-	{
-		return;
-	}
-
-	// Pre-check the swing so we play exactly ONE animation: if it would strike only a solid surface
-	// (wall / scenery prop) with no enemy in reach, play the deflect/bounce and deal no damage; otherwise
-	// play the normal attack swing and resolve the hit partway through.
-	const FVector Start = FirstPersonCamera->GetComponentLocation();
-	const FVector End = Start + FirstPersonCamera->GetForwardVector() * AttackRange;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-
-	TArray<FHitResult> Hits;
-	World->SweepMultiByChannel(Hits, Start, End, FQuat::Identity, ECC_Pawn,
-		FCollisionShape::MakeSphere(AttackRadius), Params);
-
-	bool bEnemyInSwing = false;
-	bool bSolidInSwing = false;
-	FVector SolidImpact = End;
-	for (const FHitResult& Hit : Hits)
-	{
-		AActor* HitActor = Hit.GetActor();
-		if (!HitActor) { continue; }
-		if (HitActor->IsA(AMonsterCharacter::StaticClass())) { bEnemyInSwing = true; break; }
-		if (Hit.bBlockingHit && !bSolidInSwing) { bSolidInSwing = true; SolidImpact = Hit.ImpactPoint; }
-	}
-
-	if (!bEnemyInSwing && bSolidInSwing)
-	{
-		PlayMeleeDeflect(SolidImpact); // bounce off the wall/prop — no swing, no damage
-		return;
-	}
-
-	UAnimSequence* Swing = SwingAnim.Get();
-	if (SwordMesh && Swing)
-	{
-		SwordMesh->PlayAnimation(Swing, /*bLooping*/ false);
-	}
-
-	// Land the blow partway through the swing (not on the first frame) so the hit reads WITH the animation.
-	const float HitDelay = Swing ? FMath::Clamp(Swing->GetPlayLength() * 0.45f, 0.05f, 0.6f) : 0.18f;
-	World->GetTimerManager().SetTimer(MeleeHitTimer, this, &AFirstPersonCharacter::DoMeleeHit, HitDelay, false);
-}
-
-void AFirstPersonCharacter::DoMeleeHit()
-{
-	UWorld* World = GetWorld();
-	if (!World || !FirstPersonCamera || bDead)
-	{
-		return;
-	}
-
-	// Sphere-sweep forward from the camera and damage every monster caught in the swing.
-	const FVector Start = FirstPersonCamera->GetComponentLocation();
-	const FVector End = Start + FirstPersonCamera->GetForwardVector() * AttackRange;
-
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
-
-	TArray<FHitResult> Hits;
-	World->SweepMultiByChannel(Hits, Start, End, FQuat::Identity, ECC_Pawn,
-		FCollisionShape::MakeSphere(AttackRadius), Params);
-
-	const float DamagePerHit = AttackDamage * (Stats ? Stats->GetMeleeDamageMult() : 1.f);
-	float TotalDealt = 0.f;
-
-	TSet<AActor*> AlreadyHit;
-	for (const FHitResult& Hit : Hits)
-	{
-		AActor* HitActor = Hit.GetActor();
-		if (!HitActor || AlreadyHit.Contains(HitActor) || !HitActor->IsA(AMonsterCharacter::StaticClass()))
-		{
-			continue;
-		}
-		AlreadyHit.Add(HitActor);
-		if (AMonsterCharacter* Monster = Cast<AMonsterCharacter>(HitActor))
-		{
-			TotalDealt += Monster->ApplyHitDamage(DamagePerHit, GetActorLocation());
-		}
-	}
-
-	// Lifesteal: heal a fraction of the melee damage dealt this swing.
-	const float Lifesteal = SkillTree ? SkillTree->GetModifiers().LifestealPct : 0.f;
-	if (Lifesteal > 0.f && TotalDealt > 0.f && Health)
-	{
-		Health->Heal(TotalDealt * Lifesteal);
-	}
-
-	// Juice: a connecting swing freezes for a few frames and kicks the camera.
-	if (TotalDealt > 0.f)
-	{
-		TriggerHitStop();
-		CameraKick(1.f);
-		LastHitLandedTime = World->GetTimeSeconds(); // HUD flashes the hit marker
-	}
-}
-
-void AFirstPersonCharacter::PlayMeleeDeflect(const FVector& ImpactPoint)
-{
-	// Bounce/clang reaction off a solid surface: play the deflect anim + a small recoil kick. (Add a
-	// spark/SFX at ImpactPoint later — the impact point is passed through for that.)
-	if (SwordMesh && DeflectAnim.Get())
-	{
-		SwordMesh->PlayAnimation(DeflectAnim.Get(), /*bLooping*/ false);
-	}
-	CameraKick(0.6f);
-
-	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
-	{
-		GI->GetStats().DeflectsOffWalls++; // persisted on the next profile save
-	}
-}
-
-void AFirstPersonCharacter::FireProjectile(float Damage, int32 ExtraProjectiles, bool bFireball)
-{
-	UWorld* World = GetWorld();
-	if (!World || !FirstPersonCamera || !ProjectileClass)
-	{
-		return;
-	}
-
-	const FVector Forward = FirstPersonCamera->GetForwardVector();
-	const FVector SpawnOrigin = FirstPersonCamera->GetComponentLocation();
-
-	FActorSpawnParameters P;
-	P.Owner = this;
-	P.Instigator = this;
-	P.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	// Spread the total bolts evenly across a small horizontal arc, centered on the aim direction.
-	const int32 Count = 1 + FMath::Max(0, ExtraProjectiles);
-	const float SpreadDegrees = 8.f; // per-step yaw between bolts
-	const float StartYaw = -SpreadDegrees * (Count - 1) * 0.5f;
-
-	for (int32 i = 0; i < Count; ++i)
-	{
-		const FVector Dir = FRotator(0.f, StartYaw + SpreadDegrees * i, 0.f).RotateVector(Forward);
-		const FVector SpawnLoc = SpawnOrigin + Dir * 60.f;
-		if (AProjectile* Proj = World->SpawnActor<AProjectile>(ProjectileClass, FTransform(Dir.Rotation(), SpawnLoc), P))
-		{
-			if (bFireball) { Proj->EnableFireballVisual(); } // mage casts only
-			Proj->Launch(Dir, Damage, this);
-		}
-	}
-
-	CameraKick(0.5f); // a light recoil on firing
 }
 
 bool AFirstPersonCharacter::DevToggleNoClip()
