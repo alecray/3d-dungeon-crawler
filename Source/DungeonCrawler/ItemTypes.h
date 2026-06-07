@@ -3,6 +3,10 @@
 #include "CoreMinimal.h"
 #include "ItemTypes.generated.h"
 
+class UStaticMesh;
+class USkeletalMesh;
+class UTexture;
+
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
@@ -125,15 +129,16 @@ struct FItemDef
 	UPROPERTY() EEquipSlot EquipSlot = EEquipSlot::None; // paperdoll slot (armor/accessory), if any
 	UPROPERTY() FItemBonuses Bonuses;                    // stat bonuses applied while equipped
 
-	// Mesh used to render this item's UI icon (one of these; leave empty to use the rarity color).
-	UPROPERTY() FString IconStaticMeshPath;
-	UPROPERTY() FString IconSkeletalMeshPath;
+	// Mesh used to render this item's UI icon (one of these; leave unset to use the rarity color).
+	// Soft refs so renamed/moved assets are caught by reference fixup and cook validation, not silently dropped.
+	UPROPERTY() TSoftObjectPtr<UStaticMesh> IconStaticMeshPath;
+	UPROPERTY() TSoftObjectPtr<USkeletalMesh> IconSkeletalMeshPath;
 
 	// Optional per-item texture swap on the icon mesh's material: a shared material with a texture
 	// parameter (e.g. potions reuse SK_Potion/MI_Potion, recolored to health/mana/stamina). Both must
 	// be set to take effect; applied via a Dynamic Material Instance when rendering the icon.
-	UPROPERTY() FString IconMaterialParam; // texture parameter name on the material, e.g. "BaseColorTex"
-	UPROPERTY() FString IconTexturePath;   // texture to bind to that parameter
+	UPROPERTY() FString IconMaterialParam;             // texture parameter name on the material, e.g. "BaseColorTex" (a name, not an asset)
+	UPROPERTY() TSoftObjectPtr<UTexture> IconTexturePath; // texture to bind to that parameter
 };
 
 /** One stack in an inventory: an item id + count. Empty when Id is None / Count <= 0. */

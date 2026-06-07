@@ -60,6 +60,9 @@ public:
 	bool SpendSkillPoint();
 
 	// ---- Derived (attributes + flat bonuses from skills + equipment) ----
+	// Each derived stat = a flat base + a per-point attribute scaling + flat bonuses from two separate
+	// sources (skill tree, equipped gear). The damage mults are 1.0 at the base and add +5% per relevant
+	// attribute point, so they stay sensible multipliers (e.g. STR 9 -> 1.45x melee).
 	float GetMaxHealth() const { return 80.f + Attributes.Vitality * 20.f + BonusMaxHealth + EquipBonusMaxHealth; }
 	float GetMaxMana() const { return 40.f + Attributes.Intelligence * 15.f + BonusMaxMana + EquipBonusMaxMana; }
 	float GetMaxStamina() const { return 80.f + Attributes.Dexterity * 8.f + Attributes.Vitality * 4.f + BonusMaxStamina + EquipBonusMaxStamina; }
@@ -98,6 +101,7 @@ protected:
 	int32 AttributePoints = 0;
 
 private:
+	// Linear XP curve: 100 XP for level 1->2, then +75 per level after that (175, 250, ...).
 	static int32 XPToNextLevel(int32 ForLevel) { return 100 + (ForLevel - 1) * 75; }
 	void LevelUp();
 };

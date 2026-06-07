@@ -15,8 +15,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
-#include "Engine/StaticMesh.h"
-#include "UObject/ConstructorHelpers.h"
 
 ABossMonster::ABossMonster()
 {
@@ -43,17 +41,6 @@ ABossMonster::ABossMonster()
 	// Bright marker on the back (-X) flagging the phase-1 weak point; shown only during phase 1.
 	BackWeakMesh = AddBox(TEXT("BackWeakPoint"), FVector(-32.f, 0.f, 55.f), FVector(20.f, 46.f, 46.f));
 
-	// Imported hermit-crab body mesh (replaces the graybox cubes when it loads). Attached to the capsule
-	// so it isn't affected by the graybox hit-react/intro BodyRoot scaling.
-	CrabMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CrabMesh"));
-	CrabMesh->SetupAttachment(GetCapsuleComponent());
-	CrabMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CrabFinder(TEXT("/Game/Enemies/hermit-crab-boss.hermit-crab-boss"));
-	if (CrabFinder.Succeeded())
-	{
-		CrabMesh->SetStaticMesh(CrabFinder.Object);
-	}
-
 	// Face the player (not the movement direction) so the back weak point and lunges stay meaningful.
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 
@@ -68,32 +55,10 @@ void ABossMonster::BeginPlay()
 	BaseMoveSpeed = MoveSpeed;
 	bLogAttackAnim = true; // TEMP: on-screen confirmation each swing while we verify the attack anim
 
-	// Prefer the animated skeletal crab. If its asset isn't imported yet, fall back to the static preview
-	// mesh; failing that, the graybox cubes remain.
-	const bool bSkeletal = SetupSkeletalBody(SkeletalMeshPath, SkeletalMeshScale, RunAnimPath, IdleAnimPath, AttackAnimPath);
-	if (!bSkeletal && CrabMesh && CrabMesh->GetStaticMesh())
-	{
-		if (BodyRoot)
-		{
-			BodyRoot->SetHiddenInGame(true, /*bPropagateToChildren*/ true); // hides body + morphs + weak marker
-		}
-		const FBoxSphereBounds B = CrabMesh->GetStaticMesh()->GetBounds();
-		const FVector Size = B.BoxExtent * 2.f;
-		// Scale so the static crab's largest dimension hits the target size (a hermit crab is wide, so
-		// fitting to the narrow capsule made it tiny). The capsule stays the hitbox.
-		const float Largest = FMath::Max3(Size.X, Size.Y, Size.Z);
-		const float S = CrabMeshTargetSize / FMath::Max(1.f, Largest);
-		CrabMesh->SetRelativeScale3D(FVector(S));
-		CrabMesh->SetRelativeRotation(FRotator(0.f, CrabMeshYaw, 0.f));
-		const float CapHalf = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-		const float BottomZ = (B.Origin.Z - B.BoxExtent.Z) * S;
-		CrabMesh->SetRelativeLocation(FVector(0.f, 0.f, -CapHalf - BottomZ));
-	}
-	else if (bSkeletal)
-	{
-		// Skeletal is showing; hide the unused static fallback mesh.
-		if (CrabMesh) { CrabMesh->SetVisibility(false); }
-	}
+	// Set up the animated skeletal crab body (hides the graybox cubes on success; if the rig fails to load,
+	// the graybox cubes remain as a last-resort fallback).
+	const bool bSkeletal = SetupSkeletalBody(SkeletalMeshPath, SkeletalMeshScale, RunAnimPath, IdleAnimPath, AttackAnimPath,
+		DeathAnimPath, FlinchAnimPath);
 
 	// Give the boss a subtle self-glow so the big crab reads in the dark dungeon (drives M_Base emissive).
 	SetBodyEmissive(0.35f);
@@ -203,9 +168,9 @@ void ABossMonster::PlayIntro()
 	// length to it so the base locomotion resumes exactly when it ends (the boss Tick skips Super::Tick while
 	// bIntroPlaying, so nothing overwrites this one-shot). If there's no skeletal spawn anim, fall back to the
 	// procedural body-scale "pop" (BodyRoot is the hidden graybox when the skeletal body is in use).
-	if (!SpawnAnim && !SpawnAnimPath.IsEmpty())
+	if (!SpawnAnim && !SpawnAnimPath.IsNull())
 	{
-		SpawnAnim = Cast<UAnimSequence>(FSoftObjectPath(SpawnAnimPath).TryLoad());
+		SpawnAnim = SpawnAnimPath.LoadSynchronous();
 	}
 	if (SpawnAnim && GetMesh() && GetMesh()->GetSkeletalMeshAsset())
 	{

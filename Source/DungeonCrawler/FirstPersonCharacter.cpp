@@ -49,11 +49,6 @@
 #include "CollisionShape.h"
 #include "TimerManager.h"
 
-// Skeletal sword + its swing animation are loaded from these paths if not assigned in the editor.
-static const TCHAR* SwordSkeletalPath = TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword");
-static const TCHAR* SwordSwingAnimPath = TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack");
-static const TCHAR* SwordDeflectAnimPath = TEXT("/Game/Weapons/Sword/A_Sword_Deflect.A_Sword_Deflect");
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputAction.h"
@@ -124,44 +119,21 @@ void AFirstPersonCharacter::BeginPlay()
 		DefaultBrakingWalk = Movement->BrakingDecelerationWalking;
 	}
 
-	// Resolve the sword skeletal mesh + swing animation (editor assignment wins; else load by path).
-	if (!SwordSkeletalAsset)
-	{
-		SwordSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(SwordSkeletalPath).TryLoad());
-	}
-	if (!SwingAnim)
-	{
-		SwingAnim = Cast<UAnimSequence>(FSoftObjectPath(SwordSwingAnimPath).TryLoad());
-	}
-	if (!DeflectAnim)
-	{
-		DeflectAnim = Cast<UAnimSequence>(FSoftObjectPath(SwordDeflectAnimPath).TryLoad());
-	}
-	if (!CrossbowSkeletalAsset)
-	{
-		CrossbowSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow")).TryLoad());
-	}
-	if (!CrossbowShootAnim)
-	{
-		CrossbowShootAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/A_Crossbow_Shoot.A_Crossbow_Shoot")).TryLoad());
-	}
-	if (!StaffSkeletalAsset)
-	{
-		StaffSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/SK_Staff.SK_Staff")).TryLoad());
-	}
-	if (!StaffCastAnim)
-	{
-		StaffCastAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")).TryLoad());
-	}
-	// Fishing rod mesh + animations (held while fishing). Anims are null until authored — the flow no-ops them.
-	if (!FishingRodSkeletalAsset)
-	{
-		FishingRodSkeletalAsset = Cast<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Tools/SK_Fishing_Rod.SK_Fishing_Rod")).TryLoad());
-	}
-	if (!FishingCastAnim)    { FishingCastAnim    = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Cast.A_Fishing_Rod_Cast")).TryLoad()); }
-	if (!FishingIdleAnim)    { FishingIdleAnim    = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Idle.A_Fishing_Rod_Idle")).TryLoad()); }
-	if (!FishingTensionAnim) { FishingTensionAnim = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Tension.A_Fishing_Rod_Tension")).TryLoad()); }
-	if (!FishingReelAnim)    { FishingReelAnim    = Cast<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Reel_In.A_Fishing_Rod_Reel_In")).TryLoad()); }
+	// Force-load the weapon/tool assets up front so the .Get() at each use site below is valid. Each soft
+	// ref defaults to its conventional content path (set in the header) and can be overridden per-instance
+	// in the editor; LoadSynchronous returns null for an unset/unauthored clip, which the call sites no-op.
+	SwordSkeletalAsset.LoadSynchronous();
+	SwingAnim.LoadSynchronous();
+	DeflectAnim.LoadSynchronous();
+	CrossbowSkeletalAsset.LoadSynchronous();
+	CrossbowShootAnim.LoadSynchronous();
+	StaffSkeletalAsset.LoadSynchronous();
+	StaffCastAnim.LoadSynchronous();
+	FishingRodSkeletalAsset.LoadSynchronous();
+	FishingCastAnim.LoadSynchronous();
+	FishingIdleAnim.LoadSynchronous();
+	FishingTensionAnim.LoadSynchronous();
+	FishingReelAnim.LoadSynchronous();
 
 	if (Health)
 	{
@@ -331,18 +303,18 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 	switch (Kind)
 	{
 	case EEquipKind::Sword:
-		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset);
-		SwordMesh->SetVisibility(SwordSkeletalAsset != nullptr);
+		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset.Get());
+		SwordMesh->SetVisibility(SwordSkeletalAsset.Get() != nullptr);
 		CurrentStyle = ECombatStyle::Melee;
 		break;
 	case EEquipKind::Crossbow:
-		SwordMesh->SetSkeletalMesh(CrossbowSkeletalAsset);
-		SwordMesh->SetVisibility(CrossbowSkeletalAsset != nullptr);
+		SwordMesh->SetSkeletalMesh(CrossbowSkeletalAsset.Get());
+		SwordMesh->SetVisibility(CrossbowSkeletalAsset.Get() != nullptr);
 		CurrentStyle = ECombatStyle::Ranged;
 		break;
 	case EEquipKind::Staff:
-		SwordMesh->SetSkeletalMesh(StaffSkeletalAsset);
-		SwordMesh->SetVisibility(StaffSkeletalAsset != nullptr); // graybox: hidden until a staff mesh exists
+		SwordMesh->SetSkeletalMesh(StaffSkeletalAsset.Get());
+		SwordMesh->SetVisibility(StaffSkeletalAsset.Get() != nullptr); // graybox: hidden until a staff mesh exists
 		CurrentStyle = ECombatStyle::Mage;
 		break;
 	default:
@@ -362,8 +334,8 @@ void AFirstPersonCharacter::BeginFishing()
 	bFishing = true;
 	if (SwordMesh)
 	{
-		SwordMesh->SetSkeletalMesh(FishingRodSkeletalAsset);
-		SwordMesh->SetVisibility(FishingRodSkeletalAsset != nullptr); // null until the rod mesh is imported
+		SwordMesh->SetSkeletalMesh(FishingRodSkeletalAsset.Get());
+		SwordMesh->SetVisibility(FishingRodSkeletalAsset.Get() != nullptr); // null until the rod mesh is imported
 	}
 }
 
@@ -374,10 +346,10 @@ void AFirstPersonCharacter::PlayFishingPose(EFishingPose Pose)
 	bool bLoop = false;
 	switch (Pose)
 	{
-	case EFishingPose::Cast:    Anim = FishingCastAnim;    bLoop = false; break;
-	case EFishingPose::Idle:    Anim = FishingIdleAnim;    bLoop = true;  break;
-	case EFishingPose::Tension: Anim = FishingTensionAnim; bLoop = true;  break;
-	case EFishingPose::Reel:    Anim = FishingReelAnim;    bLoop = false; break;
+	case EFishingPose::Cast:    Anim = FishingCastAnim.Get();    bLoop = false; break;
+	case EFishingPose::Idle:    Anim = FishingIdleAnim.Get();    bLoop = true;  break;
+	case EFishingPose::Tension: Anim = FishingTensionAnim.Get(); bLoop = true;  break;
+	case EFishingPose::Reel:    Anim = FishingReelAnim.Get();    bLoop = false; break;
 	}
 	if (Anim) { SwordMesh->PlayAnimation(Anim, bLoop); } // no-op until the anim exists
 }
@@ -633,7 +605,7 @@ void AFirstPersonCharacter::UseAbility(const FInputActionValue& /*Value*/)
 	case EActiveAbility::Whirlwind:
 		if (Stamina && Stamina->Spend(25.f))
 		{
-			if (SwordMesh && SwingAnim) { SwordMesh->PlayAnimation(SwingAnim, false); }
+			if (SwordMesh && SwingAnim.Get()) { SwordMesh->PlayAnimation(SwingAnim.Get(), false); }
 			PerformAreaBurst(350.f, AttackDamage * 1.5f * (Stats ? Stats->GetMeleeDamageMult() : 1.f));
 			AbilityReadyTime.Add(Ability, Now + 6.f);
 		}
@@ -642,7 +614,7 @@ void AFirstPersonCharacter::UseAbility(const FInputActionValue& /*Value*/)
 	case EActiveAbility::Volley:
 		if (Stamina && Stamina->Spend(22.f))
 		{
-			if (SwordMesh && CrossbowShootAnim) { SwordMesh->PlayAnimation(CrossbowShootAnim, false); }
+			if (SwordMesh && CrossbowShootAnim.Get()) { SwordMesh->PlayAnimation(CrossbowShootAnim.Get(), false); }
 			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), /*ExtraProjectiles*/ 6);
 			AbilityReadyTime.Add(Ability, Now + 5.f);
 		}
@@ -651,7 +623,7 @@ void AFirstPersonCharacter::UseAbility(const FInputActionValue& /*Value*/)
 	case EActiveAbility::Nova:
 		if (Mana && Mana->Spend(30.f))
 		{
-			if (SwordMesh && StaffCastAnim) { SwordMesh->PlayAnimation(StaffCastAnim, false); }
+			if (SwordMesh && StaffCastAnim.Get()) { SwordMesh->PlayAnimation(StaffCastAnim.Get(), false); }
 			PerformAreaBurst(400.f, ProjectileDamage * 2.f * (Stats ? Stats->GetSpellDamageMult() : 1.f));
 			AbilityReadyTime.Add(Ability, Now + 7.f);
 		}
@@ -1080,7 +1052,7 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		if (Stamina && Stamina->Spend(RangedStaminaCost * (1.f - FMath::Clamp(Mods.StaminaCostPct, 0.f, 0.8f))))
 		{
 			LastAttackTime = Now;
-			if (SwordMesh && CrossbowShootAnim) { SwordMesh->PlayAnimation(CrossbowShootAnim, false); }
+			if (SwordMesh && CrossbowShootAnim.Get()) { SwordMesh->PlayAnimation(CrossbowShootAnim.Get(), false); }
 			FireProjectile(ProjectileDamage * (Stats ? Stats->GetRangedDamageMult() : 1.f), Mods.ExtraProjectiles);
 		}
 		else { FlagStaminaDenied(); }
@@ -1091,18 +1063,18 @@ void AFirstPersonCharacter::Attack(const FInputActionValue& /*Value*/)
 		if (Mana && Mana->Spend(SpellManaCost * (1.f - FMath::Clamp(Mods.ManaCostPct, 0.f, 0.8f))))
 		{
 			LastAttackTime = Now;
-			if (SwordMesh && StaffCastAnim) { SwordMesh->PlayAnimation(StaffCastAnim, false); }
+			if (SwordMesh && StaffCastAnim.Get()) { SwordMesh->PlayAnimation(StaffCastAnim.Get(), false); }
 
 			// Release the bolt on frame 9 of the cast anim so it leaves the staff in sync with the gesture
 			// (falls back to an immediate cast if the clip is missing/shorter than the release frame).
 			const float SpellDamage = ProjectileDamage * (Stats ? Stats->GetSpellDamageMult() : 1.f);
 			const int32 ExtraBolts = Mods.ExtraProjectiles;
 			float CastDelay = 0.f;
-			if (StaffCastAnim)
+			if (UAnimSequence* CastAnim = StaffCastAnim.Get())
 			{
-				const double Fps = StaffCastAnim->GetSamplingFrameRate().AsDecimal();
+				const double Fps = CastAnim->GetSamplingFrameRate().AsDecimal();
 				const float SafeFps = (Fps > 1.0) ? (float)Fps : 30.f;
-				CastDelay = FMath::Clamp(9.f / SafeFps, 0.f, StaffCastAnim->GetPlayLength());
+				CastDelay = FMath::Clamp(9.f / SafeFps, 0.f, CastAnim->GetPlayLength());
 			}
 			if (CastDelay > 0.f)
 			{
@@ -1168,13 +1140,14 @@ void AFirstPersonCharacter::MeleeAttack()
 		return;
 	}
 
-	if (SwordMesh && SwingAnim)
+	UAnimSequence* Swing = SwingAnim.Get();
+	if (SwordMesh && Swing)
 	{
-		SwordMesh->PlayAnimation(SwingAnim, /*bLooping*/ false);
+		SwordMesh->PlayAnimation(Swing, /*bLooping*/ false);
 	}
 
 	// Land the blow partway through the swing (not on the first frame) so the hit reads WITH the animation.
-	const float HitDelay = SwingAnim ? FMath::Clamp(SwingAnim->GetPlayLength() * 0.45f, 0.05f, 0.6f) : 0.18f;
+	const float HitDelay = Swing ? FMath::Clamp(Swing->GetPlayLength() * 0.45f, 0.05f, 0.6f) : 0.18f;
 	World->GetTimerManager().SetTimer(MeleeHitTimer, this, &AFirstPersonCharacter::DoMeleeHit, HitDelay, false);
 }
 
@@ -1235,9 +1208,9 @@ void AFirstPersonCharacter::PlayMeleeDeflect(const FVector& ImpactPoint)
 {
 	// Bounce/clang reaction off a solid surface: play the deflect anim + a small recoil kick. (Add a
 	// spark/SFX at ImpactPoint later — the impact point is passed through for that.)
-	if (SwordMesh && DeflectAnim)
+	if (SwordMesh && DeflectAnim.Get())
 	{
-		SwordMesh->PlayAnimation(DeflectAnim, /*bLooping*/ false);
+		SwordMesh->PlayAnimation(DeflectAnim.Get(), /*bLooping*/ false);
 	}
 	CameraKick(0.6f);
 

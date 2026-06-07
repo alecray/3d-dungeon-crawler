@@ -105,6 +105,9 @@ void UEquipmentComponent::LoadFrom(const TArray<FName>& InSlots)
 	OnEquipmentChanged.Broadcast();
 }
 
+// Sums the bonuses of every equipped item and writes them onto UStatsComponent's EquipBonus* fields.
+// This always overwrites (not adds), so re-running it after any equip/unequip yields the correct total
+// with no drift. Kept distinct from the skill tree's Bonus* fields so gear and skills stack cleanly.
 void UEquipmentComponent::RecomputeBonuses()
 {
 	UStatsComponent* Stats = GetStats();

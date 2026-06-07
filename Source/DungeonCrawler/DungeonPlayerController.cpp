@@ -160,6 +160,9 @@ void ADungeonPlayerController::FadeFromBlack(float Duration)
 	}
 }
 
+// Two-step level transition: fade the camera to black now, then OpenLevel after the fade via a timer
+// (see DoPendingTravel). PendingTravelMap doubles as the "in progress" latch so a second trigger (e.g.
+// hitting the portal twice) during the fade is ignored.
 void ADungeonPlayerController::FadeToBlackAndTravel(FName Map, float Duration)
 {
 	if (Map.IsNone() || !PendingTravelMap.IsNone())
@@ -447,6 +450,10 @@ bool ADungeonPlayerController::IsLootMenuOpen() const
 	return ChestPane && ChestPane->IsInViewport();
 }
 
+// Central input-mode arbiter. Every panel open/close routes through here rather than setting the input
+// mode itself, so the cursor + Game/UI mode are re-derived from whatever is *currently* open. This is why
+// closing one of two stacked panels correctly leaves the cursor on (the other is still up) instead of
+// snapping back to game-only. The pause menu is handled separately (it sets its own mode while paused).
 void ADungeonPlayerController::UpdateInputMode()
 {
 	const bool bUIOpen =

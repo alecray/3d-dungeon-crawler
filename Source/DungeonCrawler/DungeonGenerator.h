@@ -111,6 +111,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Rooms", meta = (ClampMin = "1"))
 	int32 MaxPlacementAttempts = 200;
 
+	// ---- Environment meshes (optional; fall back to graybox cubes when unset/missing) ----
+	/** Floor/ceiling mesh. Soft ref defaulted to /Game/Furniture/SM_Floor; auto-fit to the cell. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Meshes")
+	TSoftObjectPtr<UStaticMesh> FloorMeshPath = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Floor.SM_Floor")));
+
+	/** Wall mesh. Soft ref defaulted to /Game/Furniture/SM_Wall; auto-fit to the cell. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Meshes")
+	TSoftObjectPtr<UStaticMesh> WallMeshPath = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Wall.SM_Wall")));
+
 	// ---- Geometry tunables ----
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Geometry", meta = (ClampMin = "100"))
 	float WallHeight = 320.f;

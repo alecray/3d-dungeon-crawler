@@ -53,8 +53,35 @@ Additional Paths**, or run the full path once: `py "<PROJECT>/Tools/import_meshe
 ```
 
 `-script` args: `static <fbx> <dest>` · `skeletal <fbx> <dest> [skeletonAssetPath]` ·
-`folder <srcDir> <dest> <static|skeletal>`. (Headless argv splits on spaces, so the **paths themselves
-must not contain spaces**; for spaced paths call the functions from a small runner `.py` instead.)
+`anim <fbx> <dest> <skeletonAssetPath> [name]` · `folder <srcDir> <dest> <static|skeletal>`. (Headless
+argv splits on spaces, so the **paths themselves must not contain spaces** — and this project's path has
+one (`Game Projects`); for spaced paths call the functions from a small runner `.py` instead.)
+
+**Headless animation-only import** (`import_anim` / the `anim` verb) — bring one FBX's animation onto an
+existing skeleton (no mesh re-import), forcing a name (e.g. a single death-anim take). Two gotchas make
+this finicky, so read both before relying on it:
+
+- **Disable Interchange for the run.** UE 5.7 routes FBX import through Interchange, whose import path
+  **asserts in a headless commandlet** (`CurrentApplication.IsValid()` — it wants Slate UI). Force the
+  legacy importer with a process-scoped cvar so the editor's drag-drop Interchange presets are untouched:
+  add `"-ini:Engine:[ConsoleVariables]:Interchange.FeatureFlags.Import.FBX=0"` to the `UnrealEditor-Cmd`
+  args (and/or `unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Import.FBX 0")`
+  at the top of the script).
+- **The rig must have a SINGLE root bone.** The legacy importer rejects multi-root hierarchies
+  (`Multiple roots are found in the bone hierarchy`). Interchange tolerates them — which is why a rig that
+  imports fine via editor drag-drop can still fail headless. If a headless anim import fails on this, either
+  re-export from Blender with one armature/root (disable "Add Leaf Bones", no stray root objects) or just
+  import that one in the editor.
+
+Example runner (handles the spaced path):
+
+```python
+import sys, unreal
+unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Import.FBX 0")  # legacy FBX
+sys.path.insert(0, r"<PROJECT>/Tools"); import import_meshes
+import_meshes.import_anim(r"<PROJECT>/blends/enemies/foo.fbx", "/Game/Enemies",
+                          "/Game/Enemies/SKEL_Foo.SKEL_Foo", name="A_Foo_Death")
+```
 
 **Adding another import pipeline** (e.g. animation-only, or a variant with different settings):
 
@@ -307,3 +334,20 @@ Flow / UX:
 
 The dungeon geometry and props start as code-driven graybox primitives and swap in imported meshes
 where available, so the project stays diff-friendly and mesh-agnostic.
+
+## Code conventions
+
+- **Reference assets with `TSoftObjectPtr<T>`, never raw path strings.** For any reference to a content
+  asset (meshes, anims, textures, materials, Niagara, etc.), use a typed `TSoftObjectPtr<T>` rather than
+  an `FString`/`const TCHAR*` path that you later `FSoftObjectPath(...).TryLoad()`. Prefer it over a hard
+  `TObjectPtr<T>` too unless the asset must always be loaded. Why: it's type-safe (the wrong asset class
+  won't compile), the reference is visible to the cooker and the reference viewer, an `EditAnywhere` field
+  becomes a filtered asset picker in the Details panel, and per-instance/Blueprint overrides participate
+  in the editor's redirector fix-up on move/rename — so assets don't silently break when relocated.
+  Pattern: an `EditAnywhere` `TSoftObjectPtr<T>` field defaulted to the conventional path
+  (`= TSoftObjectPtr<T>(FSoftObjectPath(TEXT("/Game/...")))`), resolved at use with `.LoadSynchronous()`
+  / `.Get()`. The data registries (`ItemDatabase`, `MonsterDatabase`) and asset-holding actors
+  (`AFirstPersonCharacter`, `ABossMonster`, `ADungeonGenerator`, `ADungeonProp`, …) follow this.
+  The only sanctioned exceptions are **engine built-ins** (e.g. `/Engine/BasicShapes/Cube`) loaded inline
+  as graybox placeholders, and **constructor-time `ConstructorHelpers::FObjectFinder`** (which can only
+  take a literal path) — both are fine as-is.

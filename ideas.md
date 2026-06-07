@@ -3,6 +3,9 @@
 > Loose brainstorm — concepts, wishlists, and jokes that aren't scoped tasks yet.
 > When one firms up into actual work, move it into `TODO.md`.
 
+improve boss death animation - fade away - more dark souls like - badass
+if you hit the boss too many times in a row he should smack you backwards which stuns you for a sec
+
 ## Gameplay / encounters
 - Give one of the bosses a **receptionist** — maybe play elevator music when you walk inside, then
   you get told to take a seat.
@@ -55,3 +58,4 @@ Game loop:
 - felling a boss also unlocks the next upgraded variant of that boss
 - end game: complete the collection log, slay all the bosses
 
+- dynamic music would be a cool addition later

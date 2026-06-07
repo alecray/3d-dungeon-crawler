@@ -1,8 +1,15 @@
 #include "SkillTypes.h"
 #include <initializer_list>
 
+// The static skill-tree definition. Three parallel branches (Melee / Ranged / Mage), each climbing the
+// same shape: tier 0 a repeatable damage node, tier 1 a survivability node, tier 2 a damage capstone,
+// tier 3 two pick-one combat-modifier nodes, tier 4 an active ability. Nodes are gated only by their
+// listed Prereqs (the prior node in the branch), not by a per-tier point requirement. Like the monster
+// database, the table is built once and cached. To add or retune a node, edit BuildNodes().
 namespace SkillDatabase
 {
+	// Three small factory lambdas (Make / MakeMod / MakeAbility) cut the boilerplate of filling an
+	// FSkillNode for the three node flavors (passive stat bonus / combat modifier / active ability).
 	static TArray<FSkillNode> BuildNodes()
 	{
 		auto Make = [](const TCHAR* Id, const TCHAR* Name, ESkillBranch Branch, int32 Tier, int32 MaxRank,

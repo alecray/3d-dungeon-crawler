@@ -6,6 +6,8 @@
 
 class UStaticMeshComponent;
 class UHealthComponent;
+class USkeletalMesh;
+class UAnimSequence;
 
 /**
  * Graybox melee monster. Built from cube primitives, auto-possessed by an AIController, and driven
@@ -121,8 +123,9 @@ protected:
 	 * auto-fits the capsule, and starts the idle anim. Used by ApplyType (typed monsters) and the boss.
 	 * Returns false (leaving the graybox body) if the mesh path doesn't resolve.
 	 */
-	bool SetupSkeletalBody(const FString& MeshPath, float MeshScale,
-		const FString& RunPath, const FString& IdlePath, const FString& AttackPath);
+	bool SetupSkeletalBody(const TSoftObjectPtr<USkeletalMesh>& MeshPath, float MeshScale,
+		const TSoftObjectPtr<UAnimSequence>& RunPath, const TSoftObjectPtr<UAnimSequence>& IdlePath, const TSoftObjectPtr<UAnimSequence>& AttackPath,
+		const TSoftObjectPtr<UAnimSequence>& DeathPath = nullptr, const TSoftObjectPtr<UAnimSequence>& FlinchPath = nullptr);
 
 	/** Self-illuminate the skeletal body (drives M_Base's EmissiveStrength via a dynamic instance) so a
 	    mesh reads brighter in the dark. 0 = off. */
@@ -164,21 +167,26 @@ private:
 	void HandleDeath(UHealthComponent* DeadComponent);
 	void HandleDamaged(UHealthComponent* DamagedComponent, float Amount);
 
-	// Skeletal-mesh animations for monster types like the crab (loaded in ApplyType).
+	// Skeletal-mesh animations for monster types like the crab (loaded in SetupSkeletalBody).
 	UPROPERTY() TObjectPtr<class UAnimSequence> RunAnim;
 	UPROPERTY() TObjectPtr<class UAnimSequence> IdleAnim;
 	UPROPERTY() TObjectPtr<class UAnimSequence> AttackAnim;
+	UPROPERTY() TObjectPtr<class UAnimSequence> DeathAnim;   // one-shot, played on death (else the code pop)
+	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnim;  // one-shot hit reaction, played on taking damage
 
-	enum class ESkelAnim : uint8 { None, Idle, Run, Attack };
+	enum class ESkelAnim : uint8 { None, Idle, Run, Attack, Flinch };
 	ESkelAnim AnimState = ESkelAnim::None;
 
 	/** Plays a looping locomotion anim (run/idle) only when the state actually changes. */
 	void SetLocomotion(bool bMoving);
 	/** Plays the one-shot attack anim and returns to locomotion when it ends. */
 	void PlayAttackAnim();
+	/** Plays the one-shot flinch/hit-react anim (skipped if mid-swing or dead). No-op without a FlinchAnim. */
+	void PlayFlinchAnim();
 
 	bool bUsingSkeletalBody = false;
 	float AttackAnimEndTime = 0.f;
+	float FlinchAnimEndTime = 0.f; // locomotion + new attacks are held until this passes
 	float LastAttackTime = -1000.f;
 
 	bool bHitPending = false;
@@ -188,6 +196,7 @@ private:
 	float PendingHitRadius = 0.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
+	bool bDeathAnimPlaying = false; // a real death anim is playing — skip the code sink/spin death effect
 
 	// Navmesh chase: re-issue MoveTo periodically (the player keeps moving); fall back to direct
 	// steering until a navmesh tile has generated around us.

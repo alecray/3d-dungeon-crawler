@@ -199,14 +199,17 @@ void ABossArena::RunIntroCinematic(APawn* Player)
 	if (IntroCamera)
 	{
 		IntroCamera->SetActorRotation((Focus - CamLoc).Rotation());
-		PC->SetViewTargetWithBlend(IntroCamera, 0.5f);
+		// Ease-in-out (cubic) blend — the cinematic standard for boss-camera moves: smooth accel + decel
+		// reads as deliberate "weight" rather than a linear slide.
+		PC->SetViewTargetWithBlend(IntroCamera, 0.6f, EViewTargetBlendFunction::VTBlend_EaseInOut, 3.0f);
 	}
 
 	// Screen shake for the boss's roar.
 	PC->ClientStartCameraShake(UBossIntroCameraShake::StaticClass(), 1.f);
 
-	// Hold on the boss for its intro, then blend back to the player and restore control.
-	const float IntroHold = FMath::Max(0.6f, Boss->IsIntroPlaying() ? 1.8f : 1.2f);
+	// Hold long enough to FINISH the spawn animation, then wait a beat, before blending back to the player.
+	const float IntroLen = Boss->IsIntroPlaying() ? Boss->GetIntroDuration() : 1.2f;
+	const float IntroHold = FMath::Max(1.0f, IntroLen + IntroEndBeat);
 	World->GetTimerManager().SetTimer(CameraReturnTimer, this, &ABossArena::ReturnCameraToPlayer, IntroHold, false);
 }
 
@@ -218,7 +221,8 @@ void ABossArena::ReturnCameraToPlayer()
 	{
 		if (APawn* Pawn = PC->GetPawn())
 		{
-			PC->SetViewTargetWithBlend(Pawn, 0.5f);
+			// Same ease-in-out blend back to the player for a smooth, natural settle.
+			PC->SetViewTargetWithBlend(Pawn, 0.6f, EViewTargetBlendFunction::VTBlend_EaseInOut, 3.0f);
 		}
 	}
 	if (World)

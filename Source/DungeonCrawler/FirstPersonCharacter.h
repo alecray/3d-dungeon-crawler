@@ -135,49 +135,49 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Sword")
 	TObjectPtr<USkeletalMeshComponent> SwordMesh;
 
-	/** Skeletal mesh for the sword. Assign your imported sword here to override the default path. */
+	/** Skeletal mesh for the sword. Soft ref defaulted to the conventional path; assign a different asset
+	 *  here to override. Force-loaded in BeginPlay, then read via .Get() at the use sites. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<USkeletalMesh> SwordSkeletalAsset;
+	TSoftObjectPtr<USkeletalMesh> SwordSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword")));
 
-	/** Swing animation played on attack. Defaults to /Game/Weapons/Sword/A_Sword_Attack. */
+	/** Swing animation played on attack. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<UAnimSequence> SwingAnim;
+	TSoftObjectPtr<UAnimSequence> SwingAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack")));
 
 	/** Deflect/bounce animation played when a melee swing strikes a solid, non-damageable surface (wall,
-	 *  prop) instead of an enemy. Defaults to /Game/Weapons/Sword/A_Sword_Deflect (make this anim). */
+	 *  prop) instead of an enemy. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<UAnimSequence> DeflectAnim;
+	TSoftObjectPtr<UAnimSequence> DeflectAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Sword/A_Sword_Deflect.A_Sword_Deflect")));
 
 	/** Optional crossbow skeletal mesh (equipping the Crossbow item swaps to it). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<USkeletalMesh> CrossbowSkeletalAsset;
+	TSoftObjectPtr<USkeletalMesh> CrossbowSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow")));
 
-	/** Crossbow fire animation. Defaults to /Game/Weapons/Crossbow/A_Crossbow_Shoot. */
+	/** Crossbow fire animation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<UAnimSequence> CrossbowShootAnim;
+	TSoftObjectPtr<UAnimSequence> CrossbowShootAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Crossbow/A_Crossbow_Shoot.A_Crossbow_Shoot")));
 
 	/** Optional staff/wand skeletal mesh (equipping a Staff item swaps to it; null = no held mesh yet). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<USkeletalMesh> StaffSkeletalAsset;
+	TSoftObjectPtr<USkeletalMesh> StaffSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/SK_Staff.SK_Staff")));
 
-	/** Staff spell-cast animation. Defaults to /Game/Weapons/Staff/A_Staff_Cast. */
+	/** Staff spell-cast animation. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sword")
-	TObjectPtr<UAnimSequence> StaffCastAnim;
+	TSoftObjectPtr<UAnimSequence> StaffCastAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")));
 
-	/** Fishing rod skeletal mesh, shown in hand while fishing. Defaults to /Game/Tools/SK_Fishing_Rod. */
+	/** Fishing rod skeletal mesh, shown in hand while fishing. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TObjectPtr<USkeletalMesh> FishingRodSkeletalAsset;
+	TSoftObjectPtr<USkeletalMesh> FishingRodSkeletalAsset = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Tools/SK_Fishing_Rod.SK_Fishing_Rod")));
 
-	/** Fishing animations (soft-loaded by name; null until authored — they no-op so the flow still works).
-	 *  /Game/Tools/A_Fishing_Rod_{Cast,Idle,Tension,Reel_In}. */
+	/** Fishing animations (null until authored — they no-op so the flow still works). */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TObjectPtr<UAnimSequence> FishingCastAnim;
+	TSoftObjectPtr<UAnimSequence> FishingCastAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Cast.A_Fishing_Rod_Cast")));
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TObjectPtr<UAnimSequence> FishingIdleAnim;
+	TSoftObjectPtr<UAnimSequence> FishingIdleAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Idle.A_Fishing_Rod_Idle")));
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TObjectPtr<UAnimSequence> FishingTensionAnim;
+	TSoftObjectPtr<UAnimSequence> FishingTensionAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Tension.A_Fishing_Rod_Tension")));
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fishing")
-	TObjectPtr<UAnimSequence> FishingReelAnim;
+	TSoftObjectPtr<UAnimSequence> FishingReelAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Tools/A_Fishing_Rod_Reel_In.A_Fishing_Rod_Reel_In")));
 
 	// ---- Ranged / mage ----
 	UPROPERTY(EditAnywhere, Category = "Combat")

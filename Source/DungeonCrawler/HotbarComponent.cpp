@@ -30,6 +30,9 @@ void UHotbarComponent::SetSlot(int32 Index, FName ItemId)
 	}
 }
 
+// Makes a slot the active one. Always re-broadcasts on a valid index — even when the slot was already
+// active — because the listener (the player) treats the broadcast as "re-equip the active item", which
+// is what lets pressing the same hotkey re-draw/holster the current weapon.
 void UHotbarComponent::SelectSlot(int32 Index)
 {
 	EnsureSize();

@@ -147,6 +147,11 @@ FItemBonuses ComposeItemBonuses(const FItemBonuses& BaseBonuses, const TArray<FN
 	return Total;
 }
 
+// The master item catalog (cached once, queried by id). BuildItems() is intentionally multi-pass: it
+// first creates every item with its core fields, then a series of helper lambdas patch in the optional
+// data (equip slot + stat bonuses, tooltip text, icon meshes/textures) by id. Splitting it this way
+// keeps the big readable item list uncluttered and lets the optional data live in grouped, scannable
+// blocks rather than as long argument lists on every MakeItem call.
 namespace ItemDatabase
 {
 	static TArray<FItemDef> BuildItems()
@@ -257,7 +262,7 @@ namespace ItemDatabase
 		auto SetSkelIcon = [&Items](const TCHAR* Id, const TCHAR* Path)
 		{
 			const FName Key(Id);
-			for (FItemDef& D : Items) { if (D.Id == Key) { D.IconSkeletalMeshPath = Path; } }
+			for (FItemDef& D : Items) { if (D.Id == Key) { D.IconSkeletalMeshPath = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(Path)); } }
 		};
 		SetSkelIcon(TEXT("Sword"),      TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
 		SetSkelIcon(TEXT("IronSword"),  TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
@@ -273,9 +278,9 @@ namespace ItemDatabase
 			{
 				if (D.Id == Key)
 				{
-					D.IconStaticMeshPath = TEXT("/Game/Consumable/SM_Potion.SM_Potion");
+					D.IconStaticMeshPath = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Consumable/SM_Potion.SM_Potion")));
 					D.IconMaterialParam = TEXT("BaseColorTex"); // texture param exposed on MI_Potion's parent material
-					D.IconTexturePath = TexturePath;
+					D.IconTexturePath = TSoftObjectPtr<UTexture>(FSoftObjectPath(TexturePath));
 				}
 			}
 		};

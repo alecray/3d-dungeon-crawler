@@ -78,6 +78,10 @@ private:
 	FVector RoomCenter = FVector::ZeroVector;
 	FVector2D RoomHalf = FVector2D(600.f, 600.f);
 
+	/** Extra beat (s) the intro camera lingers on the boss AFTER the spawn animation finishes, before
+	    blending back to the player. */
+	UPROPERTY(EditAnywhere, Category = "BossArena") float IntroEndBeat = 0.8f;
+
 	bool bStarted = false;
 
 	FTimerHandle CameraReturnTimer;

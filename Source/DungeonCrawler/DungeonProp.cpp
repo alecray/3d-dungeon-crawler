@@ -5,11 +5,6 @@
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/SoftObjectPath.h"
 
-// Content paths that finished props pull their meshes from (import your assets here).
-static const TCHAR* StoolMeshPath = TEXT("/Game/Furniture/SM_Stool.SM_Stool");
-static const TCHAR* CrateMeshPath = TEXT("/Game/Furniture/SM_Crate.SM_Crate");
-static const TCHAR* TableMeshPath = TEXT("/Game/Furniture/SM_Table.SM_Table");
-
 // Imported scenery meshes (no graybox fallback): one mesh per type.
 static const TCHAR* MeshPathForType(EPropType Type)
 {
@@ -186,23 +181,11 @@ UStaticMesh* ADungeonProp::GetFinishedMesh() const
 	switch (PropType)
 	{
 	case EPropType::Stool:
-		if (StoolMesh)
-		{
-			return StoolMesh;
-		}
-		return Cast<UStaticMesh>(FSoftObjectPath(StoolMeshPath).TryLoad());
+		return StoolMesh.LoadSynchronous(); // soft ref defaulted to the conventional path; editor override wins
 	case EPropType::Crate:
-		if (CrateMesh)
-		{
-			return CrateMesh;
-		}
-		return Cast<UStaticMesh>(FSoftObjectPath(CrateMeshPath).TryLoad());
+		return CrateMesh.LoadSynchronous();
 	case EPropType::Table:
-		if (TableMesh)
-		{
-			return TableMesh;
-		}
-		return Cast<UStaticMesh>(FSoftObjectPath(TableMeshPath).TryLoad());
+		return TableMesh.LoadSynchronous();
 	default:
 		// Imported scenery meshes (barrel/pots/rocks/etc.): load from the per-type path.
 		if (const TCHAR* Path = MeshPathForType(PropType))

@@ -99,6 +99,11 @@ bool USkillTreeComponent::HasAbility(EActiveAbility Ability) const
 	return false;
 }
 
+// Re-derives the player's total skill bonuses from scratch every time an allocation changes (cheap —
+// just a sum over allocated nodes). Passive stat bonuses are pushed onto UStatsComponent's Bonus* fields
+// (kept separate from gear's EquipBonus* so the two sources don't clobber each other); combat modifiers
+// are cached in Modifiers for the player's combat code to read. Each node's contribution is its per-rank
+// value times the ranks invested.
 void USkillTreeComponent::RecomputeBonuses()
 {
 	UStatsComponent* Stats = GetStats();

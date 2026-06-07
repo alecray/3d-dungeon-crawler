@@ -1,8 +1,11 @@
 #include "MonsterTypes.h"
 #include "Math/RandomStream.h"
 
+// Read-only catalog of enemy archetypes. The table is built once and cached in function-local statics
+// (thread-safe lazy init), then queried by id or rolled randomly when the dungeon populates rooms.
 namespace MonsterDatabase
 {
+	// Authors the full type table. Edit here to add/tune enemies; everything below just indexes this.
 	static TArray<FMonsterDef> BuildTypes()
 	{
 		TArray<FMonsterDef> Types;
@@ -20,10 +23,10 @@ namespace MonsterDatabase
 			Crab.XPReward = 20;
 			Crab.CapsuleRadius = 45.f;
 			Crab.CapsuleHalfHeight = 50.f; // low and wide
-			Crab.SkeletalMeshPath = TEXT("/Game/Enemies/SK_Crab.SK_Crab");
-			Crab.RunAnimPath = TEXT("/Game/Enemies/A_Crab_Run.A_Crab_Run");
-			Crab.IdleAnimPath = TEXT("/Game/Enemies/A_Crab_Idle.A_Crab_Idle");
-			Crab.AttackAnimPath = TEXT("/Game/Enemies/A_Crab_Attack.A_Crab_Attack");
+			Crab.SkeletalMeshPath = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/SK_Crab.SK_Crab")));
+			Crab.RunAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Run.A_Crab_Run")));
+			Crab.IdleAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Idle.A_Crab_Idle")));
+			Crab.AttackAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Attack.A_Crab_Attack")));
 			Crab.Weight = 100.f;
 			Types.Add(Crab);
 		}
@@ -40,6 +43,7 @@ namespace MonsterDatabase
 		return Cached;
 	}
 
+	// Id -> array-index lookup, built once from Types() so Get/Contains are O(1) instead of a linear scan.
 	static const TMap<FName, int32>& IndexById()
 	{
 		static const TMap<FName, int32> Map = []()
@@ -75,6 +79,9 @@ namespace MonsterDatabase
 		return Types();
 	}
 
+	// Picks a type weighted by each def's Weight (a def with 2x the weight is twice as likely). Uses the
+	// caller's seeded stream so spawns are deterministic for a given dungeon seed. Falls back to the first
+	// type if no weights are set. (With only the Crab weighted right now this always returns the Crab.)
 	FName RollRandomType(FRandomStream& Rng)
 	{
 		const TArray<FMonsterDef>& List = Types();

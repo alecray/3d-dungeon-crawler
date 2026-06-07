@@ -119,13 +119,15 @@ def build_skeletal_options(skeleton=None):
 
 
 # ── IMPORT RUNNERS ────────────────────────────────────────────────────────────────────────────────
-def _run(fbx, dest, options):
+def _run(fbx, dest, options, name=None):
     if not os.path.isfile(fbx):
         unreal.log_error("import_meshes: file not found: {}".format(fbx))
         return []
     task = unreal.AssetImportTask()
     _set(task, "filename", fbx)
     _set(task, "destination_path", dest)
+    if name:
+        _set(task, "destination_name", name)  # force the output asset name (e.g. a single anim take)
     _set(task, "automated", True)        # no dialog
     _set(task, "replace_existing", True) # re-import in place
     _set(task, "save", True)             # save the new asset(s)
@@ -147,6 +149,43 @@ def import_static(fbx, dest):
 def import_skeletal(fbx, dest, skeleton=None):
     """Import one FBX as a Skeletal Mesh into `dest`. Optional `skeleton` reuses an existing one."""
     return _run(fbx, dest, build_skeletal_options(skeleton))
+
+
+def build_anim_options(skeleton):
+    """The Animation-only import pipeline: bring in just the animation take(s) from an FBX and bind them
+    to an EXISTING skeleton (no mesh re-import). `skeleton` is required (asset path or USkeleton)."""
+    opts = unreal.FbxImportUI()
+    _set(opts, "import_mesh", False)
+    _set(opts, "import_as_skeletal", False)
+    _set(opts, "import_animations", True)
+    _set(opts, "import_materials", False)
+    _set(opts, "import_textures", False)
+    _set(opts, "mesh_type_to_import", unreal.FBXImportType.FBXIT_ANIMATION)
+
+    skel = unreal.load_asset(skeleton) if isinstance(skeleton, str) else skeleton
+    if skel:
+        _set(opts, "skeleton", skel)
+    else:
+        unreal.log_error("import_meshes: anim import requires a valid skeleton, got {!r}".format(skeleton))
+
+    data = opts.get_editor_property("anim_sequence_import_data")
+    _set(data, "import_uniform_scale", CONFIG["uniform_scale"])
+    return opts
+
+
+def import_anim(fbx, dest, skeleton, name=None):
+    """Import one FBX's animation onto an existing `skeleton` (asset path or USkeleton). `name` forces the
+    output AnimSequence's name (use when the FBX holds a single take, e.g. a death animation)."""
+    paths = _run(fbx, dest, build_anim_options(skeleton), name=name)
+    # Belt-and-suspenders: if the importer named the take something else, rename the single result to `name`.
+    if name and len(paths) == 1:
+        src_pkg = paths[0].split(".")[0]
+        dst_pkg = dest.rstrip("/") + "/" + name
+        if src_pkg != dst_pkg and unreal.EditorAssetLibrary.does_asset_exist(src_pkg):
+            if not unreal.EditorAssetLibrary.does_asset_exist(dst_pkg):
+                unreal.EditorAssetLibrary.rename_asset(src_pkg, dst_pkg)
+                unreal.log("import_meshes: renamed {} -> {}".format(src_pkg, dst_pkg))
+    return paths
 
 
 def import_folder(src_dir, dest, kind="static", skeleton=None):
@@ -173,6 +212,8 @@ def _main(argv):
         import_static(argv[1], argv[2])
     elif cmd == "skeletal" and len(argv) >= 3:
         import_skeletal(argv[1], argv[2], argv[3] if len(argv) >= 4 else None)
+    elif cmd == "anim" and len(argv) >= 4:
+        import_anim(argv[1], argv[2], argv[3], argv[4] if len(argv) >= 5 else None)
     elif cmd == "folder" and len(argv) >= 4:
         import_folder(argv[1], argv[2], kind=argv[3], skeleton=argv[4] if len(argv) >= 5 else None)
     else:

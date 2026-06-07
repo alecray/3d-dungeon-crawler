@@ -39,9 +39,9 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [x] **Idle** — `A_Hermit_Crab_Boss_Idle`
 - [x] **Walk** — `A_Hermit_Crab_Boss_Walk` (used for scuttle + lunge movement)
 - [x] **Attack** — `A_Hermit_Crab_Boss_Attack` (plays on the standard melee swing)
-- [ ] **Spawn / intro** — rise + roar when the encounter starts (replaces the graybox scale-up "morph").
-- [ ] **Death** — collapse/flip when killed (currently just the DeathPoof + dissolve).
-- [ ] **Hit-react / flinch** — quick recoil when damaged (currently the cube hit-react pop).
+- [x] **Spawn / intro** — rise + roar when the encounter starts (replaces the graybox scale-up "morph").
+- [x] **Death** — collapse/flip when killed (currently just the DeathPoof + dissolve).
+- [x] **Hit-react / flinch** — quick recoil when damaged (currently the cube hit-react pop).
 - [ ] (specials, only once `bAbilitiesEnabled` is turned back on)
   - [ ] **Lunge / charge** wind-up + dash tell (telegraph before the dash).
   - [ ] **Ground slam** raise + slam.

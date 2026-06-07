@@ -7,6 +7,8 @@
 class UStaticMeshComponent;
 class AProjectile;
 class ABubbleHazard;
+class USkeletalMesh;
+class UAnimSequence;
 
 /**
  * Oversized boss built on top of AMonsterCharacter (it inherits the chase/attack/health/hit-react).
@@ -37,6 +39,8 @@ public:
 
 	/** True while the spawn/intro animation is playing. */
 	bool IsIntroPlaying() const { return bIntroPlaying; }
+	/** Length (s) of the spawn/intro the boss freezes for — the spawn anim's length, else IntroDuration. */
+	float GetIntroDuration() const { return IntroDuration; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -170,7 +174,7 @@ private:
 	// ---- Hermit-crab body ----
 	// Preferred: an animated skeletal mesh + idle/run/attack anims (set these once the rig is imported).
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString SkeletalMeshPath = TEXT("/Game/Enemies/SK_Hermit_Crab_Boss.SK_Hermit_Crab_Boss");
+	TSoftObjectPtr<USkeletalMesh> SkeletalMeshPath = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/SK_Hermit_Crab_Boss.SK_Hermit_Crab_Boss")));
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
 	float SkeletalMeshScale = 2.25f;
@@ -182,32 +186,28 @@ private:
 	bool bAbilitiesEnabled = false;
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString IdleAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Idle.A_Hermit_Crab_Boss_Idle");
+	TSoftObjectPtr<UAnimSequence> IdleAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/A_Hermit_Crab_Boss_Idle.A_Hermit_Crab_Boss_Idle")));
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString RunAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Walk.A_Hermit_Crab_Boss_Walk");
+	TSoftObjectPtr<UAnimSequence> RunAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/A_Hermit_Crab_Boss_Walk.A_Hermit_Crab_Boss_Walk")));
 
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString AttackAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Attack.A_Hermit_Crab_Boss_Attack");
+	TSoftObjectPtr<UAnimSequence> AttackAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/A_Hermit_Crab_Boss_Attack.A_Hermit_Crab_Boss_Attack")));
 
 	/** Spawn/intro animation (the rise-out-of-the-ground roar) played by PlayIntro. The intro freeze is
 	    synced to its length. Empty/missing -> falls back to the procedural body-scale "pop". */
 	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	FString SpawnAnimPath = TEXT("/Game/Enemies/A_Hermit_Crab_Boss_Spawn.A_Hermit_Crab_Boss_Spawn");
+	TSoftObjectPtr<UAnimSequence> SpawnAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/A_Hermit_Crab_Boss_Spawn.A_Hermit_Crab_Boss_Spawn")));
+
+	/** Death animation — played once on death instead of the code sink/spin. */
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	TSoftObjectPtr<UAnimSequence> DeathAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/A_Hermit_Crab_Boss_Death.A_Hermit_Crab_Boss_Death")));
+
+	/** Flinch/hit-react animation — played on taking damage (no-op until the asset exists). */
+	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
+	TSoftObjectPtr<UAnimSequence> FlinchAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Bosses/Hermit_Crab/A_Hermit_Crab_Boss_Flinch.A_Hermit_Crab_Boss_Flinch")));
 
 	UPROPERTY() TObjectPtr<UAnimSequence> SpawnAnim; // loaded from SpawnAnimPath on first PlayIntro
-
-	/** Fallback static mesh shown only while the skeletal rig isn't imported yet. */
-	UPROPERTY(VisibleAnywhere, Category = "Boss|Mesh")
-	TObjectPtr<UStaticMeshComponent> CrabMesh;
-
-	/** Yaw applied to the fallback static mesh so its forward faces the actor's forward. */
-	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	float CrabMeshYaw = -90.f;
-
-	/** Target size (cm) of the fallback static mesh's largest dimension. */
-	UPROPERTY(EditAnywhere, Category = "Boss|Mesh")
-	float CrabMeshTargetSize = 585.f;
 
 	int32 CurrentPhase = 0;
 	float NextSpecialTime = 0.f;

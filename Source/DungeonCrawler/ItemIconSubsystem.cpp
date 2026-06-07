@@ -202,10 +202,10 @@ void UItemIconSubsystem::EnsureStage()
 bool UItemIconSubsystem::RenderIconPixels(FName ItemId, TArray<FColor>& OutPixels)
 {
 	const FItemDef& Def = ItemDatabase::Get(ItemId);
-	UStaticMesh* StaticMesh = !Def.IconStaticMeshPath.IsEmpty()
-		? Cast<UStaticMesh>(FSoftObjectPath(Def.IconStaticMeshPath).TryLoad()) : nullptr;
-	USkeletalMesh* SkelMesh = (!StaticMesh && !Def.IconSkeletalMeshPath.IsEmpty())
-		? Cast<USkeletalMesh>(FSoftObjectPath(Def.IconSkeletalMeshPath).TryLoad()) : nullptr;
+	UStaticMesh* StaticMesh = Def.IconStaticMeshPath.IsNull()
+		? nullptr : Def.IconStaticMeshPath.LoadSynchronous();
+	USkeletalMesh* SkelMesh = (!StaticMesh && !Def.IconSkeletalMeshPath.IsNull())
+		? Def.IconSkeletalMeshPath.LoadSynchronous() : nullptr;
 	if (!StaticMesh && !SkelMesh)
 	{
 		return false;
@@ -227,9 +227,9 @@ bool UItemIconSubsystem::RenderIconPixels(FName ItemId, TArray<FColor>& OutPixel
 	Shown->SetRelativeLocation(FVector::ZeroVector);
 
 	// Optional per-item recolor (e.g. potion variants share one mesh/material).
-	if (!Def.IconMaterialParam.IsEmpty() && !Def.IconTexturePath.IsEmpty())
+	if (!Def.IconMaterialParam.IsEmpty() && !Def.IconTexturePath.IsNull())
 	{
-		if (UTexture* Tex = Cast<UTexture>(FSoftObjectPath(Def.IconTexturePath).TryLoad()))
+		if (UTexture* Tex = Def.IconTexturePath.LoadSynchronous())
 		{
 			if (UMaterialInstanceDynamic* MID = Shown->CreateDynamicMaterialInstance(0))
 			{

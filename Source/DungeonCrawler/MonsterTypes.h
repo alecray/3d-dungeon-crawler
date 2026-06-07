@@ -3,6 +3,9 @@
 #include "CoreMinimal.h"
 #include "MonsterTypes.generated.h"
 
+class USkeletalMesh;
+class UAnimSequence;
+
 /**
  * Data definition for a kind of monster. Graybox by default (stats + body scale); if SkeletalMeshPath
  * resolves, the monster uses that mesh + a looping run animation instead of the cube body.
@@ -23,11 +26,13 @@ struct FMonsterDef
 	UPROPERTY() float CapsuleRadius = 40.f;
 	UPROPERTY() float CapsuleHalfHeight = 88.f;
 
-	/** Optional skeletal mesh + animation content paths (run loops, idle loops, attack plays once). */
-	UPROPERTY() FString SkeletalMeshPath;
-	UPROPERTY() FString RunAnimPath;
-	UPROPERTY() FString IdleAnimPath;
-	UPROPERTY() FString AttackAnimPath;
+	/** Optional skeletal mesh + animation soft references (run loops, idle loops, attack plays once).
+	    Soft refs (not raw path strings) so a moved/renamed asset is caught by reference fixup and
+	    cook-time validation instead of silently failing to resolve at runtime. */
+	UPROPERTY() TSoftObjectPtr<USkeletalMesh> SkeletalMeshPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence> RunAnimPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence> IdleAnimPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence> AttackAnimPath;
 
 	/** Spawn weight for random selection. */
 	UPROPERTY() float Weight = 1.f;

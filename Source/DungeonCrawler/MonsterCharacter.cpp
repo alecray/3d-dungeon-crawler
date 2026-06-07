@@ -152,10 +152,11 @@ void AMonsterCharacter::ApplyType(FName TypeId)
 	}
 }
 
-bool AMonsterCharacter::SetupSkeletalBody(const FString& MeshPath, float MeshScale,
-	const FString& RunPath, const FString& IdlePath, const FString& AttackPath)
+bool AMonsterCharacter::SetupSkeletalBody(const TSoftObjectPtr<USkeletalMesh>& MeshPath, float MeshScale,
+	const TSoftObjectPtr<UAnimSequence>& RunPath, const TSoftObjectPtr<UAnimSequence>& IdlePath, const TSoftObjectPtr<UAnimSequence>& AttackPath,
+	const TSoftObjectPtr<UAnimSequence>& DeathPath, const TSoftObjectPtr<UAnimSequence>& FlinchPath)
 {
-	USkeletalMesh* Skel = !MeshPath.IsEmpty() ? Cast<USkeletalMesh>(FSoftObjectPath(MeshPath).TryLoad()) : nullptr;
+	USkeletalMesh* Skel = MeshPath.IsNull() ? nullptr : MeshPath.LoadSynchronous();
 	if (!Skel || !GetMesh())
 	{
 		return false;
@@ -181,14 +182,14 @@ bool AMonsterCharacter::SetupSkeletalBody(const FString& MeshPath, float MeshSca
 	// Load each clip, then flag any that didn't load or are bound to a different skeleton than this mesh
 	// (a mismatched/empty clip plays nothing via PlayAnimation — the usual reason an anim "doesn't show").
 	USkeleton* MeshSkel = Skel->GetSkeleton();
-	auto LoadAnim = [&](const FString& Path, const TCHAR* Label) -> UAnimSequence*
+	auto LoadAnim = [&](const TSoftObjectPtr<UAnimSequence>& AnimRef, const TCHAR* Label) -> UAnimSequence*
 	{
-		if (Path.IsEmpty()) { return nullptr; }
-		UAnimSequence* Anim = Cast<UAnimSequence>(FSoftObjectPath(Path).TryLoad());
+		if (AnimRef.IsNull()) { return nullptr; }
+		UAnimSequence* Anim = AnimRef.LoadSynchronous();
 		if (!Anim)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[Monster %s] %s anim failed to load (missing or not an AnimSequence): %s"),
-				*GetName(), Label, *Path);
+				*GetName(), Label, *AnimRef.ToString());
 		}
 		else if (MeshSkel && Anim->GetSkeleton() != MeshSkel)
 		{
@@ -201,6 +202,8 @@ bool AMonsterCharacter::SetupSkeletalBody(const FString& MeshPath, float MeshSca
 	RunAnim = LoadAnim(RunPath, TEXT("Run/Walk"));
 	IdleAnim = LoadAnim(IdlePath, TEXT("Idle"));
 	AttackAnim = LoadAnim(AttackPath, TEXT("Attack"));
+	DeathAnim = LoadAnim(DeathPath, TEXT("Death"));     // LoadAnim already returns null for an unset ref
+	FlinchAnim = LoadAnim(FlinchPath, TEXT("Flinch"));
 	GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
 	AnimState = ESkelAnim::None;
 	SetLocomotion(/*bMoving*/ false); // start idle
@@ -268,7 +271,8 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	}
 
 	const float Now = GetWorld()->GetTimeSeconds();
-	const bool bAttacking = (Now < AttackAnimEndTime); // attack anim in progress: hold it
+	// Hold locomotion while a one-shot anim (attack OR flinch) is playing so it isn't overwritten.
+	const bool bAttacking = (Now < AttackAnimEndTime) || (Now < FlinchAnimEndTime);
 
 	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!Player)
@@ -362,7 +366,7 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	const FRotator Desired = Dir.Rotation();
 	SetActorRotation(FMath::RInterpTo(GetActorRotation(), FRotator(0.f, Desired.Yaw, 0.f), DeltaSeconds, 8.f));
 
-	if (Now - LastAttackTime >= AttackCooldown)
+	if (Now - LastAttackTime >= AttackCooldown && Now >= FlinchAnimEndTime) // don't swing mid-flinch
 	{
 		LastAttackTime = Now;
 		PlayAttackAnim();
@@ -458,6 +462,22 @@ void AMonsterCharacter::PlayAttackAnim()
 	}
 }
 
+void AMonsterCharacter::PlayFlinchAnim()
+{
+	if (!bUsingSkeletalBody || !GetMesh() || !FlinchAnim || bDead)
+	{
+		return;
+	}
+	const float Now = GetWorld()->GetTimeSeconds();
+	if (Now < AttackAnimEndTime) // don't cut a swing short — let the attack finish
+	{
+		return;
+	}
+	GetMesh()->PlayAnimation(FlinchAnim, /*bLooping*/ false);
+	AnimState = ESkelAnim::Flinch;
+	FlinchAnimEndTime = Now + FlinchAnim->GetPlayLength();
+}
+
 float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)
 {
 	// Backstab: a strike landing from BEHIND the monster deals bonus damage. Flagged like a weak-point hit
@@ -490,7 +510,8 @@ float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLoc
 
 void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, float Amount)
 {
-	HitReactTimeLeft = HitReactDuration; // kick off the pop
+	HitReactTimeLeft = HitReactDuration; // kick off the pop (graybox bodies)
+	PlayFlinchAnim();                    // skeletal hit reaction (no-op without a FlinchAnim / mid-swing)
 
 	// Floating damage number at the impact point + a quick impact spark at the body.
 	if (Amount > 0.f)
@@ -582,28 +603,44 @@ void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 			FTransform(GetActorLocation() + FVector(0.f, 0.f, 30.f)), P);
 	}
 
-	// Pop-up & launch death effect: animate the visible mesh (skeletal crab or graybox body) up with a
-	// spin while shrinking to nothing over DeathDuration, then destroy. The poof covers the vanish.
+	// Prefer a real death animation if one is set: play it once and let it run instead of the code effect.
+	float CorpseLinger = DeathDuration;
+	if (bUsingSkeletalBody && DeathAnim && GetMesh())
+	{
+		GetMesh()->PlayAnimation(DeathAnim, /*bLooping*/ false);
+		bDeathAnimPlaying = true;
+		CorpseLinger = FMath::Max(DeathDuration, DeathAnim->GetPlayLength());
+	}
+
+	// Pop-up & launch death effect (fallback for graybox / no death anim): animate the visible mesh up with
+	// a spin while shrinking to nothing over DeathDuration, then destroy. The poof covers the vanish.
 	DeathComp = bUsingSkeletalBody ? Cast<USceneComponent>(GetMesh()) : Cast<USceneComponent>(BodyRoot);
-	if (DeathComp)
+	if (DeathComp && !bDeathAnimPlaying)
 	{
 		DeathBaseScale = DeathComp->GetRelativeScale3D();
 		DeathBaseLoc = DeathComp->GetRelativeLocation();
 	}
 	// Random spin axis (biased upward) so each death tumbles differently.
 	DeathSpinAxis = FVector(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(0.5f, 1.5f)).GetSafeNormal();
-	DeathTimeLeft = DeathDuration;
+	DeathTimeLeft = CorpseLinger;
 
-	SetLifeSpan(DeathDuration + 0.5f); // safety net in case Tick is disabled
+	SetLifeSpan(CorpseLinger + 0.5f); // safety net in case Tick is disabled
 }
 
 void AMonsterCharacter::UpdateDeathEffect(float DeltaSeconds)
 {
-	if (DeathTimeLeft <= 0.f || !DeathComp)
+	if (DeathTimeLeft <= 0.f)
 	{
 		return;
 	}
 	DeathTimeLeft = FMath::Max(0.f, DeathTimeLeft - DeltaSeconds);
+
+	// A real death animation is playing — just wait it out, then destroy (skip the code sink/spin/shrink).
+	if (bDeathAnimPlaying || !DeathComp)
+	{
+		if (DeathTimeLeft <= 0.f) { Destroy(); }
+		return;
+	}
 
 	const float Alpha = 1.f - (DeathTimeLeft / DeathDuration); // 0 -> 1 over the effect
 

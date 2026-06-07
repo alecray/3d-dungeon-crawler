@@ -21,10 +21,8 @@
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/SoftObjectPath.h"
 
-// Optional imported environment meshes; fall back to the graybox cube when absent. (Add collision to
-// these meshes themselves in the editor so they block the player.)
-static const TCHAR* FloorMeshPath = TEXT("/Game/Furniture/SM_Floor.SM_Floor");
-static const TCHAR* WallMeshPath = TEXT("/Game/Furniture/SM_Wall.SM_Wall");
+// Torch mesh path for the constructor-time FObjectFinder below (which can only take a literal path).
+// Floor/wall meshes are EditAnywhere TSoftObjectPtr fields on the generator instead (see the header).
 static const TCHAR* TorchMeshPath = TEXT("/Game/Furniture/SM_Torch.SM_Torch");
 
 // The engine cube is a 100cm cube centered on its origin, so an instance scale of 1.0 == 100cm.
@@ -349,10 +347,10 @@ void ADungeonGenerator::DecorateRooms()
 	{
 		if (i == BossRoomIndex)
 		{
-			// The boss room is double-height (WallHeight*2) and otherwise unlit — hang a set of warm
+			// The boss room is triple-height (WallHeight*3) and otherwise unlit — hang a set of warm
 			// "chandelier" lights from near the ceiling so the fight reads instead of being pitch black.
 			const FVector Ctr = GetRoomCenterWorld(i);
-			const float CeilZ = Ctr.Z + WallHeight * 2.f - 200.f; // just below the ceiling
+			const float CeilZ = Ctr.Z + WallHeight * 3.f - 200.f; // just below the ceiling
 			const FVector Offsets[] = {
 				FVector(0.f, 0.f, 0.f),
 				FVector(700.f, 700.f, 0.f), FVector(-700.f, 700.f, 0.f),
@@ -510,7 +508,7 @@ void ADungeonGenerator::BuildGeometry()
 
 	// If a custom floor mesh exists, drive FloorISM with it. Auto-fit any authored size: uniform
 	// scale so its footprint fills the cell (no stretch), centered, with its top at Z = 0.
-	UStaticMesh* FloorMesh = Cast<UStaticMesh>(FSoftObjectPath(FloorMeshPath).TryLoad());
+	UStaticMesh* FloorMesh = FloorMeshPath.LoadSynchronous();
 	const bool bCustomFloor = (FloorMesh != nullptr) && (FloorISM != nullptr);
 	float FloorScale = 1.f;
 	FVector FloorOffset = FVector::ZeroVector;
@@ -537,7 +535,7 @@ void ADungeonGenerator::BuildGeometry()
 	// If a custom wall mesh exists, drive WallISM with it. Auto-fit: scale its length to the cell, its
 	// thickness to WallThickness, and its height to WallHeight; rotate so its length runs along the
 	// wall. (Falls back to the graybox cube wall otherwise.)
-	UStaticMesh* WallMesh = Cast<UStaticMesh>(FSoftObjectPath(WallMeshPath).TryLoad());
+	UStaticMesh* WallMesh = WallMeshPath.LoadSynchronous();
 	const bool bCustomWall = (WallMesh != nullptr) && (WallISM != nullptr);
 	bool bWallLenAlongX = true;
 	FVector WallScale = FVector::OneVector;
@@ -586,9 +584,9 @@ void ADungeonGenerator::BuildGeometry()
 
 			const FVector C = CellToLocal(x, y);
 
-			// The boss room's walls run two blocks tall, so its ceiling sits twice as high.
+			// The boss room's walls run three blocks tall, so its ceiling sits three times as high.
 			const bool bBoss = IsBossRoomCell(x, y);
-			const float CellCeil = bBoss ? WallHeight * 2.f : WallHeight;
+			const float CellCeil = bBoss ? WallHeight * 3.f : WallHeight;
 
 			// Floor: top sits at Z = 0. (Collision comes from the mesh itself — cube or imported.)
 			if (bCustomFloor)
@@ -627,16 +625,16 @@ void ADungeonGenerator::BuildGeometry()
 			const bool ERunX[4] = { false, false, true, true };
 			const bool EFlip[4] = { (y & 1) != 0, (y & 1) == 0, (x & 1) != 0, (x & 1) == 0 };
 
-			// Boss room is two walls high: build the normal wall course, then stack one more identical
-			// course on top. The lower course only walls solid edges (doorways stay open); the upper course
-			// walls every edge that leaves the room (solid walls AND above doorways) so the top is a closed
+			// Boss room is three walls high: build the normal wall course, then stack two more identical
+			// courses on top. The lower course only walls solid edges (doorways stay open); the upper courses
+			// wall every edge that leaves the room (solid walls AND above doorways) so the top is a closed
 			// ring — exactly the same wall pieces, just stacked, with the ceiling already raised to match.
 			// Lift the upper course by a full wall-piece height so the two courses meet end-to-end instead
 			// of overlapping — the old WallHeight step left the lower piece's embed poking through the upper
 			// one (the clipping between the first and second layer). A 3cm overlap hides the seam.
 			const float StackStep = (bCustomWall ? (WallHeight + 2.f * WallEmbed) : WallTall) - 3.f;
 
-			const int32 Courses = bBoss ? 2 : 1;
+			const int32 Courses = bBoss ? 3 : 1;
 			for (int32 d = 0; d < 4; ++d)
 			{
 				const int32 nx = x + EX[d];

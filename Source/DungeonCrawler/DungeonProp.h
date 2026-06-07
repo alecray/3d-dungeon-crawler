@@ -68,25 +68,25 @@ protected:
 	TObjectPtr<UStaticMesh> MeshOverride;
 
 	/**
-	 * Imported finished mesh used for ALL Stool props. Auto-loaded from /Game/Furniture/SM_Stool if
-	 * that asset exists; assign here to override. When set, Stool props use this instead of graybox.
+	 * Imported finished mesh used for ALL Stool props. Soft ref defaulted to /Game/Furniture/SM_Stool;
+	 * assign a different asset here to override. Loaded on demand (null/missing -> graybox cubes).
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
-	TObjectPtr<UStaticMesh> StoolMesh;
+	TSoftObjectPtr<UStaticMesh> StoolMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Stool.SM_Stool")));
 
 	/**
-	 * Imported finished mesh used for ALL Crate props. Auto-loaded from /Game/Furniture/SM_Crate if
-	 * that asset exists; assign here to override. When set, Crate props use this instead of graybox.
+	 * Imported finished mesh used for ALL Crate props. Soft ref defaulted to /Game/Furniture/SM_Crate;
+	 * assign a different asset here to override. Loaded on demand (null/missing -> graybox cubes).
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
-	TObjectPtr<UStaticMesh> CrateMesh;
+	TSoftObjectPtr<UStaticMesh> CrateMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Crate.SM_Crate")));
 
 	/**
-	 * Imported finished mesh used for ALL Table props. Auto-loaded from /Game/Furniture/SM_Table if
-	 * that asset exists; assign here to override. When set, Table props use this instead of graybox.
+	 * Imported finished mesh used for ALL Table props. Soft ref defaulted to /Game/Furniture/SM_Table;
+	 * assign a different asset here to override. Loaded on demand (null/missing -> graybox cubes).
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Prop|Meshes")
-	TObjectPtr<UStaticMesh> TableMesh;
+	TSoftObjectPtr<UStaticMesh> TableMesh = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Game/Furniture/SM_Table.SM_Table")));
 
 private:
 	UPROPERTY()

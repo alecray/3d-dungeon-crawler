@@ -99,10 +99,10 @@ void AItemPickup::Configure(FName InItemId, int32 InCount)
 	}
 
 	// Prefer the item's real icon mesh (so dropped/displayed items look like the item, not a cube).
-	UStaticMesh* StaticIcon = !Def.IconStaticMeshPath.IsEmpty()
-		? Cast<UStaticMesh>(FSoftObjectPath(Def.IconStaticMeshPath).TryLoad()) : nullptr;
-	USkeletalMesh* SkelIcon = (!StaticIcon && !Def.IconSkeletalMeshPath.IsEmpty())
-		? Cast<USkeletalMesh>(FSoftObjectPath(Def.IconSkeletalMeshPath).TryLoad()) : nullptr;
+	UStaticMesh* StaticIcon = Def.IconStaticMeshPath.IsNull()
+		? nullptr : Def.IconStaticMeshPath.LoadSynchronous();
+	USkeletalMesh* SkelIcon = (!StaticIcon && !Def.IconSkeletalMeshPath.IsNull())
+		? Def.IconSkeletalMeshPath.LoadSynchronous() : nullptr;
 
 	if (!StaticIcon && !SkelIcon)
 	{
@@ -126,9 +126,9 @@ void AItemPickup::Configure(FName InItemId, int32 InCount)
 	}
 
 	// Optional per-item recolor (e.g. health/mana/stamina potions share one mesh+material).
-	if (!Def.IconMaterialParam.IsEmpty() && !Def.IconTexturePath.IsEmpty())
+	if (!Def.IconMaterialParam.IsEmpty() && !Def.IconTexturePath.IsNull())
 	{
-		if (UTexture* Tex = Cast<UTexture>(FSoftObjectPath(Def.IconTexturePath).TryLoad()))
+		if (UTexture* Tex = Def.IconTexturePath.LoadSynchronous())
 		{
 			if (UMeshComponent* MC = Cast<UMeshComponent>(Display))
 			{
