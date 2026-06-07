@@ -2,6 +2,10 @@
 
 > Open / untested work is up top. Completed items are in **Done** at the bottom.
 
+unsorted todo shortlist:
+- mage projectile should come from the tip of the staff.
+- hit damage numbers should come from where the projectile hits
+
 # OPEN
 
 ## Near-term / needs tuning

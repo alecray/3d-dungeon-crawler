@@ -225,8 +225,13 @@ Flow / UX:
 - `ALootChest` + `AItemPickup` — chests roll a loot table into their grid (and pop a rarity-colored
   burst on first open); world pickups display the item's real mesh, emit a **rarity loot beam**, are
   collected with **[E]**, and spark in the rarity color on pickup.
-- `UItemIconSubsystem` — renders each item's mesh to a cached render target once, so UI slots show a
-  cheap 3D thumbnail (transparent background; rarity color behind).
+- `UItemIconSubsystem` — renders each item's mesh to a cached 3D thumbnail (transparent background;
+  rarity color behind) shared by UI slots and world pickups. **Icons are generated automatically — there
+  is no manual step for new items.** The first time an item's icon is needed, the subsystem renders its
+  mesh and bakes a PNG to `Content/Images/ItemIcons/<ItemId>.png`, then reuses that file. To force a
+  re-bake (e.g. after changing a mesh or the icon lighting), run the console command **`dc.IconRebuild`**
+  (deletes the baked PNGs + drops the cache); tune the look with the `dc.IconKeyLight` /
+  `dc.IconFillLight` / `dc.IconHeadLight` CVars, then `dc.IconRebuild` and reopen the inventory.
 - `AMonsterCharacter` + `MonsterDatabase` (`FMonsterDef`) — data-driven enemies (health/speed/damage/
   scale/anim); `AProjectile` for ranged/mage attacks; `ADeathPoof` on death.
 - `UDungeonGameInstance` + `UDungeonSaveGame` — persistent player profile across levels and to disk

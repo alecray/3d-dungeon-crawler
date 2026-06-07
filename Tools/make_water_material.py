@@ -1,16 +1,17 @@
 """Headless: build M_PondWater — a visible, stylized TRANSLUCENT water material for the fishing pond.
 
-(Switched from Single Layer Water, which rendered near-black/clear over the dark basin.) This one reliably
-reads as water — no plugins, all built-in nodes:
+(Switched from Single Layer Water, which rendered near-black/clear over the dark basin.) CLARITY-FIRST calm stylized pond — no plugins, all built-in nodes. The look comes from what you can SEE
+THROUGH the water (refraction + low opacity), not from piled-on surface detail:
   - Two-sided + translucent, so it shows regardless of the water quad's normal direction.
-  - Depth-based color: shallow tint near the shoreline -> deeper tint over depth (SceneDepth - PixelDepth).
-  - FRESNEL edge brightening: surface brightens toward EdgeColor at grazing angles (the #1 "not flat" cue),
-    fed by the ripple normal so the bright rim shimmers, and lifts opacity at glancing angles.
-  - Layered RIPPLES: two panning VectorNoise layers at different scale/speed/direction (interference =
-    believable moving water) drive the normal; their crawl makes the specular sun-glint dance.
-  - Stylized SPARKLE: sparse moving glints from a thresholded high-freq noise, added to emissive.
-  - REFRACTION (pixel-normal-offset) bends the pond bottom under the ripples.
-  - Shoreline FOAM via the depth intersection; opacity falls off shallow->deep and goes solid at the foam.
+  - Depth-based color: shallow tint near the shoreline -> deeper tint over depth (SceneDepth - PixelDepth),
+    with a gentle ramp so deep water still reads clear.
+  - SMOOTH gentle ripples: two low-frequency, slow-panning MaterialExpressionNoise (GRADIENT, mip-filtered)
+    fields tilt the normal in X/Y. Deliberately NOT VectorNoise — that cellular per-pixel noise aliased
+    into TV static. Calm wavelength, low strength.
+  - REFRACTION (Index Of Refraction ~1.18) bends the visible pond bottom — the main "crystal clear" cue.
+  - Low, depth-driven OPACITY (clear at the shoreline, semi-clear deep) so you see the basin floor.
+  - Soft, CLAMPED Fresnel sky-rim (never blows to white) + glossy-not-mirror roughness for a controlled glint.
+  - A thin shoreline FOAM line with only a faint glow. NO emissive sparkle (it caused the blown whites).
 Everything is parameterized for live tuning. Also sets SM_Fishing_Hole to complex-as-simple collision.
 
 Defensive: node/pin names vary by version, so creation + links are guarded — failures log "make_water:"
@@ -87,40 +88,37 @@ tlm = getattr(unreal.TranslucencyLightingMode, "TLM_SURFACE_PER_PIXEL_LIGHTING",
 if tlm is not None:
     setp(mat, "translucency_lighting_mode", tlm)
 
-# ── Params ──
-shallow = vecp("ShallowColor", unreal.LinearColor(0.10, 0.45, 0.55, 1.0), -1700, -360)
-deep    = vecp("DeepColor",    unreal.LinearColor(0.01, 0.12, 0.28, 1.0), -1700, -260)
-edge    = vecp("EdgeColor",    unreal.LinearColor(0.55, 0.82, 0.92, 1.0), -1700, -160)  # Fresnel rim / sky tint
-depthDist = scalar("DepthColorDistance", 260.0, -1700, -60)
-shallowOpac = scalar("ShallowOpacity", 0.40, -1700, 40)
-deepOpac    = scalar("DeepOpacity",    0.88, -1700, 120)
-rough   = scalar("Roughness", 0.06, -1700, 200)
-spec    = scalar("Specular", 1.0, -1700, 280)
+# ── Params ── (clarity-first calm pond; tune live on M_PondWater)
+shallow = vecp("ShallowColor", unreal.LinearColor(0.10, 0.45, 0.55, 1.0), -1700, -360)  # per-instance WaterColor overrides this
+deep    = vecp("DeepColor",    unreal.LinearColor(0.02, 0.20, 0.34, 1.0), -1700, -260)
+edge    = vecp("EdgeColor",    unreal.LinearColor(0.30, 0.50, 0.62, 1.0), -1700, -160)  # soft sky rim — NOT near-white
+depthDist = scalar("DepthColorDistance", 500.0, -1700, -60)   # gentle tint ramp so deep water still reads clear
+shallowOpac = scalar("ShallowOpacity", 0.12, -1700, 40)       # very clear at the shoreline (see the bottom)
+deepOpac    = scalar("DeepOpacity",    0.50, -1700, 120)      # still semi-transparent in deep water
+rough   = scalar("Roughness", 0.16, -1700, 200)               # glossy but NOT a mirror (no white sparks)
+spec    = scalar("Specular", 0.5, -1700, 280)
 foamCol = vecp("FoamColor", unreal.LinearColor(0.9, 0.97, 1.0, 1.0), -1700, 360)
-foamW   = scalar("FoamWidth", 60.0, -1700, 440)
-foamSharp = scalar("FoamSharpness", 2.0, -1700, 520)
-fresPow = scalar("FresnelPower", 4.0, -1700, 600)
-fresOpac = scalar("FresnelEdgeOpacity", 0.25, -1700, 680)
-# Two ripple layers (different scale / speed / direction) — the interference is what reads as moving water.
-ripScale  = scalar("RippleScale",    0.004, -1700, 760)
-ripSpeed  = scalar("RippleSpeed",    10.0,  -1700, 840)
-ripStr    = scalar("RippleStrength", 0.12,  -1700, 920)
-ripScale2 = scalar("RippleScale2",   0.011, -1700, 1000)
-ripSpeed2 = scalar("RippleSpeed2",   6.0,   -1700, 1080)
-ripStr2   = scalar("RippleStrength2",0.07,  -1700, 1160)
-# Stylized sun sparkle (sparse moving glints, added to emissive).
-sparkCol   = vecp("SparkleColor", unreal.LinearColor(1.0, 0.96, 0.85, 1.0), -1700, 1240)
-sparkScale = scalar("SparkleScale", 0.05, -1700, 1320)
-sparkThresh = scalar("SparkleThreshold", 0.72, -1700, 1400)
-sparkStr   = scalar("SparkleStrength", 1.4, -1700, 1480)
-# Refraction: how strongly the ripples bend the pond bottom.
-refrIOR = scalar("RefractionIOR", 1.05, -1700, 1560)
+foamW   = scalar("FoamWidth", 35.0, -1700, 440)               # thin shoreline line
+foamSharp = scalar("FoamSharpness", 3.0, -1700, 520)
+fresPow = scalar("FresnelPower", 5.0, -1700, 600)
+fresOpac = scalar("FresnelEdgeOpacity", 0.12, -1700, 680)
+# Two GENTLE smooth-gradient-noise ripple fields tilt the normal in X and Y. Smooth + mip-filtered (NOT the
+# per-pixel cellular VectorNoise that aliased into TV static), low frequency, slow pan = calm water.
+ripScale  = scalar("RippleScale",    0.0025, -1700, 760)
+ripSpeed  = scalar("RippleSpeed",    0.40,   -1700, 840)
+ripStr    = scalar("RippleStrength", 0.10,   -1700, 920)
+ripScale2 = scalar("RippleScale2",   0.0055, -1700, 1000)
+ripSpeed2 = scalar("RippleSpeed2",   0.25,   -1700, 1080)
+ripStr2   = scalar("RippleStrength2",0.07,   -1700, 1160)
+# Refraction: clarity comes from seeing the bottom gently bent (IOR mode).
+refrIOR = scalar("RefractionIOR", 1.18, -1700, 1240)
 
 prop(spec, "", unreal.MaterialProperty.MP_SPECULAR)
 
 
-def ripple_layer(scaleP, speedP, strengthP, dx, dy, x, y):
-    """One panning VectorNoise layer -> a scaled normal perturbation (vec3). Helper kept defensive via node()/link()."""
+def noise_field(scaleP, speedP, dx, dy, x, y):
+    """One panning SMOOTH gradient-noise field -> a scalar in ~[-1,1]. Uses MaterialExpressionNoise (mip-filtered),
+    NOT VectorNoise (cellular, per-pixel, aliases to static)."""
     wp = node("MaterialExpressionWorldPosition", x, y)
     sc = node("MaterialExpressionMultiply", x + 150, y); link(wp, "", sc, "A"); link(scaleP, "", sc, "B")
     tm = node("MaterialExpressionTime", x, y + 110)
@@ -129,9 +127,23 @@ def ripple_layer(scaleP, speedP, strengthP, dx, dy, x, y):
     td = node("MaterialExpressionMultiply", x + 150, y + 140); link(tm, "", td, "A"); link(dirv, "", td, "B")
     tds = node("MaterialExpressionMultiply", x + 300, y + 140); link(td, "", tds, "A"); link(speedP, "", tds, "B")
     pos = node("MaterialExpressionAdd", x + 440, y + 60); link(sc, "", pos, "A"); link(tds, "", pos, "B")
-    vn = node("MaterialExpressionVectorNoise", x + 570, y + 60); link(pos or sc, "", vn, "Position")
-    out = node("MaterialExpressionMultiply", x + 700, y + 60); link(vn, "", out, "A"); link(strengthP, "", out, "B")
-    return out
+    nz = node("MaterialExpressionNoise", x + 570, y + 60); link(pos or sc, "", nz, "Position")
+    fn = (getattr(unreal.NoiseFunction, "NOISEFUNCTION_GRADIENT_TEX", None)
+          if hasattr(unreal, "NoiseFunction") else None) \
+        or (getattr(unreal.NoiseFunction, "NOISEFUNCTION_SIMPLEX_TEX", None) if hasattr(unreal, "NoiseFunction") else None)
+    if fn is not None:
+        for _fp in ("noise_function", "function"):
+            if setp(nz, _fp, fn):
+                break
+    setp(nz, "scale", 1.0)  # frequency is set by RippleScale on the world position above
+    setp(nz, "quality", 1)
+    setp(nz, "levels", 1)
+    for _tp in ("turbulence", "b_turbulence"):
+        if setp(nz, _tp, False):
+            break
+    setp(nz, "output_min", -1.0)
+    setp(nz, "output_max", 1.0)
+    return nz
 
 
 # ── Water view-thickness: SceneDepth (opaque behind) - PixelDepth (this surface) ──
@@ -144,21 +156,24 @@ depth_div = node("MaterialExpressionDivide", -680, -120); link(thick, "", depth_
 depthAlpha = node("MaterialExpressionSaturate", -560, -120); link(depth_div, "", depthAlpha, "")
 dAlpha = depthAlpha or depth_div
 
-# ── Ripple normal: two panning VectorNoise layers + up vector, normalized ──
-L1 = ripple_layer(ripScale,  ripSpeed,  ripStr,   1.00, 0.25, -1350, 560)
-L2 = ripple_layer(ripScale2, ripSpeed2, ripStr2, -0.30, 1.00, -1350, 980)
-nsum = node("MaterialExpressionAdd", -520, 700); link(L1, "", nsum, "A"); link(L2, "", nsum, "B")
-up = node("MaterialExpressionConstant3Vector", -520, 800); setp(up, "constant", unreal.LinearColor(0.0, 0.0, 1.0, 1.0))
-nadd = node("MaterialExpressionAdd", -380, 720); link(nsum or L1, "", nadd, "A"); link(up, "", nadd, "B")
-nrm = node("MaterialExpressionNormalize", -240, 720); link(nadd, "", nrm, "")
+# ── Ripple normal: two smooth scalar noise fields tilt the up-normal's X and Y -> normalize ──
+nfx = noise_field(ripScale,  ripSpeed,   1.00, 0.20, -1350, 560)
+nfy = noise_field(ripScale2, ripSpeed2, -0.25, 1.00, -1350, 980)
+nx = node("MaterialExpressionMultiply", -640, 580); link(nfx, "", nx, "A"); link(ripStr,  "", nx, "B")
+ny = node("MaterialExpressionMultiply", -640, 980); link(nfy, "", ny, "A"); link(ripStr2, "", ny, "B")
+nxy = node("MaterialExpressionAppendVector", -500, 700); link(nx or nfx, "", nxy, "A"); link(ny or nfy, "", nxy, "B")  # (x, y)
+oneZ = node("MaterialExpressionConstant", -500, 800); setp(oneZ, "r", 1.0)
+nvec = node("MaterialExpressionAppendVector", -360, 720); link(nxy, "", nvec, "A"); link(oneZ, "", nvec, "B")          # (x, y, 1)
+nrm = node("MaterialExpressionNormalize", -220, 720); link(nvec or nxy, "", nrm, "")
 prop(nrm, "", unreal.MaterialProperty.MP_NORMAL)
 
-# ── Fresnel: grazing-angle term, fed by the ripple normal so the bright rim shimmers ──
+# ── Fresnel: grazing-angle rim, fed by the smooth ripple normal; clamped so it can't blow to white ──
 fres = node("MaterialExpressionFresnel", -700, -360)
-setp(fres, "exponent", 4.0); setp(fres, "base_reflect_fraction", 0.04)
+setp(fres, "exponent", 5.0); setp(fres, "base_reflect_fraction", 0.02)
 link(fresPow, "", fres, "ExponentIn")  # pin name varies by build; harmless if it doesn't bind (the prop above stands)
 link(nrm, "", fres, "Normal")
-fres_out = fres or dAlpha
+fres_clamp = node("MaterialExpressionMultiply", -560, -360); setp(fres_clamp, "const_b", 0.6); link(fres, "", fres_clamp, "A")
+fres_out = fres_clamp or fres or dAlpha
 
 # ── Foam mask: power(1 - saturate(thick / FoamWidth), FoamSharpness) ──
 foam_div = node("MaterialExpressionDivide", -680, 220); link(thick, "", foam_div, "A"); link(foamW, "", foam_div, "B")
@@ -167,7 +182,7 @@ foam_inv = node("MaterialExpressionOneMinus", -460, 220); link(foam_sat or foam_
 foam = node("MaterialExpressionPower", -360, 220); link(foam_inv, "", foam, "Base"); link(foamSharp, "", foam, "Exponent")
 foam_mask = foam or foam_inv
 
-# ── Base color: depth tint -> brightened toward EdgeColor by Fresnel -> foam on top ──
+# ── Base color: depth tint -> softly tinted toward EdgeColor by (clamped) Fresnel -> thin foam on top ──
 water_col = node("MaterialExpressionLinearInterpolate", -420, -240)
 link(shallow, "", water_col, "A"); link(deep, "", water_col, "B"); link(dAlpha, "", water_col, "Alpha")
 col_fres = node("MaterialExpressionLinearInterpolate", -280, -300)
@@ -176,23 +191,12 @@ bc = node("MaterialExpressionLinearInterpolate", -120, -150)
 link(col_fres or water_col, "", bc, "A"); link(foamCol, "", bc, "B"); link(foam_mask, "", bc, "Alpha")
 prop(bc or col_fres or water_col, "", unreal.MaterialProperty.MP_BASE_COLOR)
 
-# ── Sparkle: sparse moving glints from a high-freq panning noise, thresholded into emissive ──
-sp = ripple_layer(sparkScale, ripSpeed, sparkStr, 0.6, 0.4, -1350, 1380)  # reuse the layer plumbing as a noise field
-sp_mask = node("MaterialExpressionComponentMask", -560, 1400)
-setp(sp_mask, "r", True); setp(sp_mask, "g", False); setp(sp_mask, "b", False); setp(sp_mask, "a", False)
-link(sp, "", sp_mask, "")
-sp_cut = node("MaterialExpressionSubtract", -430, 1400); link(sp_mask or sp, "", sp_cut, "A"); link(sparkThresh, "", sp_cut, "B")
-sp_amp = node("MaterialExpressionMultiply", -300, 1400); setp(sp_amp, "const_b", 24.0); link(sp_cut, "", sp_amp, "A")
-sp_sat = node("MaterialExpressionSaturate", -180, 1400); link(sp_amp or sp_cut, "", sp_sat, "")
-spark = node("MaterialExpressionMultiply", -50, 1380); link(sparkCol, "", spark, "A"); link(sp_sat, "", spark, "B")
-
-# Emissive = dim foam glow + moving sparkle.
+# ── Emissive: just a faint foam glow (NO noise sparkle — that was the TV-static / blown-white culprit) ──
 foam_em = node("MaterialExpressionMultiply", -150, 40); link(foamCol, "", foam_em, "A"); link(foam_mask, "", foam_em, "B")
-foam_em2 = node("MaterialExpressionMultiply", -30, 40); setp(foam_em2, "const_b", 0.3); link(foam_em, "", foam_em2, "A")
-em = node("MaterialExpressionAdd", 90, 60); link(foam_em2 or foam_em, "", em, "A"); link(spark, "", em, "B")
-prop(em or foam_em2, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+foam_em2 = node("MaterialExpressionMultiply", -30, 40); setp(foam_em2, "const_b", 0.15); link(foam_em, "", foam_em2, "A")
+prop(foam_em2 or foam_em, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
 
-# ── Opacity: shallow->deep falloff, solid at the foam line, lifted at grazing angles by Fresnel ──
+# ── Opacity: very clear shallow -> semi-clear deep, solid at the foam line, small Fresnel lift at grazing ──
 op_depth = node("MaterialExpressionLinearInterpolate", -150, 150)
 link(shallowOpac, "", op_depth, "A"); link(deepOpac, "", op_depth, "B"); link(dAlpha, "", op_depth, "Alpha")
 one = node("MaterialExpressionConstant", -300, 200); setp(one, "r", 1.0)
@@ -209,18 +213,18 @@ rhi = node("MaterialExpressionConstant", -300, 380); setp(rhi, "r", 0.6)
 link(rough, "", rl, "A"); link(rhi, "", rl, "B"); link(foam_mask, "", rl, "Alpha")
 prop(rl or rough, "", unreal.MaterialProperty.MP_ROUGHNESS)
 
-# ── Refraction: bend the pond bottom by the ripple normal (pixel-normal-offset mode where available) ──
+# ── Refraction: clear, gentle bend of the pond bottom (Index Of Refraction mode; ~1.18 reads clean) ──
 _rm = getattr(unreal, "RefractionMode", None)
-_pno = getattr(_rm, "RM_PIXEL_NORMAL_OFFSET", None) if _rm else None
-if _pno is not None:
+_ior = getattr(_rm, "RM_INDEX_OF_REFRACTION", None) if _rm else None
+if _ior is not None:
     for _rmprop in ("refraction_method", "refraction_mode"):
-        if setp(mat, _rmprop, _pno):
+        if setp(mat, _rmprop, _ior):
             break
 prop(refrIOR, "", unreal.MaterialProperty.MP_REFRACTION)
 
 mel.recompile_material(mat)
 EAL.save_asset(mat_path)
-unreal.log("make_water: built {} (fresnel + layered ripples + sparkle + refraction)".format(mat_path))
+unreal.log("make_water: built {} (crystal-clear: smooth normal, refraction, no sparkle)".format(mat_path))
 
 # ── Pond collision: make SM_Fishing_Hole solid (complex-as-simple, since the import had no collision) ──
 fish = EAL.load_asset("/Game/World/SM_Fishing_Hole.SM_Fishing_Hole")
