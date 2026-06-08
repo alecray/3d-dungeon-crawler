@@ -16,6 +16,22 @@ Untested / unchecked work is up top (**TO TEST**); verified work is at the botto
 
 ## 0. This session's changes (NEW — test these first)
 
+**Dash i-frames (new gameplay):**
+- [ ] Dashing (Shift) grants a brief **invulnerability window** (~first 0.15s of the 0.2s dash): time a dash into a boss swing and you take **no damage** (roll *through* the hit), not just out of its range. After the window you're vulnerable again on the dash's tail.
+- [ ] **God Mode** still works and isn't broken by dashing (a dash doesn't switch invulnerability back off when god mode is on).
+
+**Big refactor — regression sweep (behaviour should be UNCHANGED).** The player class was split into
+components (fishing, combat) and gold/cheats moved off it; all source was reorganized into subfolders;
+enemy assets were relocated. Nothing should *feel* different — verify the systems still work:
+- [ ] **Combat** — melee swing + wall-deflect bounce, crossbow bolts (cost stamina), mage bolts (cost mana, released mid-cast), and the **Q abilities** (Whirlwind / Volley / Nova) all still fire; hit-stop + camera kick land on a connecting hit; the hit-marker still flashes.
+- [ ] **Weapon swap** still sets the style + held mesh (sword = melee, crossbow = ranged, staff = mage).
+- [ ] **Fishing** (town) — cast/idle/tension/reel poses, the status line, the "need a Fishing Rod" gate, and the rod stowing + weapon restoring on finish.
+- [ ] **Gold** — shop buy/sell, blackjack bet/payout, and "Give 1,000,000 Gold" all read/update the **same** persisted gold; it survives a relaunch.
+- [ ] **Dev cheats** (now on the player controller) — No Clip / God Mode / Kill still work from Esc → Dev Menu.
+- [ ] **Crab + boss** still render with their animations (assets moved to `Enemies/Regular` & `Enemies/Bosses`; soft refs resolve).
+
+## 1. Prior session — blackjack / boss / combat overhaul (still untested)
+
 **Blackjack — art + UX overhaul:**
 - [ ] It's now a **placed actor in L_Town** (reposition in-editor); sits flat on the floor (no float) and **blocks you** correctly (bounds-fitted box collision); `[E] Play Blackjack` still appears.
 - [ ] Cards deal as real **card-face images** on the felt; the dealer's 2nd card is **face-down (back)** until the hand resolves; faces read matte (not blown out).
@@ -35,7 +51,7 @@ Untested / unchecked work is up top (**TO TEST**); verified work is at the botto
 - [ ] **Dash distance is consistent** — no longer flings you too far when dashing while moving + holding a key.
 - [ ] **Equipping** Max-Health gear **no longer flashes the screen red** (only real damage flashes).
 
-## 1. Carried over (still untested)
+## 2. Carried over (still untested)
 - [ ] **Boss attack anim** plays on melee swings, with the hit landing on **frame 20** (dodge by repositioning).
 - [ ] **Bonfire** in Rest rooms (green-lit): `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
 - [ ] **Mage weapon** — buy/loot the Apprentice Wand / Staff, select it: LMB casts **spell bolts** that cost **mana** (Mage style).

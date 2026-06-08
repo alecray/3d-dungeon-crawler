@@ -6,6 +6,11 @@ unsorted todo shortlist:
 - mage projectile should come from the tip of the staff.
 - hit damage numbers should come from where the projectile hits
 
+> **Up next (deferred for now):** the two prioritized gameplay features from the design review —
+> **enemy behaviour archetypes** and **elemental damage + procedural affixes wired into combat** — are
+> parked in the Backlog below (see "Enemy behavior archetypes" and "Loot rarity tiers + procedural
+> affixes" / "Elemental damage types"). Pick these up when returning to gameplay.
+
 # OPEN
 
 ## Near-term / needs tuning
@@ -232,6 +237,19 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 ---
 
 # DONE
+
+## Code health / architecture
+- [x] **Source reorganized into subfolders** — the flat `Source/DungeonCrawler/` (121 files) split into
+      Core / Player / Components / Enemies / Dungeon / Items / Town / UI / VFX; `Build.cs` adds each as a
+      `PrivateIncludePath` so existing bare includes keep resolving.
+- [x] **FirstPersonCharacter god-class decomposed** (1363 → ~940 lines): fishing extracted to
+      `UFishingComponent`, combat (melee/ranged/mage + Q abilities + hit-stop/camera-kick) to
+      `UCombatComponent`; **gold** moved into the GameInstance profile (pawn keeps thin forwarders);
+      **dev cheats** (No Clip / God Mode / Kill) moved onto `ADungeonPlayerController` with the other dev tools.
+- [x] **Soft asset references** — Item/Monster databases, the boss, dungeon meshes, props and weapon/fishing
+      assets converted from raw path strings to typed `TSoftObjectPtr<T>` (see README "Code conventions").
+- [x] **Dash i-frames** — brief invulnerability at the start of a dash (`DashIFrameDuration`, ~0.15s);
+      Souls-style dodge roll-through. (Tuning + tie-to-equip-weight are backlogged above.)
 
 ## Gameplay / combat
 - [x] **Stats page** — `FPlayerStats` on the profile: monsters/bosses killed, deaths, gold looted, chests

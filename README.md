@@ -244,7 +244,8 @@ World & generation:
 
 Combat feel & VFX (code-driven, no imported art):
 
-- [x] **Dash/dodge** on Shift (replaces sprint) — a short, committed, stamina-costed burst
+- [x] **Dash/dodge** on Shift (replaces sprint) — a short, committed, stamina-costed burst with
+      **i-frames** (brief invulnerability at the start, Souls-style roll-through; `DashIFrameDuration`)
 - [x] **Dark-Souls-leaning combat** — the boss hits hard (~75% of starting HP) but its blow lands on a
       specific animation frame, so it's dodgeable by repositioning; reach is measured from its body edge
 - [x] Floating damage numbers that spawn **at the impact point** on the enemy and linger; a **"-N" popup**
@@ -268,10 +269,14 @@ Flow / UX:
 
 - `ADungeonCrawlerGameMode` — spawns lighting + the dungeon generator on BeginPlay, then drops the
   player into the first room.
-- `AFirstPersonCharacter` — eye-height first-person camera with a skeletal-mesh weapon; the melee hit
-  lands partway through the swing. WASD + mouse-look + a stamina-costed **dash/dodge** (Shift) via
-  Enhanced Input configured entirely in C++ (no input assets). Carries stats, health/mana/stamina, a
-  saved profile, and applies the chosen starting class loadout (`ApplyClassLoadout`).
+- `AFirstPersonCharacter` — eye-height first-person camera with a skeletal-mesh weapon; WASD +
+  mouse-look + a stamina-costed **dash/dodge** (Shift, with i-frames) via Enhanced Input configured
+  entirely in C++ (no input assets). Owns the player's components and wires input to them; carries the
+  saved profile and applies the chosen starting class loadout (`ApplyClassLoadout`).
+- `UCombatComponent` / `UFishingComponent` — attack execution (melee/ranged/mage swings + bolts, the Q
+  abilities, hit-stop, camera kick; the melee hit lands partway through the swing) and town fishing (rod
+  swap, poses, status line), both split out of the player pawn. **Gold** lives in the GameInstance profile
+  (the pawn just forwards to it); **dev cheats** (No Clip / God Mode / Kill) live on `ADungeonPlayerController`.
 - `ADungeonGenerator` — grid/tilemap dungeon: rooms (multi-cell) joined by 1-cell-wide L-shaped
   corridors; floor/ceiling/wall tiles are instanced; walls are raised on any cell edge bordering a
   non-floor cell, so doorways appear automatically where corridors meet rooms. Tunables (room count,
@@ -334,6 +339,11 @@ Flow / UX:
 
 The dungeon geometry and props start as code-driven graybox primitives and swap in imported meshes
 where available, so the project stays diff-friendly and mesh-agnostic.
+
+Source under `Source/DungeonCrawler/` is organized into subfolders — `Core/` (module, game modes, game
+instance, player controller), `Player/`, `Components/`, `Enemies/`, `Dungeon/`, `Items/`, `Town/`,
+`UI/`, `VFX/`. Each is added as an include path in `DungeonCrawler.Build.cs`, so headers are still
+included by bare filename.
 
 ## Code conventions
 
