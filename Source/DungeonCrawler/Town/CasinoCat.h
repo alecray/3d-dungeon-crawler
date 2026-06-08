@@ -61,21 +61,21 @@ protected:
 
 	// ---- Weights (any positive values work; they are normalized at runtime, so the Details panel is
 	//      forgiving — tweak these on the placed actor without recompiling) ----
-	// Idle_0 is 50%; the other four idles split the remaining 50% evenly (12.5% each).
+	// All five idles equal — 20% each.
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight0 = 0.50f;   // Idle_0 — half the time
+	float Weight0 = 0.20f;   // Idle_0
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight1 = 0.125f;  // Idle_1
+	float Weight1 = 0.20f;   // Idle_1
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight2 = 0.125f;  // Idle_2
+	float Weight2 = 0.20f;   // Idle_2
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight3 = 0.125f;  // Idle_3
+	float Weight3 = 0.20f;   // Idle_3
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight4 = 0.125f;  // Idle_4
+	float Weight4 = 0.20f;   // Idle_4
 
 private:
 	/** Roll weighted-random among non-null clips, play it once, then set a timer to call this again. */
