@@ -48,9 +48,9 @@ protected:
 
 	// ---- Sun ----
 	UPROPERTY(EditAnywhere, Category = "DayNight|Sun")
-	float SunPeakIntensity = 6.f;
+	float SunPeakIntensity = 4.5f; // toned down from 6 — daytime was a bit too bright
 	UPROPERTY(EditAnywhere, Category = "DayNight|Sun")
-	FLinearColor SunNoonColor = FLinearColor(1.f, 0.96f, 0.88f);
+	FLinearColor SunNoonColor = FLinearColor(1.f, 0.89f, 0.72f); // warmer, less stark white
 	UPROPERTY(EditAnywhere, Category = "DayNight|Sun")
 	FLinearColor SunHorizonColor = FLinearColor(1.f, 0.45f, 0.20f);
 

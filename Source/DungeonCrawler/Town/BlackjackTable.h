@@ -72,10 +72,6 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UMaterialInterface> CardMaterial;
 
-	/** Static "Blackjack" sign standing at the back of the table (just a label, not the live status). */
-	UPROPERTY(VisibleAnywhere, Category = "Blackjack")
-	TObjectPtr<UTextRenderComponent> TitleText;
-
 	/** World-space hand-value labels beside each row: "Dealer N" by the dealer cards, "You N" by yours. */
 	UPROPERTY(VisibleAnywhere, Category = "Blackjack")
 	TObjectPtr<UTextRenderComponent> DealerValueText;

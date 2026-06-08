@@ -84,15 +84,6 @@ ABlackjackTable::ABlackjackTable()
 	Collision->SetCollisionProfileName(TEXT("BlockAll"));
 	Collision->SetBoxExtent(FVector(80.f, 70.f, 35.f)); // placeholder; resized to real bounds in BeginPlay
 
-	// Static "Blackjack" sign standing at the back of the table, facing the player. Positioned to the real
-	// felt in BeginPlay (mesh extents aren't known until the art loads).
-	TitleText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("TitleText"));
-	TitleText->SetupAttachment(Root);
-	TitleText->SetHorizontalAlignment(EHTA_Center);
-	TitleText->SetWorldSize(18.f);
-	TitleText->SetTextRenderColor(FColor(255, 240, 180));
-	TitleText->SetText(FText::FromString(TEXT("Blackjack")));
-
 	// Hand-value labels sitting beside each card row (positioned to the real felt in BeginPlay).
 	DealerValueText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("DealerValueText"));
 	DealerValueText->SetupAttachment(Root);
@@ -122,12 +113,6 @@ void ABlackjackTable::BeginPlay()
 	}
 
 	const FBox Felt = TableBoundsActor();
-	if (TitleText)
-	{
-		// Stand it at the far (dealer) edge, centered in X, just above the felt, facing the player (+Y).
-		TitleText->SetRelativeLocation(FVector(Felt.GetCenter().X, Felt.Min.Y + 3.f, Felt.Max.Z + 14.f));
-		TitleText->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
-	}
 
 	// Hand-value labels just left of each card row, standing up facing the player (+Y).
 	{
