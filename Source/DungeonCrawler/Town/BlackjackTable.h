@@ -12,6 +12,7 @@ class UTexture2D;
 class UMaterialInterface;
 class AFirstPersonCharacter;
 class UBlackjackWidget;
+class ACasinoCat;
 
 /** One dealt card. Suit is cosmetic (infinite shoe); rank drives hand value. */
 struct FBJCard
@@ -78,6 +79,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Blackjack")
 	TObjectPtr<UTextRenderComponent> PlayerValueText;
+
+	/** Dealer cat animated when a hand is dealt. Auto-found (nearest ACasinoCat) at BeginPlay if left unset. */
+	UPROPERTY(EditAnywhere, Category = "Blackjack")
+	TObjectPtr<ACasinoCat> DealerCat;
 
 	/** Finished-mesh swap-in points (null = keep the graybox). */
 	UPROPERTY(EditAnywhere, Category = "Blackjack|Meshes")

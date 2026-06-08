@@ -25,6 +25,10 @@ class DUNGEONCRAWLER_API ACasinoCat : public AActor
 public:
 	ACasinoCat();
 
+	/** Play the one-shot "deal" animation once (interrupting the idle loop), then resume looping idles.
+	 *  No-op if no deal clip is set/loaded. Called by ABlackjackTable when a hand is dealt. */
+	void PlayDeal();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -48,21 +52,30 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations")
 	TSoftObjectPtr<UAnimSequence> Idle3;
 
+	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations")
+	TSoftObjectPtr<UAnimSequence> Idle4;
+
+	/** One-shot dealer "deal" animation, played by PlayDeal() (not part of the idle roll). */
+	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations")
+	TSoftObjectPtr<UAnimSequence> DealAnim;
+
 	// ---- Weights (any positive values work; they are normalized at runtime, so the Details panel is
 	//      forgiving — tweak these on the placed actor without recompiling) ----
-	// Default split ~45 / 27 / 18 / 10 % (keeps the original 50:30:20 ratio among the first three,
-	// scaled to make room for Idle_3 at ~10%). Weights normalize at runtime, so tune freely.
+	// Idle_0 is 50%; the other four idles split the remaining 50% evenly (12.5% each).
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight0 = 0.45f;  // Idle_0 — most common; cat sits quietly
+	float Weight0 = 0.50f;   // Idle_0 — half the time
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight1 = 0.27f;  // Idle_1 — occasional variant
+	float Weight1 = 0.125f;  // Idle_1
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight2 = 0.18f;  // Idle_2 — rarer variant
+	float Weight2 = 0.125f;  // Idle_2
 
 	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
-	float Weight3 = 0.10f;  // Idle_3 — rarest
+	float Weight3 = 0.125f;  // Idle_3
+
+	UPROPERTY(EditAnywhere, Category = "Casino Cat|Animations", meta = (ClampMin = "0.0"))
+	float Weight4 = 0.125f;  // Idle_4
 
 private:
 	/** Roll weighted-random among non-null clips, play it once, then set a timer to call this again. */
@@ -73,6 +86,8 @@ private:
 	UPROPERTY() TObjectPtr<UAnimSequence> LoadedIdle1;
 	UPROPERTY() TObjectPtr<UAnimSequence> LoadedIdle2;
 	UPROPERTY() TObjectPtr<UAnimSequence> LoadedIdle3;
+	UPROPERTY() TObjectPtr<UAnimSequence> LoadedIdle4;
+	UPROPERTY() TObjectPtr<UAnimSequence> LoadedDeal;
 
 	FTimerHandle IdleTimerHandle;
 };

@@ -1,8 +1,10 @@
 #include "BlackjackTable.h"
 #include "BlackjackWidget.h"
+#include "CasinoCat.h"
 #include "FirstPersonCharacter.h"
 #include "DungeonGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 #include "Components/SceneComponent.h"
@@ -129,6 +131,21 @@ void ABlackjackTable::BeginPlay()
 		{
 			PlayerValueText->SetRelativeLocation(FVector(SideX, PlayerY, LabelZ));
 			PlayerValueText->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
+		}
+	}
+
+	// Find the dealer cat (nearest ACasinoCat) to animate on Deal(), unless one was assigned in the editor.
+	if (!DealerCat)
+	{
+		float BestDistSq = TNumericLimits<float>::Max();
+		for (TActorIterator<ACasinoCat> It(GetWorld()); It; ++It)
+		{
+			const float DistSq = FVector::DistSquared(It->GetActorLocation(), GetActorLocation());
+			if (DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				DealerCat = *It;
+			}
 		}
 	}
 }
@@ -305,6 +322,12 @@ void ABlackjackTable::Deal()
 		Status = TEXT("Not enough gold for that bet.");
 		RefreshWidget();
 		return;
+	}
+
+	// Dealer cat plays its one-shot "deal" animation, then resumes idling.
+	if (DealerCat)
+	{
+		DealerCat->PlayDeal();
 	}
 
 	PlayerHand.Reset();

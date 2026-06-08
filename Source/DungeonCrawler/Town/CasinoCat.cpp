@@ -38,6 +38,10 @@ ACasinoCat::ACasinoCat()
 		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Idle_2.A_Casino_Cat_Idle_2")));
 	Idle3 = TSoftObjectPtr<UAnimSequence>(
 		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Idle_3.A_Casino_Cat_Idle_3")));
+	Idle4 = TSoftObjectPtr<UAnimSequence>(
+		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Idle_4.A_Casino_Cat_Idle_4")));
+	DealAnim = TSoftObjectPtr<UAnimSequence>(
+		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Deal.A_Casino_Cat_Deal")));
 }
 
 // ---- BeginPlay ------------------------------------------------------------------
@@ -79,9 +83,35 @@ void ACasinoCat::BeginPlay()
 	LoadedIdle1 = TryLoad(Idle1, TEXT("Idle_1"));
 	LoadedIdle2 = TryLoad(Idle2, TEXT("Idle_2"));
 	LoadedIdle3 = TryLoad(Idle3, TEXT("Idle_3"));
+	LoadedIdle4 = TryLoad(Idle4, TEXT("Idle_4"));
+	LoadedDeal = TryLoad(DealAnim, TEXT("Deal"));
 
 	// Kick off the rolling idle loop immediately.
 	PlayWeightedIdle();
+}
+
+void ACasinoCat::PlayDeal()
+{
+	// No deal clip imported yet -> leave the idle loop running.
+	if (!LoadedDeal || !CatMesh)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	// Interrupt the idle loop (cancel the pending re-roll), play the deal once, then resume idles when it ends.
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(IdleTimerHandle);
+	}
+	CatMesh->PlayAnimation(LoadedDeal, /*bLooping*/ false);
+
+	const float DealLength = FMath::Max(0.05f, LoadedDeal->GetPlayLength());
+	if (World)
+	{
+		World->GetTimerManager().SetTimer(
+			IdleTimerHandle, this, &ACasinoCat::PlayWeightedIdle, DealLength, /*bLooping*/ false);
+	}
 }
 
 // ---- PlayWeightedIdle -----------------------------------------------------------
@@ -91,12 +121,13 @@ void ACasinoCat::PlayWeightedIdle()
 	// Build a candidate list of (clip, weight) pairs — skip any that failed to load.
 	struct FCandidate { UAnimSequence* Clip; float Weight; };
 	TArray<FCandidate> Candidates;
-	Candidates.Reserve(4);
+	Candidates.Reserve(5);
 
 	if (LoadedIdle0) { Candidates.Add({ LoadedIdle0, FMath::Max(0.f, Weight0) }); }
 	if (LoadedIdle1) { Candidates.Add({ LoadedIdle1, FMath::Max(0.f, Weight1) }); }
 	if (LoadedIdle2) { Candidates.Add({ LoadedIdle2, FMath::Max(0.f, Weight2) }); }
 	if (LoadedIdle3) { Candidates.Add({ LoadedIdle3, FMath::Max(0.f, Weight3) }); }
+	if (LoadedIdle4) { Candidates.Add({ LoadedIdle4, FMath::Max(0.f, Weight4) }); }
 
 	if (Candidates.IsEmpty())
 	{
