@@ -69,3 +69,8 @@ void UResourceComponent::SetMax(float NewMax, bool bRefill)
 	MaxValue = FMath::Max(1.f, NewMax);
 	Current = bRefill ? MaxValue : FMath::Clamp(OldPercent * MaxValue, 0.f, MaxValue);
 }
+
+void UResourceComponent::SetCurrent(float Value)
+{
+	Current = FMath::Clamp(Value, 0.f, MaxValue);
+}

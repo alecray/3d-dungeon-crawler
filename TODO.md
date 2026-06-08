@@ -14,12 +14,12 @@ unsorted todo shortlist:
 # OPEN
 
 ## Near-term / needs tuning
-- [ ] Boss danger disc — make it **bigger** (tune `AttackZoneRadiusFrac`).
+- [ ] Boss danger disc — make it **bigger** (tune `AttackZoneRadiusFrac`). — partial: `AttackZoneRadiusFrac = 0.425f` in `AMonsterCharacter` (comment says it was halved from 0.85 — still needs a tune-up in PIE).
 - [ ] Boss navmesh hand-off — needs **walls in the boss arena** to actually test pathing around cover.
 - [x] Footstep dust — I don't always see any; verify it's still spawning (it was too bright once). Keep it a subtle puff.
 - [ ] Room theming — only *sorta* themed; improve coherence + the prop clusters.
 - [ ] Item icons + potions — the 3D thumbnails need a lot of improvement.
-- [ ] Settings menu on the title screen.
+- [x] Settings menu on the title screen. — done: `UMainMenuWidget::OnSettingsClicked` opens a `SettingsPanel` with mouse-sensitivity + master-volume sliders; implemented in `MainMenuWidget.cpp`.
 - [ ] Dash i-frames — basic invuln window shipped (`DashIFrameDuration` on `AFirstPersonCharacter`,
       default 0.15s of a 0.2s dash). TUNE the duration in PIE (too forgiving vs. too tight). Later:
       **tie i-frame count to equipment weight** (Souls-style — light load = more i-frames, heavy/fat-roll
@@ -30,10 +30,15 @@ unsorted todo shortlist:
 
 ## Gameplay
 
-- [ ] Adjust the death flow (DESIGN DECISION pending) — currently death keeps all progression and
-      reloads the same dungeon, no stakes. Decide: respawn in the dungeon vs. back in town; possibly
-      require a consumable "life scroll" to respawn (else lose the run / drop loot). Ties into run-stakes
-      + the town-portal difficulty/risk-reward idea in the backlog.
+- [x] **Death flow** — death now sends the player back to **L_Town** (not a dungeon reload).
+      A **scaling gold toll** is deducted on death: `25 + round(8 * sqrt(level-1))` (≈25 g at L1,
+      ~41 g at L5, ~49 g at L10); tuneable via `DeathGoldBaseCost` / `DeathGoldLevelScale` on
+      `AFirstPersonCharacter`. The inventory screen shows a "Death cost: N g" line under Gold so
+      the player always knows the current stake. A new **Death Scroll** (Rare consumable, 200 g in
+      the shop, stacks to 5) acts as a cheat-death: if one is in the inventory when the player dies
+      it is consumed instead — no gold toll, no trip to town, revive at half HP/mana/stamina.
+      > Sub-note: run-augments / high-stakes mode (backlog) can crank the gold toll or add
+      > extra death consequences — the foundation is now in place.
 - [x] Mage weapon — added `Wand` ("Apprentice Wand") + `Staff` ("Oak Staff") items with `EEquipKind::Staff`;
       equipping one sets the **Mage** style (spell bolts cost mana). Held-mesh swap-in point at
       `/Game/Weapons/Staff/SK_Staff` (graybox/hidden until art lands). They roll in the loot pool.
@@ -105,7 +110,7 @@ ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: 
 - [ ] Biomes / themed floors (visual + enemy-set variety per depth)
 - [ ] Keys & locked doors, secret rooms, destructible walls
 - [ ] Crafting / enchanting / item upgrades (sinks for materials + gold)
-- [ ] More consumables beyond potions (scrolls, food, buff items)
+- [ ] More consumables beyond potions (scrolls, food, buff items) — partial: `DeathScroll` (Rare, 200 g, stacks to 5) exists in `ItemTypes.cpp`; no food or generic buff items yet.
 
 ## Backlog (bigger systems, not scheduled yet)
 
@@ -183,7 +188,7 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
       Infinity Blade: Effects has free fire textures. Optional later: charge-up VFX over cast frames 0-9.)
 - [ ] Niagara plugin/module dependency — **done** (`Niagara` added to `DungeonCrawler.Build.cs` for the
       fireball). Still TODO: a small helper to spawn a system at a transform with a tint param so each
-      call site is a one-liner.
+      call site is a one-liner. — partial: `Niagara` is confirmed in `PublicDependencyModuleNames` (Build.cs); `NiagaraFunctionLibrary::SpawnSystemAtLocation` is called in `Projectile.cpp`; the one-liner helper is not yet written.
 
 ## Foundation / infrastructure (NOT gameplay or content — the missing plumbing)
 
@@ -252,6 +257,10 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
       Souls-style dodge roll-through. (Tuning + tie-to-equip-weight are backlogged above.)
 
 ## Gameplay / combat
+- [x] **Death system** — dying sends the player to **L_Town** (no dungeon reload). A scaling gold
+      toll (`25 + round(8 * sqrt(level-1))`, tuneable via `DeathGoldBaseCost`/`DeathGoldLevelScale`)
+      is deducted; current cost shown in the inventory screen under Gold. **Death Scroll** (Rare,
+      200 g, stacks to 5): consumed on death to revive at half HP/mana/stamina with no toll.
 - [x] **Stats page** — `FPlayerStats` on the profile: monsters/bosses killed, deaths, gold looted, chests
       opened, fish caught, blackjack hands/won/lost (+ win rate), wall deflects. Reachable from the title
       screen + pause menu; counters incremented at each gameplay site and persisted with the profile.

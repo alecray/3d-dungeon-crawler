@@ -30,6 +30,9 @@ public:
 	/** Sets a new max; keeps the same fill fraction unless bRefill, which tops it off. */
 	void SetMax(float NewMax, bool bRefill = false);
 
+	/** Sets the current value directly (clamped to [0, Max]); e.g. revive to a fraction of max. */
+	void SetCurrent(float Value);
+
 	float GetCurrent() const { return Current; }
 	float GetMax() const { return MaxValue; }
 	float GetPercent() const { return MaxValue > 0.f ? Current / MaxValue : 0.f; }

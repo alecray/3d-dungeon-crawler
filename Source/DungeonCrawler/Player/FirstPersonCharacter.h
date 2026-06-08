@@ -95,6 +95,9 @@ public:
 	void AddGold(int32 Amount);          // adds (clamped >= 0) and saves
 	bool TrySpendGold(int32 Amount);     // false if insufficient; otherwise deducts and saves
 
+	/** Gold lost on death right now (scales softly with level). Shown on the inventory screen. */
+	int32 GetDeathGoldCost() const;
+
 	// ---- No-clip (dev fly-through; toggled by the controller's dev menu, read by Dash/footsteps) ----
 	void SetNoClip(bool bEnabled);
 	bool IsNoClip() const { return bNoClip; }
@@ -264,6 +267,15 @@ protected:
 	    into an attack and you take no damage. 0 disables i-frames (pure positional dodge). */
 	UPROPERTY(EditAnywhere, Category = "Movement")
 	float DashIFrameDuration = 0.15f;
+
+	// ---- Death penalty ----
+	/** Gold lost on death at level 1. */
+	UPROPERTY(EditAnywhere, Category = "Death")
+	int32 DeathGoldBaseCost = 25;
+
+	/** Growth of the death gold cost with level, applied on a sqrt curve so it scales softly (never spikes). */
+	UPROPERTY(EditAnywhere, Category = "Death")
+	float DeathGoldLevelScale = 8.f;
 
 private:
 	bool bBlackjackActive = false; // true while seated at a blackjack table — hides the interact prompt

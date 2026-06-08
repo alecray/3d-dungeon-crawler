@@ -108,6 +108,39 @@ void UInventoryComponent::RemoveAt(int32 Index, int32 Count)
 	NotifyChanged();
 }
 
+bool UInventoryComponent::RemoveItem(FName ItemId, int32 Count)
+{
+	if (Count <= 0)
+	{
+		return false;
+	}
+	int32 Remaining = Count;
+	bool bChanged = false;
+	for (FInventorySlot& S : Slots)
+	{
+		if (Remaining <= 0)
+		{
+			break;
+		}
+		if (S.ItemId == ItemId && S.Count > 0)
+		{
+			const int32 Take = FMath::Min(Remaining, S.Count);
+			S.Count -= Take;
+			Remaining -= Take;
+			bChanged = true;
+			if (S.Count <= 0)
+			{
+				S.Clear();
+			}
+		}
+	}
+	if (bChanged)
+	{
+		NotifyChanged();
+	}
+	return Remaining == 0; // true only if the full Count was removed
+}
+
 int32 UInventoryComponent::GetItemCount(FName ItemId) const
 {
 	int32 Total = 0;

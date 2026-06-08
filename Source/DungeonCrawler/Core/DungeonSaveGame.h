@@ -18,6 +18,7 @@ struct FPlayerStats
 	UPROPERTY() int32 MonstersKilled = 0;
 	UPROPERTY() int32 BossesKilled = 0;
 	UPROPERTY() int32 Deaths = 0;
+	UPROPERTY() int32 DeathScrollsUsed = 0;  // death scrolls consumed to cheat death
 	UPROPERTY() int32 GoldLooted = 0;        // total gold gained (loot + payouts)
 	UPROPERTY() int32 ChestsOpened = 0;
 	UPROPERTY() int32 FishCaught = 0;

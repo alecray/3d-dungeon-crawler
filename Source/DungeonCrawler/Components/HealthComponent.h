@@ -40,6 +40,10 @@ public:
 	/** Forces health to zero and fires OnDepleted once, ignoring invulnerability (dev kill). */
 	void Kill();
 
+	/** Brings a dead component back with ToHealth (clamped to [1, Max]) and clears the dead flag, so it can
+	    take/heal damage again. Used by the death-scroll "cheat death" path. */
+	void Revive(float ToHealth);
+
 	bool IsDead() const { return bDead; }
 	float GetHealth() const { return Health; }
 	float GetMaxHealth() const { return MaxHealth; }

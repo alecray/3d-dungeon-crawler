@@ -132,7 +132,8 @@ void UStatsScreenWidget::Populate()
 
 	AddRow(TEXT("Monsters Killed"), Num(S.MonstersKilled));
 	AddRow(TEXT("Bosses Killed"),   Num(S.BossesKilled));
-	AddRow(TEXT("Deaths"),          Num(S.Deaths));
+	AddRow(TEXT("Deaths"),            Num(S.Deaths));
+	AddRow(TEXT("Death Scrolls Used"), Num(S.DeathScrollsUsed));
 	AddRow(TEXT("Gold Looted"),     Num(S.GoldLooted));
 	AddRow(TEXT("Chests Opened"),   Num(S.ChestsOpened));
 	AddRow(TEXT("Fish Caught"),     Num(S.FishCaught));

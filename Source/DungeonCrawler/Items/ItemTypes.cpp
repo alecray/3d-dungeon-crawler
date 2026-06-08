@@ -205,8 +205,25 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("GoldenCarp"),  TEXT("Golden Carp"),  EItemType::Treasure, EItemRarity::Epic,      5, 120));
 		Items.Add(MakeItem(TEXT("OldBoot"),     TEXT("Old Boot"),     EItemType::Material, EItemRarity::Common,    20, 1)); // junk catch
 
+		// Mark fish as fishing-only so they are excluded from chest/boss loot rolls.
+		auto SetFishingOnly = [&Items](const TCHAR* Id)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items) { if (D.Id == Key) { D.bFishingOnly = true; } }
+		};
+		SetFishingOnly(TEXT("Minnow"));
+		SetFishingOnly(TEXT("Sardine"));
+		SetFishingOnly(TEXT("Trout"));
+		SetFishingOnly(TEXT("Bass"));
+		SetFishingOnly(TEXT("Pike"));
+		SetFishingOnly(TEXT("GoldenCarp"));
+		SetFishingOnly(TEXT("OldBoot"));
+
 		// Tools.
 		Items.Add(MakeItem(TEXT("FishingRod"),  TEXT("Fishing Rod"),  EItemType::Misc,     EItemRarity::Common,     1, 35)); // required to fish
+
+		// Rare consumables.
+		Items.Add(MakeItem(TEXT("DeathScroll"), TEXT("Death Scroll"), EItemType::Consumable, EItemRarity::Rare,     5, 200));
 
 		// Equipment slot + stat bonuses (applied while equipped).
 		auto SetEquip = [&Items](const TCHAR* Id, EEquipSlot Slot, const FItemBonuses& Bonuses)
@@ -256,6 +273,7 @@ namespace ItemDatabase
 		SetDesc(TEXT("RubyRing"),      TEXT("A ruby ring. +6% spell damage."));
 		SetDesc(TEXT("IronRing"),      TEXT("An iron band. +6% melee damage."));
 		SetDesc(TEXT("FishingRod"),    TEXT("A simple fishing rod. Needed to cast a line at the fishing hole."));
+		SetDesc(TEXT("DeathScroll"),   TEXT("A morbid ward inked in ash and old blood. If you die while carrying one, it crumbles to dust — sparing you and restoring half your health, mana, and stamina."));
 
 		// Icon meshes (rendered into UI thumbnails). Weapons reuse their skeletal meshes; items
 		// without a mesh fall back to the rarity color.
@@ -341,6 +359,9 @@ namespace ItemDatabase
 		Weights.Reserve(List.Num());
 		for (const FItemDef& D : List)
 		{
+			// Fishing-only items (fish, junk catches) are never in chests or boss drops.
+			if (D.bFishingOnly) { Weights.Add(0.f); continue; }
+
 			float W = 1.f;
 			switch (D.Rarity)
 			{

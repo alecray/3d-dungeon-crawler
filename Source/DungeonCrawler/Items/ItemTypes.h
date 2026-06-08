@@ -139,6 +139,9 @@ struct FItemDef
 	// be set to take effect; applied via a Dynamic Material Instance when rendering the icon.
 	UPROPERTY() FString IconMaterialParam;             // texture parameter name on the material, e.g. "BaseColorTex" (a name, not an asset)
 	UPROPERTY() TSoftObjectPtr<UTexture> IconTexturePath; // texture to bind to that parameter
+
+	/** Only obtainable by fishing; excluded from the random chest/boss loot roll (RollRandomItem skips these). */
+	UPROPERTY() bool bFishingOnly = false;
 };
 
 /** One stack in an inventory: an item id + count. Empty when Id is None / Count <= 0. */

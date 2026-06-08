@@ -5,6 +5,7 @@
 
 improve boss death animation - fade away - more dark souls like - badass
 if you hit the boss too many times in a row he should smack you backwards which stuns you for a sec
+unstick button
 
 ## Gameplay / encounters
 - Give one of the bosses a **receptionist** — maybe play elevator music when you walk inside, then

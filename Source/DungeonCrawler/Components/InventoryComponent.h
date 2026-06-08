@@ -35,6 +35,9 @@ public:
 	/** Removes up to Count from a slot. */
 	void RemoveAt(int32 Index, int32 Count = 1);
 
+	/** Removes up to Count of ItemId across stacks. Returns true only if the full Count was removed. */
+	bool RemoveItem(FName ItemId, int32 Count = 1);
+
 	int32 NumSlots() const { return Slots.Num(); }
 	const FInventorySlot& GetSlot(int32 Index) const { return Slots[Index]; }
 	const TArray<FInventorySlot>& GetSlots() const { return Slots; }

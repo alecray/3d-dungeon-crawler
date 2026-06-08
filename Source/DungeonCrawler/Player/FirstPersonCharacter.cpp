@@ -891,22 +891,43 @@ void AFirstPersonCharacter::SetNoClip(bool bEnabled)
 	}
 }
 
+int32 AFirstPersonCharacter::GetDeathGoldCost() const
+{
+	const int32 Level = Stats ? Stats->GetLevel() : 1;
+	// Soft (sub-linear) scaling: base cost at level 1, growing on a sqrt curve so it never spikes.
+	return DeathGoldBaseCost + FMath::RoundToInt(DeathGoldLevelScale * FMath::Sqrt((float)FMath::Max(0, Level - 1)));
+}
+
 void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 {
 	if (bDead)
 	{
 		return;
 	}
+
+	// Death scroll: if the player is carrying one, consume it to cheat death instead of dying — revive at
+	// half health / mana / stamina and carry on (no gold toll, no trip to town).
+	if (Inventory && Inventory->RemoveItem(FName(TEXT("DeathScroll")), 1))
+	{
+		if (Health) { Health->Revive(Health->GetMaxHealth() * 0.5f); }
+		if (Mana) { Mana->SetCurrent(Mana->GetMax() * 0.5f); }
+		if (Stamina) { Stamina->SetCurrent(Stamina->GetMax() * 0.5f); }
+		if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance())) { GI->GetStats().DeathScrollsUsed++; }
+		PersistProfile(); // persist the consumed scroll + restored state
+		return; // cheated death — not dead
+	}
+
 	bDead = true;
 
-	// Tally the death, then persist progress so attributes/level/gold/stats survive the restart.
+	// Tally the death and pay the death toll (gold, scaling softly with level). AddGold persists the
+	// profile, so the death count + reduced gold + the rest of the state all survive the trip to town.
 	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetGameInstance()))
 	{
 		GI->GetStats().Deaths++;
 	}
-	PersistProfile();
+	AddGold(-GetDeathGoldCost()); // clamped at 0; persists
 
-	// Freeze the player and hand control back, then reload the level for a fresh dungeon run.
+	// Freeze the player and hand control back, then send them back to town (not a fresh dungeon).
 	GetCharacterMovement()->DisableMovement();
 	if (APlayerController* PC = Cast<APlayerController>(GetController()))
 	{
@@ -918,18 +939,13 @@ void AFirstPersonCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 		FTimerDelegate Reopen;
 		Reopen.BindLambda([this]()
 		{
-			if (UWorld* W = GetWorld())
+			if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
 			{
-				// GetCurrentLevelName strips the PIE prefix so the reload works in-editor too.
-				const FString LevelName = UGameplayStatics::GetCurrentLevelName(W, /*bRemovePrefixString*/ true);
-				if (ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
-				{
-					PC->FadeToBlackAndTravel(FName(*LevelName)); // fade out, then reload for a fresh run
-				}
-				else
-				{
-					UGameplayStatics::OpenLevel(W, FName(*LevelName));
-				}
+				PC->FadeToBlackAndTravel(TEXT("L_Town")); // dead -> fade out, back to town
+			}
+			else if (UWorld* W = GetWorld())
+			{
+				UGameplayStatics::OpenLevel(W, TEXT("L_Town"));
 			}
 		});
 		FTimerHandle ReopenHandle;

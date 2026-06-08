@@ -68,3 +68,9 @@ void UHealthComponent::SetMaxHealth(float NewMax, bool bRefill)
 		Health = FMath::Min(Health, MaxHealth);
 	}
 }
+
+void UHealthComponent::Revive(float ToHealth)
+{
+	bDead = false;
+	Health = FMath::Clamp(ToHealth, 1.f, MaxHealth);
+}

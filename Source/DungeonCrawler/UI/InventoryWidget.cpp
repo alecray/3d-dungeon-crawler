@@ -283,6 +283,9 @@ void UInventoryWidget::RefreshGold()
 		return;
 	}
 	GoldText->SetVisibility(ESlateVisibility::Visible);
-	const int32 Gold = (Cast<AFirstPersonCharacter>(GetOwningPlayerPawn())) ? Cast<AFirstPersonCharacter>(GetOwningPlayerPawn())->GetGold() : 0;
-	GoldText->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d"), Gold)));
+	const AFirstPersonCharacter* Player = Cast<AFirstPersonCharacter>(GetOwningPlayerPawn());
+	const int32 Gold = Player ? Player->GetGold() : 0;
+	const int32 DeathCost = Player ? Player->GetDeathGoldCost() : 0;
+	// Second line shows the current gold lost on death (scales softly with level).
+	GoldText->SetText(FText::FromString(FString::Printf(TEXT("Gold: %d\nDeath cost: %d g"), Gold, DeathCost)));
 }
