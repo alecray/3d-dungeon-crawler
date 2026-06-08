@@ -91,11 +91,25 @@ public:
 	bool IsSessionStarted() const { return bSessionStarted; }
 	void SetSessionStarted() { bSessionStarted = true; }
 
+	// ---- Transient dungeon-entry selection (NOT saved to disk; cleared each session) ----
+	/** The difficulty tier the player selected in the map/tier menu (0 = default/easy, 1-3 = scaling difficulty). */
+	int32 GetSelectedTier() const { return SelectedTier; }
+	/** Clamp to 0..3. */
+	void SetSelectedTier(int32 Tier) { SelectedTier = FMath::Clamp(Tier, 0, 3); }
+
+	/** The map FName the player selected in the map/tier menu (e.g. "L_DungeonTest"). */
+	FName GetSelectedMap() const { return SelectedMap; }
+	void SetSelectedMap(FName Map) { SelectedMap = Map; }
+
 protected:
 	UPROPERTY()
 	FPlayerProfile Profile;
 
 	bool bSessionStarted = false;
+
+	/** Transient: cleared each boot, written by the MapSelectWidget before travel. */
+	int32 SelectedTier = 0;
+	FName SelectedMap;  // NAME_None until the player picks one
 
 	static const TCHAR* SlotName() { return TEXT("DungeonProfile"); }
 };

@@ -51,6 +51,18 @@ bool UBossHealthBarWidget::Initialize()
 		BarSlot->SetHorizontalAlignment(HAlign_Fill);
 	}
 
+	// Phase star row — Unicode filled/empty stars, asset-free.  Hidden until we know MaxPhases > 1.
+	PhaseText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("PhaseText"));
+	PhaseText->SetJustification(ETextJustify::Center);
+	PhaseText->SetColorAndOpacity(FLinearColor(1.f, 0.85f, 0.25f)); // gold
+	if (FSlateFontInfo F = PhaseText->GetFont(); true) { F.Size = 18; PhaseText->SetFont(F); }
+	PhaseText->SetVisibility(ESlateVisibility::Collapsed);
+	if (UVerticalBoxSlot* PS = Cast<UVerticalBoxSlot>(Box->AddChildToVerticalBox(PhaseText)))
+	{
+		PS->SetHorizontalAlignment(HAlign_Center);
+		PS->SetPadding(FMargin(0.f, 4.f, 0.f, 0.f));
+	}
+
 	return true;
 }
 
@@ -60,7 +72,8 @@ void UBossHealthBarWidget::SetBoss(ABossMonster* Boss)
 	{
 		return;
 	}
-	Health = Boss->FindComponentByClass<UHealthComponent>();
+	BossPtr = Boss;
+	Health  = Boss->FindComponentByClass<UHealthComponent>();
 	if (NameText)
 	{
 		// Turn the boss id ("HermitCrab") into a readable label ("HERMIT CRAB").
@@ -73,6 +86,8 @@ void UBossHealthBarWidget::SetBoss(ABossMonster* Boss)
 		}
 		NameText->SetText(FText::FromString(Spaced.ToUpper()));
 	}
+	// Populate phase stars immediately so the row is correct before the first tick.
+	RefreshPhaseStars();
 }
 
 void UBossHealthBarWidget::NativeTick(const FGeometry& MyGeometry, float DeltaTime)
@@ -83,4 +98,39 @@ void UBossHealthBarWidget::NativeTick(const FGeometry& MyGeometry, float DeltaTi
 	{
 		Bar->SetPercent(Health->GetHealthPercent());
 	}
+
+	RefreshPhaseStars();
+}
+
+void UBossHealthBarWidget::RefreshPhaseStars()
+{
+	if (!PhaseText || !BossPtr.IsValid())
+	{
+		return;
+	}
+
+	const int32 Max       = BossPtr->GetMaxPhases();
+	const int32 Remaining = BossPtr->GetPhasesRemaining();
+
+	// Nothing meaningful to show for single-phase bosses.
+	if (Max <= 1)
+	{
+		PhaseText->SetVisibility(ESlateVisibility::Collapsed);
+		return;
+	}
+
+	// Build the star string: filled stars for lives left, dim stars for lives spent.
+	// e.g. Max=3, Remaining=2 → "★ ★ ☆"
+	FString Stars;
+	Stars.Reserve(Max * 2);
+	for (int32 i = 0; i < Max; ++i)
+	{
+		if (i > 0) { Stars.AppendChar(TEXT(' ')); }
+		Stars.AppendChar(i < Remaining ? TEXT('★') : TEXT('☆'));
+	}
+
+	PhaseText->SetText(FText::FromString(Stars));
+	// Dim the empty stars by tinting the whole block; the filled gold stars pop against it.
+	PhaseText->SetColorAndOpacity(FLinearColor(1.f, 0.85f, 0.25f));
+	PhaseText->SetVisibility(ESlateVisibility::HitTestInvisible);
 }

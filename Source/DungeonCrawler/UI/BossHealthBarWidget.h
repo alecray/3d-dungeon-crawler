@@ -30,7 +30,13 @@ protected:
 
 	UPROPERTY() TObjectPtr<UProgressBar> Bar;
 	UPROPERTY() TObjectPtr<UTextBlock> NameText;
+	/** Unicode star row: "★ ★" remaining / "☆ ☆" used. Hidden when MaxPhases <= 1. */
+	UPROPERTY() TObjectPtr<UTextBlock> PhaseText;
 
 private:
 	TWeakObjectPtr<UHealthComponent> Health;
+	TWeakObjectPtr<ABossMonster>     BossPtr;
+
+	/** Rebuild the star string and update PhaseText visibility. */
+	void RefreshPhaseStars();
 };

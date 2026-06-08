@@ -15,8 +15,6 @@ AAttackTelegraph::AAttackTelegraph()
 	Disc->SetupAttachment(GetRootComponent());
 	Disc->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Disc->SetCastShadow(false);
-	// TEMP: telegraph disc hidden so the (debug) danger circle can be verified on its own. Remove to restore.
-	Disc->SetVisibility(false);
 }
 
 void AAttackTelegraph::Configure(float InRadius, float InWindupSeconds)

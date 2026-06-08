@@ -118,6 +118,13 @@ void ABossArena::StartEncounter(APawn* Player)
 	{
 		return;
 	}
+
+	// Apply the player's selected difficulty tier (0-3). GetSelectedTier() returns 0 by default.
+	{
+		UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(UGameplayStatics::GetGameInstance(this));
+		Boss->SetTier(GI ? GI->GetSelectedTier() : 0);
+	}
+
 	if (UHealthComponent* BossHealth = Boss->FindComponentByClass<UHealthComponent>())
 	{
 		BossHealth->OnDepleted.AddUObject(this, &ABossArena::OnBossDefeated);

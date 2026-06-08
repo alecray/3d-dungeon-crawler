@@ -22,11 +22,7 @@ unsorted todo shortlist:
 - [x] Settings menu on the title screen. — done: `UMainMenuWidget::OnSettingsClicked` opens a `SettingsPanel` with mouse-sensitivity + master-volume sliders; implemented in `MainMenuWidget.cpp`.
 - [ ] Dash i-frames — basic invuln window shipped (`DashIFrameDuration` on `AFirstPersonCharacter`,
       default 0.15s of a 0.2s dash). TUNE the duration in PIE (too forgiving vs. too tight). Later:
-      **tie i-frame count to equipment weight** (Souls-style — light load = more i-frames, heavy/fat-roll
-      = fewer), once equip weight exists as a stat.
-
-## Notes / reminders
-- [ ] checkout rtk-ai
+      **tie i-fram+
 
 ## Gameplay
 
@@ -48,24 +44,26 @@ unsorted todo shortlist:
 
 ### Boss animations needed (hermit crab)
 Hooked up in code via the anim paths on `ABossMonster` (idle/walk/attack auto-load; the rest need a
-code hook once the clip exists). **Currently in-engine: Idle, Walk, Attack only.** While the missing
-ones are authored the boss runs in anim-test mode (`bAbilitiesEnabled = false`: phase 1, no specials).
+code hook once the clip exists). The `bAbilitiesEnabled` debug gate has been **removed** — tier 0 now phases for real (2 lives, heal-to-full
+on 0 HP) with the ground slam live in phase 2; other specials are reserved for tier 1+ (deferred). Any
+special whose anim clip isn't authored yet simply plays no clip (the gameplay still fires).
 - [x] **Idle** — `A_Hermit_Crab_Boss_Idle`
 - [x] **Walk** — `A_Hermit_Crab_Boss_Walk` (used for scuttle + lunge movement)
 - [x] **Attack** — `A_Hermit_Crab_Boss_Attack` (plays on the standard melee swing)
 - [x] **Spawn / intro** — rise + roar when the encounter starts (replaces the graybox scale-up "morph").
 - [x] **Death** — collapse/flip when killed (currently just the DeathPoof + dissolve).
 - [x] **Hit-react / flinch** — quick recoil when damaged (currently the cube hit-react pop).
-- [ ] (specials, only once `bAbilitiesEnabled` is turned back on)
+- [ ] (special *animations* — the ground-slam gameplay is already live in tier-0 phase 2; these clips
+      still need authoring + a play hook. `A_Hermit_Crab_Boss_Charge` / `_Smash` assets exist but aren't wired yet)
   - [ ] **Lunge / charge** wind-up + dash tell (telegraph before the dash).
-  - [ ] **Ground slam** raise + slam.
+  - [ ] **Ground slam** raise + slam (gameplay done; anim clip not yet hooked).
   - [ ] **Projectile volley** cast.
   - [ ] **Summon adds** cast.
   - [ ] **Shell-retreat** tuck-in + emerge (phase 3).
   - [ ] **Enrage** roar (phase 3).
 
-- [ ] **Remove the temporary `bAbilitiesEnabled` flag** (`ABossMonster`) once the anims above are in —
-      restore the full fight unconditionally and delete the flag + its `Tick` guard + README note.
+- [x] **Removed the temporary `bAbilitiesEnabled` flag** — tier 0 phasing + ground slam now run
+      unconditionally; the flag, its `Tick` guard, and the README note were deleted.
 - [ ] VERIFY IN PIE: intro camera framing, hold length, doors line up + actually block, input hands
       back cleanly, boss scuttles/lunges without jitter at the LoS hand-off, double-height room (stacked
       wall courses, no clipping), red attack telegraph + dodge-only zone feel.
@@ -297,8 +295,8 @@ Keep the C++ spawn points; just point them at Niagara systems (or gate code-vs-N
 - [x] **Dash/dodge** replaces sprint on Shift — short committed stamina-costed burst (Dark-Souls feel).
 - [x] **Boss combat pass** (Dark-Souls direction): attack lands on anim **frame 20** (dodgeable by
       repositioning), melee reach measured from the boss's body edge (so the big crab can actually hit),
-      hits for a brutal flat **135** (~75% of starting HP), closes fast (MoveSpeed 430), and runs in
-      anim-test mode (`bAbilitiesEnabled=false`) with no specials while anims are finalized.
+      hits for a brutal flat **135** (~75% of starting HP), closes fast (MoveSpeed 430). (Later superseded
+      by the tier/multi-life-phasing rework; the `bAbilitiesEnabled` anim-test gate was removed.)
 - [x] **Boss telegraph + dodge feel** — a red floor disc (`AAttackTelegraph`) marks the exact danger
       radius and flashes on impact; the zone is wide enough that you must DASH out (walk-back won't clear
       it); attack cooldown 2.8s (no spam); player dash ~400cm; player melee lands ~45% through the swing.

@@ -11,6 +11,7 @@ class UInventoryWidget;
 class UInventoryComponent;
 class ALootChest;
 class AShopNPC;
+class APortal;
 enum class ECharacterClass : uint8; // defined in CharacterClass.h
 
 /**
@@ -43,6 +44,12 @@ public:
 	void OpenShop(AShopNPC* NPC);
 	void CloseShop();
 	bool IsShopOpen() const;
+
+	/** Open the map + tier select menu for a town portal interaction.
+	 *  Pass the portal so the widget can read its target map name. */
+	void OpenMapSelectMenu(APortal* Portal);
+	void CloseMapSelectMenu();
+	bool IsMapSelectMenuOpen() const;
 
 	/** Start-menu Start button: dismiss the menu, hand back control, and fade in from black. */
 	void StartGameFromMenu();
@@ -97,6 +104,7 @@ private:
 	UPROPERTY() TObjectPtr<UUserWidget> SkillWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> ShopWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> PauseWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> MapSelectWidget;
 
 	/** The chest whose loot pane is open, so its lid can be closed when the menu closes. */
 	TWeakObjectPtr<ALootChest> OpenChest;

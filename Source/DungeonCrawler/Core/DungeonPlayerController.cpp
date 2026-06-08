@@ -7,6 +7,8 @@
 #include "ShopWidget.h"
 #include "ShopNPC.h"
 #include "PauseMenuWidget.h"
+#include "MapSelectWidget.h"
+#include "Portal.h"
 #include "Components/InputComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "CollectionLogWidget.h"
@@ -420,6 +422,47 @@ bool ADungeonPlayerController::IsShopOpen() const
 	return ShopWidget && ShopWidget->IsInViewport();
 }
 
+void ADungeonPlayerController::OpenMapSelectMenu(APortal* Portal)
+{
+	if (!Portal || !Portal->IsActive())
+	{
+		return;
+	}
+
+	// If the menu is already open just refresh its target map.
+	if (UMapSelectWidget* Existing = Cast<UMapSelectWidget>(MapSelectWidget))
+	{
+		Existing->Init(Portal->GetTargetMapName());
+		return;
+	}
+
+	UMapSelectWidget* NewMenu = CreateWidget<UMapSelectWidget>(this, UMapSelectWidget::StaticClass());
+	if (!NewMenu)
+	{
+		return;
+	}
+	NewMenu->Init(Portal->GetTargetMapName());
+	MapSelectWidget = NewMenu;
+	NewMenu->AddToViewport(20); // above HUD/hotbar, below pause menu
+
+	UpdateInputMode(); // centrally derive cursor + input mode, consistent with the shop/loot menus
+}
+
+void ADungeonPlayerController::CloseMapSelectMenu()
+{
+	if (MapSelectWidget && MapSelectWidget->IsInViewport())
+	{
+		MapSelectWidget->RemoveFromParent();
+	}
+	MapSelectWidget = nullptr;
+	UpdateInputMode(); // re-derive cursor / input from whatever else is still open
+}
+
+bool ADungeonPlayerController::IsMapSelectMenuOpen() const
+{
+	return MapSelectWidget && MapSelectWidget->IsInViewport();
+}
+
 void ADungeonPlayerController::OpenLootMenu(ALootChest* Chest)
 {
 	if (!Chest || !InventoryWidgetClass)
@@ -497,7 +540,8 @@ void ADungeonPlayerController::UpdateInputMode()
 		(CollectionWidget && CollectionWidget->IsInViewport()) ||
 		(ChestPane && ChestPane->IsInViewport()) ||
 		(SkillWidget && SkillWidget->IsInViewport()) ||
-		(ShopWidget && ShopWidget->IsInViewport());
+		(ShopWidget && ShopWidget->IsInViewport()) ||
+		(MapSelectWidget && MapSelectWidget->IsInViewport());
 
 	bShowMouseCursor = bUIOpen;
 	if (bUIOpen)

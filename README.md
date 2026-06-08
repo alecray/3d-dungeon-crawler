@@ -181,7 +181,7 @@ Built so far:
 - [x] Health & damage system (player + monsters)
 - [x] Melee combat (skeletal sword + swing animation)
 - [x] Enemy AI (chase/attack, hit-react, backstab bonus) + a telegraphed hermit-crab boss
-- [x] Player death → level restart
+- [x] Player death → respawn in town with a scaling gold toll (death cost rises with player level)
 - [x] Attributes (Strength, Intelligence, Dexterity, Vitality) + level/XP progression (XP on kills,
       melee scales with Strength)
 - [x] Health / Mana / Stamina bars (pure-C++ UMG HUD); stamina drives the dash + weapon use
@@ -206,7 +206,9 @@ Planned RPG systems (art-independent, in dependency order):
       modifiers (attack speed, lifesteal, multishot, cost reduction) + capstone active abilities
       (Whirlwind / Volley / Arcane Nova on **Q**); open with **K**
 - [x] Home town scene (L_Town) with a shop NPC (buy/sell, with gold shown) + travel portals to/from the
-      dungeon (start-room + boss-gated return portals)
+      dungeon (start-room + boss-gated return portals); interacting with the enter-dungeon portal opens a
+      **map/tier select menu** — pick a map (one dungeon currently) and a **tier (0–3)**, then **Go**
+      travels you in at that tier (stored on the Game Instance)
 - [x] Pause menu & settings (Esc): Resume / Settings / Dev Menu / Quit; mouse sensitivity + master
       volume + a full controls reference, persisted in the profile
 - [x] Minimap (fog-of-war)
@@ -222,16 +224,18 @@ Boss & encounters:
       disc + the real hit are frozen at swing start so they stay in sync, and the boss self-illuminates a
       touch so the big crab reads in the dark
 - [x] Boss fight depth — crab-like scuttle + telegraphed lunge movement (hybrid navmesh: paths around
-      cover when line-of-sight is blocked), 3 phases, specials (ground slam, summon adds, projectile
-      volley, bubble-pool hazards, enrage, phase-3 shell-retreat), and a phase-1 back weak point (2× dmg)
+      cover when line-of-sight is blocked), Dark-Souls-style multi-phase "lives" (at 0 HP the boss heals
+      to full and advances a phase rather than dying — only the last phase ends the fight), and a
+      **phase star indicator** next to the boss health bar showing lives remaining (e.g. ★★ → ★ → dead).
+      **Tier 0 has 2 phases**: phase 1 is the baseline fight; phase 2 adds a **ground slam** — a large
+      telegraphed AOE the player must dodge by **jumping** (airborne at impact = safe). A back weak point
+      (2× damage) rewards flanking in phase 1.
+- [x] **Boss tiers 0–3** — interacting with the town portal lets you choose a tier before entering. Tier 0
+      is the baseline. Tiers 1–3 scale the boss's health and damage for higher challenge. Unique phase
+      content and special abilities for tiers 1–3 are **planned but not yet implemented**; the current
+      tier system is stat-scaling only.
 - [x] Dedicated boss health bar; the boss uses the hermit-crab skeletal mesh (idle/walk anims) with a
       graybox fallback
-
-> **Temporary flag — `ABossMonster::bAbilitiesEnabled` (default OFF).** While the boss animations are
-> being finalized, the full fight is gated off: with it off the boss holds in phase 1 and only does the
-> standard scuttle/lunge + melee attack (so the attack anim can be tested cleanly) — no phase buffs,
-> specials, shell-retreat, or enrage. Flip it on (Details panel → Boss|Debug) to restore the full fight.
-> **Remove this flag once the remaining boss anims are in** (tracked in TODO.md).
 
 World & generation:
 
@@ -311,7 +315,10 @@ Flow / UX:
   (attributes, level/XP, gold, inventory, hotbar, collection log).
 - `ABossMonster` (on `AMonsterCharacter`) — the hermit-crab boss: skeletal mesh + idle/walk/attack anims,
   scuttle/lunge movement, an attack that lands on a specific frame inside a wide telegraphed danger zone,
-  and (gated behind `bAbilitiesEnabled`, off while anims are finalized) 3 phases + specials + a back weak point.
+  multi-phase "lives" (heals to full and advances a phase at 0 HP), a **ground-slam** AOE in phase 2
+  (jump to survive), a star indicator tracking lives remaining, a back weak point (2× damage in phase 1),
+  and **tier scaling** (health/damage multiplied by tier; tiers 1–3 stat-scale only — unique phase content
+  for those tiers is planned).
 - `ABossArena` + `ABossDoor` — the encounter manager: a room trigger that spawns the boss on entry,
   seals the doorways with rising barriers, runs the intro camera (`UBossIntroCameraShake`) every
   encounter, drops the boss's loot on death, and cleans up its boss/doors/portal on regenerate.

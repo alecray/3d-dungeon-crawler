@@ -1,4 +1,8 @@
 #include "TownGameMode.h"
+#include "DayNightCycle.h"
+
+#include "Engine/World.h"
+#include "EngineUtils.h"
 
 void ATownGameMode::BuildWorld()
 {
@@ -8,4 +12,23 @@ void ATownGameMode::BuildWorld()
 	// code-spawned. Ensure the base lighting/grade only as a fallback if the map is missing them.
 	EnsureLighting();
 	EnsurePostProcess();
+	EnsureDayNight();
+}
+
+void ATownGameMode::EnsureDayNight()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	for (TActorIterator<ADayNightCycle> It(World); It; ++It)
+	{
+		return; // already present
+	}
+	// Spawned (not saved into L_Town) — it finds the placed sun/sky/fog and drives the cycle. The town's
+	// hand-edited scene is left untouched.
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	World->SpawnActor<ADayNightCycle>(ADayNightCycle::StaticClass(), FTransform::Identity, Params);
 }

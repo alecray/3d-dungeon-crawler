@@ -16,4 +16,7 @@ class DUNGEONCRAWLER_API ATownGameMode : public ADungeonCrawlerGameMode
 
 protected:
 	virtual void BuildWorld() override;
+
+	/** Spawns the town day/night cycle actor if the level doesn't already have one. */
+	void EnsureDayNight();
 };

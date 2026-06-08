@@ -364,7 +364,7 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 
 	ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController());
 
-	// If a loot pane or the shop is already open, E closes it.
+	// If a loot pane, shop, or map-select menu is already open, E closes it.
 	if (PC && PC->IsLootMenuOpen())
 	{
 		PC->CloseLootMenu();
@@ -373,6 +373,11 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 	if (PC && PC->IsShopOpen())
 	{
 		PC->CloseShop();
+		return;
+	}
+	if (PC && PC->IsMapSelectMenuOpen())
+	{
+		PC->CloseMapSelectMenu();
 		return;
 	}
 
@@ -419,13 +424,15 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 		{
 			if (Portal->IsActive() && !Portal->GetTargetMapName().IsNone())
 			{
-				SaveNow(); // carry gold/inventory/stats across the level load
 				if (PC)
 				{
-					PC->FadeToBlackAndTravel(Portal->GetTargetMapName());
+					// Open the map + tier select menu; actual travel happens when the player clicks Go.
+					PC->OpenMapSelectMenu(Portal);
 				}
 				else
 				{
+					// Fallback (no controller): immediate travel, original behaviour.
+					SaveNow();
 					UGameplayStatics::OpenLevel(this, Portal->GetTargetMapName());
 				}
 			}
@@ -450,7 +457,7 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 	// A loot pane or shop already open: E closes it.
 	if (const ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
 	{
-		if (PC->IsLootMenuOpen() || PC->IsShopOpen())
+		if (PC->IsLootMenuOpen() || PC->IsShopOpen() || PC->IsMapSelectMenuOpen())
 		{
 			return TEXT("Close");
 		}
