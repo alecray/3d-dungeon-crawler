@@ -26,6 +26,7 @@ ACasinoCat::ACasinoCat()
 	//   Idle_0: /Game/NPCs/A_Casino_Cat_Idle_0
 	//   Idle_1: /Game/NPCs/A_Casino_Cat_Idle_1
 	//   Idle_2: /Game/NPCs/A_Casino_Cat_Idle_2
+	//   Idle_3: /Game/NPCs/A_Casino_Cat_Idle_3
 	SkeletalMeshAsset = TSoftObjectPtr<USkeletalMesh>(
 		FSoftObjectPath(TEXT("/Game/NPCs/SK_Casino_Cat.SK_Casino_Cat")));
 
@@ -35,6 +36,8 @@ ACasinoCat::ACasinoCat()
 		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Idle_1.A_Casino_Cat_Idle_1")));
 	Idle2 = TSoftObjectPtr<UAnimSequence>(
 		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Idle_2.A_Casino_Cat_Idle_2")));
+	Idle3 = TSoftObjectPtr<UAnimSequence>(
+		FSoftObjectPath(TEXT("/Game/NPCs/A_Casino_Cat_Idle_3.A_Casino_Cat_Idle_3")));
 }
 
 // ---- BeginPlay ------------------------------------------------------------------
@@ -75,6 +78,7 @@ void ACasinoCat::BeginPlay()
 	LoadedIdle0 = TryLoad(Idle0, TEXT("Idle_0"));
 	LoadedIdle1 = TryLoad(Idle1, TEXT("Idle_1"));
 	LoadedIdle2 = TryLoad(Idle2, TEXT("Idle_2"));
+	LoadedIdle3 = TryLoad(Idle3, TEXT("Idle_3"));
 
 	// Kick off the rolling idle loop immediately.
 	PlayWeightedIdle();
@@ -87,11 +91,12 @@ void ACasinoCat::PlayWeightedIdle()
 	// Build a candidate list of (clip, weight) pairs — skip any that failed to load.
 	struct FCandidate { UAnimSequence* Clip; float Weight; };
 	TArray<FCandidate> Candidates;
-	Candidates.Reserve(3);
+	Candidates.Reserve(4);
 
 	if (LoadedIdle0) { Candidates.Add({ LoadedIdle0, FMath::Max(0.f, Weight0) }); }
 	if (LoadedIdle1) { Candidates.Add({ LoadedIdle1, FMath::Max(0.f, Weight1) }); }
 	if (LoadedIdle2) { Candidates.Add({ LoadedIdle2, FMath::Max(0.f, Weight2) }); }
+	if (LoadedIdle3) { Candidates.Add({ LoadedIdle3, FMath::Max(0.f, Weight3) }); }
 
 	if (Candidates.IsEmpty())
 	{
