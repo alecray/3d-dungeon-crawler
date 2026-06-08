@@ -6,10 +6,7 @@
 #include "Components/SkyLightComponent.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Components/ExponentialHeightFogComponent.h"
-#include "Components/StaticMeshComponent.h"
-#include "Engine/StaticMesh.h"
-#include "Materials/MaterialInterface.h"
-#include "Materials/MaterialInstanceDynamic.h"
+#include "Components/SceneComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
 
@@ -17,13 +14,9 @@ ADayNightCycle::ADayNightCycle()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// The star dome is the root so the whole actor centers it on the town.
-	StarDome = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StarDome"));
-	SetRootComponent(StarDome);
-	StarDome->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	StarDome->SetCastShadow(false);
-	StarDome->bCastDynamicShadow = false;
-	StarDome->SetRelativeScale3D(FVector(StarDomeScale));
+	// Plain scene component as the root — the actor has no visible geometry of its own.
+	USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SetRootComponent(Root);
 }
 
 void ADayNightCycle::BeginPlay()
@@ -79,25 +72,6 @@ void ADayNightCycle::BeginPlay()
 		}
 	}
 
-	// Set up the star dome mesh + a dynamic instance of the additive star material we can fade in at night.
-	if (StarDome)
-	{
-		if (UStaticMesh* DomeMesh = StarDomeMesh.LoadSynchronous())
-		{
-			StarDome->SetStaticMesh(DomeMesh);
-		}
-		StarDome->SetWorldScale3D(FVector(StarDomeScale));
-		if (UMaterialInterface* StarMat = StarMaterial.LoadSynchronous())
-		{
-			StarMID = UMaterialInstanceDynamic::Create(StarMat, this);
-			if (StarMID)
-			{
-				StarDome->SetMaterial(0, StarMID);
-			}
-		}
-		// Null mesh/material (e.g. M_Stars not authored yet) just means no stars — the cycle still runs.
-	}
-
 	TimeOfDay = StartTimeOfDay;
 	Apply(TimeOfDay);
 }
@@ -151,18 +125,4 @@ void ADayNightCycle::Apply(float Time01)
 		FogComp->SetFogInscatteringColor(FLinearColor::LerpUsingHSV(FogNightColor, FogDayColor, DayFactor));
 	}
 
-	// Stars: only in deep night, fully gone before dawn/dusk. A plain linear fade left the (high-frequency)
-	// stars rendering at low opacity over a brightening sky at dawn, which read as shimmer/static. SmoothStep
-	// from a threshold keeps them at 0 through the transition, and we hide the dome entirely once dark, so the
-	// noisy material isn't drawn at all outside deep night.
-	const float StarFactor = FMath::SmoothStep(StarNightThreshold, FMath::Min(1.f, StarNightThreshold + 0.45f), NightFactor);
-	const float StarBrightness = StarMaxBrightness * StarFactor;
-	if (StarMID)
-	{
-		StarMID->SetScalarParameterValue(TEXT("StarBrightness"), StarBrightness);
-	}
-	if (StarDome)
-	{
-		StarDome->SetVisibility(StarBrightness > KINDA_SMALL_NUMBER);
-	}
 }
