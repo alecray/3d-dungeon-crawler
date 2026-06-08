@@ -16,50 +16,49 @@ Untested / unchecked work is up top (**TO TEST**); verified work is at the botto
 
 ## 0. This session's changes (NEW — test these first)
 
-**Dash i-frames (new gameplay):**
-- [ ] Dashing (Shift) grants a brief **invulnerability window** (~first 0.15s of the 0.2s dash): time a dash into a boss swing and you take **no damage** (roll *through* the hit), not just out of its range. After the window you're vulnerable again on the dash's tail.
-- [ ] **God Mode** still works and isn't broken by dashing (a dash doesn't switch invulnerability back off when god mode is on).
+**Boss tiers + multi-life phasing + ground slam:**
+- [ ] Boss **HP and damage scale with the selected tier** (0-3); tier 0 = baseline.
+- [ ] **Multi-life phasing**: bringing the boss to 0 HP **heals it to full and advances a phase** instead of killing it, until its last life — then it dies. **Tier 0 has exactly 2 phases** (no phase 3).
+- [ ] **Star indicator** beside the boss health bar shows phases/lives left and counts down as you phase it (★★ → ★ → dead); hidden when there's only 1 phase.
+- [ ] **Phase 2 ground slam** — a large **telegraphed AOE** disc; you take damage only if **grounded** at impact, so **dodge by jumping** (airborne = safe). A second slam can't stack during a wind-up.
 
-**Big refactor — regression sweep (behaviour should be UNCHANGED).** The player class was split into
-components (fishing, combat) and gold/cheats moved off it; all source was reorganized into subfolders;
-enemy assets were relocated. Nothing should *feel* different — verify the systems still work:
-- [ ] **Combat** — melee swing + wall-deflect bounce, crossbow bolts (cost stamina), mage bolts (cost mana, released mid-cast), and the **Q abilities** (Whirlwind / Volley / Nova) all still fire; hit-stop + camera kick land on a connecting hit; the hit-marker still flashes.
-- [ ] **Weapon swap** still sets the style + held mesh (sword = melee, crossbow = ranged, staff = mage).
-- [ ] **Fishing** (town) — cast/idle/tension/reel poses, the status line, the "need a Fishing Rod" gate, and the rod stowing + weapon restoring on finish.
-- [ ] **Gold** — shop buy/sell, blackjack bet/payout, and "Give 1,000,000 Gold" all read/update the **same** persisted gold; it survives a relaunch.
-- [ ] **Dev cheats** (now on the player controller) — No Clip / God Mode / Kill still work from Esc → Dev Menu.
-- [ ] **Crab + boss** still render with their animations (assets moved to `Enemies/Regular` & `Enemies/Bosses`; soft refs resolve).
+**Portal map/tier select menu:**
+- [ ] Interacting with the town portal **opens a map + tier (0-3) menu** (mouse cursor appears) instead of travelling immediately; the destination name shows the real map; pick a tier, hit **Go** → fade + travel into the dungeon at that tier. **Cancel** (or **E**) closes it without travelling.
+- [ ] The tier picked actually applies to that run's boss.
 
-## 1. Prior session — blackjack / boss / combat overhaul (still untested)
+**Town day/night cycle:**
+- [ ] In town the **sun arcs** over ~2 min (tunable); sky + fog shift **sunrise → noon → sunset → night**; a **moon + stars** appear at night and the town stays **readable** (not pitch black).
+- [ ] **Dawn is clean** — no staticy/shimmering sky (stars fully fade before dawn).
+- [ ] The **dungeon** is unaffected (separate lighting).
 
-**Blackjack — art + UX overhaul:**
-- [ ] It's now a **placed actor in L_Town** (reposition in-editor); sits flat on the floor (no float) and **blocks you** correctly (bounds-fitted box collision); `[E] Play Blackjack` still appears.
-- [ ] Cards deal as real **card-face images** on the felt; the dealer's 2nd card is **face-down (back)** until the hand resolves; faces read matte (not blown out).
-- [ ] The table is the textured **SM_Blackjack_Table** mesh; the **curved edge faces the player**, flat edge away.
-- [ ] Pressing **E** pulls you to a **fixed seat** in front of the table with a consistent camera angle; the prompt hides while seated and returns after Leave.
-- [ ] Card layout: **your row nearest you**, the **dealer's row just behind it**, no overlap; the **newest dealt card is on the left** and older cards shift right.
-- [ ] Readouts: **"Dealer N" / "You N"** are **3D labels beside each row** (dealer shows the up-card value during your turn, full total on resolve); **"Hit or Stand." / result** is **bottom-center of the screen**; the **left panel** has just Gold / Bet / aligned button rows (Bet± · Deal/Hit/Stand · Leave).
+**Death system + Death Scroll:**
+- [ ] Dying sends you **back to L_Town** (not a dungeon reload) and **deducts gold** (cost scales softly with level); the inventory screen shows the current **"Death cost: N g"** line.
+- [ ] With a **Death Scroll** in your inventory (buy from the shop, ~200 g), dying instead **consumes the scroll** — revive at **half health/mana/stamina**, no gold toll, no town trip. The **Stats screen** shows **Death Scrolls Used**.
 
-**Boss:**
-- [ ] **Attack telegraph is forward** — the red disc sits where the blow lands (in front of the boss), not under it, and the hit matches the disc.
-- [ ] **Slower attacks** — a long pause between swings (cooldown 5.6s) so there's a clear punish window.
-- [ ] **Boss glows** a little (self-illuminated) so it's readable in the dark.
+**Loot:**
+- [ ] **Fishing-only catches** (Minnow / Sardine / Trout / Bass / Pike / Golden Carp / Old Boot) **no longer drop from chests or the boss** — they come only from fishing.
 
-**Combat feel / bugs:**
-- [ ] Damage numbers spawn at the **impact point on the enemy's body** (not above the head), **linger ~2.2s**, rise slowly. Backstab / weak-point = larger + orange.
-- [ ] A red **"-N" popup** pops over your **HP bar** when you take damage, then drifts off in a random direction and fades.
-- [ ] **Dash distance is consistent** — no longer flings you too far when dashing while moving + holding a key.
-- [ ] **Equipping** Max-Health gear **no longer flashes the screen red** (only real damage flashes).
+## 1. Carried over (still untested)
 
-## 2. Carried over (still untested)
-- [ ] **Boss attack anim** plays on melee swings, with the hit landing on **frame 20** (dodge by repositioning).
-- [ ] **Bonfire** in Rest rooms (green-lit): `[E] Rest` **fully heals + refills mana/stamina** (and saves). Reusable.
-- [ ] **Mage weapon** — buy/loot the Apprentice Wand / Staff, select it: LMB casts **spell bolts** that cost **mana** (Mage style).
-- [ ] **Backstab** — hitting a regular enemy **from behind** deals extra damage (orange crit number); facing it = normal.
-- [ ] **Starting class** (fresh save — delete `DungeonProfile.sav` first) — menu offers **Warrior / Ranger / Mage**; picking seeds stats + a starting weapon; a returning save shows **Continue** instead. Nothing is locked.
-- [ ] **Level-up burst** — a gold poof erupts off you when you level up.
-- [ ] **Enemy knockback** — enemies get a small hop away from your hits.
-- [ ] **Feel check** — none of the juice is nauseating / overlong (hit-stop, camera kick, dust density).
+**Dash i-frames:**
+- [ ] Dashing (Shift) grants a brief **invulnerability window** (~first 0.15s of the 0.2s dash) — time it into an attack to roll *through* the hit; God Mode unaffected by dashing.
+
+**Refactor regression sweep (behaviour should be UNCHANGED)** — player split into Fishing/Combat components, gold→GameInstance, cheats→controller, source subfoldered, enemy assets relocated:
+- [ ] Combat — melee + wall-deflect, crossbow (stamina), mage bolt (mana, mid-cast release), Q abilities (Whirlwind/Volley/Nova); hit-stop + camera kick + hit-marker.
+- [ ] Weapon swap sets style + held mesh; fishing flow (cast/idle/tension/reel + rod stow/restore); gold (shop/blackjack/give) shares one persisted value; dev cheats (No Clip/God/Kill); crab + boss still animate.
+
+**Blackjack overhaul (town):**
+- [ ] Placed in L_Town, flat + blocks you, `[E] Play Blackjack`; real card-face images, dealer hole card face-down till resolve; pull-to-seat camera; your row nearest, dealer behind, newest card on the left; left panel Gold/Bet/buttons, 3D "Dealer N / You N" labels, bottom-center status.
+
+**Other carried-over:**
+- [ ] **Boss feel** — forward attack telegraph matches the hit; boss self-glow reads in the dark; melee hit lands on the swing's frame 20.
+- [ ] **Bonfire** (Rest rooms): `[E] Rest` fully heals + refills + saves; reusable.
+- [ ] **Mage weapon** — Wand/Staff casts mana spell bolts (Mage style).
+- [ ] **Backstab** — behind a regular enemy = extra damage (orange crit).
+- [ ] **Starting class** (fresh save) — Warrior/Ranger/Mage seeds stats + weapon; returning save shows Continue.
+- [ ] **Damage numbers** at the impact point (linger ~2.2s, rise); red **"-N"** popup over the HP bar on damage.
+- [ ] **Dash distance** consistent (no over-fling); **equipping Max-Health gear** doesn't flash the screen red.
+- [ ] **Level-up burst**, **enemy knockback**, and a **feel check** (juice not nauseating / overlong).
 
 ---
 
@@ -117,7 +116,7 @@ enemy assets were relocated. Nothing should *feel* different — verify the syst
 ---
 
 ## Known / expected rough edges (not bugs)
-- The boss runs in **anim-test mode** (`bAbilitiesEnabled = false`): **no phases/specials** (projectile volley, ground slam, summon adds, bubble pools, enrage, shell-retreat) until re-enabled. No **death/spawn rig** anim yet (spawn uses the code VFX).
+- The boss now **tiers + phases for real** (the `bAbilitiesEnabled` anim-test gate was removed). At tier 0 only the **ground slam** special is enabled (phase 2); the others (projectile volley, summon adds, bubble pools, enrage, shell-retreat) are **reserved for tier 1+** (deferred). Special-attack **animation clips** aren't authored yet, so those abilities currently play no clip — the gameplay still fires.
 - The **weapon-rack** prop spawns tilted/sunk (asset pivot fix is on the art TODO).
 - **Navmesh hand-off** is untested — there are no walls in the boss arena yet to break line of sight.
 - Still graybox in places (doors / portal / traps / bubbles / room-markers / bonfire). The start menu is an **overlay** on the town map, not a separate level. The controls list is **read-only** (no rebinding). The mage staff/wand has **no held mesh yet** (graybox/hidden) — it still casts.
