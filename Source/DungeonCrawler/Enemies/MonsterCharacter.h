@@ -40,6 +40,10 @@ public:
 	/** Bosses count toward a separate kill stat. Overridden by ABossMonster. */
 	virtual bool IsBoss() const { return false; }
 
+	/** Called by UCombatComponent just before ApplyHitDamage to hint which flinch animation to play.
+	 *  Only set by directional weapons (Club); single-animation weapons (Sword) leave it random. */
+	void SetPendingFlinchSide(bool bLeft) { bPendingFlinchLeft = bLeft; bFlinchHintSet = true; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -194,6 +198,9 @@ private:
 	float AttackAnimEndTime = 0.f;
 	float FlinchAnimEndTime = 0.f; // locomotion + new attacks are held until this passes
 	float LastAttackTime = -1000.f;
+
+	bool bFlinchHintSet = false;      // set by SetPendingFlinchSide; consumed by PlayFlinchAnim
+	bool bPendingFlinchLeft = false;  // true = play L flinch, false = play R flinch
 
 	bool bHitPending = false;
 	float PendingHitTime = 0.f;

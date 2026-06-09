@@ -142,6 +142,14 @@ struct FItemDef
 
 	/** Only obtainable by fishing; excluded from the random chest/boss loot roll (RollRandomItem skips these). */
 	UPROPERTY() bool bFishingOnly = false;
+
+	// Per-weapon held mesh + swing animations (only set for weapons that need a custom mesh or anims).
+	// If WeaponMeshPath is unset, EquipActiveHotbarItem falls back to the hardcoded SwordSkeletalAsset.
+	// When WeaponSwingAnimAltPath is set alongside WeaponSwingAnimPath, each melee swing alternates
+	// between the two and signals the struck enemy to play the matching L/R flinch animation.
+	UPROPERTY() TSoftObjectPtr<USkeletalMesh>  WeaponMeshPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence>  WeaponSwingAnimPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence>  WeaponSwingAnimAltPath;
 };
 
 /** One stack in an inventory: an item id + count. Empty when Id is None / Count <= 0. */

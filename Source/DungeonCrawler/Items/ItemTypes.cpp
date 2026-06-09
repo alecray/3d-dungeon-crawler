@@ -179,6 +179,7 @@ namespace ItemDatabase
 		Items.Add(MakeItem(TEXT("Sword"),        TEXT("Sword"),         EItemType::Weapon,     EItemRarity::Common,   1, 40, EEquipKind::Sword));
 		Items.Add(MakeItem(TEXT("Crossbow"),     TEXT("Crossbow"),      EItemType::Weapon,     EItemRarity::Uncommon, 1, 80, EEquipKind::Crossbow));
 		Items.Add(MakeItem(TEXT("IronSword"),    TEXT("Iron Sword"),    EItemType::Weapon,     EItemRarity::Uncommon, 1, 60, EEquipKind::Sword));
+		Items.Add(MakeItem(TEXT("Club"),         TEXT("Club"),          EItemType::Weapon,     EItemRarity::Common,   1, 35, EEquipKind::Sword));
 		// Mage weapons — equipping one sets the Mage style (spell bolts cost mana).
 		Items.Add(MakeItem(TEXT("Wand"),         TEXT("Apprentice Wand"),EItemType::Weapon,    EItemRarity::Common,   1, 45, EEquipKind::Staff));
 		Items.Add(MakeItem(TEXT("Staff"),        TEXT("Oak Staff"),     EItemType::Weapon,     EItemRarity::Uncommon, 1, 90, EEquipKind::Staff));
@@ -260,6 +261,7 @@ namespace ItemDatabase
 		SetDesc(TEXT("Sword"),         TEXT("A basic iron sword. Reliable in melee."));
 		SetDesc(TEXT("Crossbow"),      TEXT("Fires bolts at range. Costs stamina."));
 		SetDesc(TEXT("IronSword"),     TEXT("A sturdier blade than the common sword."));
+		SetDesc(TEXT("Club"),          TEXT("A weighted wooden club. Alternates left and right swings."));
 		SetDesc(TEXT("LeatherArmor"),  TEXT("Light armor offering modest protection."));
 		SetDesc(TEXT("RubyGem"),       TEXT("A precious gem, prized by merchants."));
 		SetDesc(TEXT("RunedBlade"),    TEXT("A sword etched with faintly glowing runes."));
@@ -286,6 +288,7 @@ namespace ItemDatabase
 		SetSkelIcon(TEXT("IronSword"),  TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
 		SetSkelIcon(TEXT("RunedBlade"), TEXT("/Game/Weapons/Sword/SK_Sword.SK_Sword"));
 		SetSkelIcon(TEXT("Crossbow"),   TEXT("/Game/Weapons/Crossbow/SK_Crossbow.SK_Crossbow"));
+		SetSkelIcon(TEXT("Club"),       TEXT("/Game/Weapons/Club/SK_Club.SK_Club"));
 		SetSkelIcon(TEXT("FishingRod"), TEXT("/Game/Tools/SK_Fishing_Rod.SK_Fishing_Rod"));
 
 		// Potions share one mesh/material (SK_Potion + MI_Potion) and recolor via a texture parameter.
@@ -305,6 +308,30 @@ namespace ItemDatabase
 		SetPotionIcon(TEXT("HealthPotion"), TEXT("/Game/Consumable/T_Health_BC.T_Health_BC"));
 		SetPotionIcon(TEXT("ManaPotion"),    TEXT("/Game/Consumable/T_Mana_BC.T_Mana_BC"));
 		SetPotionIcon(TEXT("StaminaPotion"), TEXT("/Game/Consumable/T_Stamina_BC.T_Stamina_BC"));
+
+		// Per-weapon custom mesh and swing animation overrides.
+		auto SetWeaponMesh = [&Items](const TCHAR* Id, const TCHAR* MeshPath)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items) { if (D.Id == Key) { D.WeaponMeshPath = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(MeshPath)); } }
+		};
+		auto SetWeaponAnims = [&Items](const TCHAR* Id, const TCHAR* PrimPath, const TCHAR* AltPath)
+		{
+			const FName Key(Id);
+			for (FItemDef& D : Items)
+			{
+				if (D.Id == Key)
+				{
+					D.WeaponSwingAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(PrimPath));
+					D.WeaponSwingAnimAltPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(AltPath));
+				}
+			}
+		};
+		// Club: custom mesh + L/R alternating swing animations (paths pre-wired; import to these locations).
+		SetWeaponMesh(TEXT("Club"),  TEXT("/Game/Weapons/Club/SK_Club.SK_Club"));
+		SetWeaponAnims(TEXT("Club"),
+			TEXT("/Game/Weapons/Club/A_Club_Attack_L.A_Club_Attack_L"),
+			TEXT("/Game/Weapons/Club/A_Club_Attack_R.A_Club_Attack_R"));
 
 		return Items;
 	}

@@ -299,10 +299,27 @@ void AFirstPersonCharacter::EquipActiveHotbarItem()
 	switch (Kind)
 	{
 	case EEquipKind::Sword:
-		SwordMesh->SetSkeletalMesh(SwordSkeletalAsset.Get());
-		SwordMesh->SetVisibility(SwordSkeletalAsset.Get() != nullptr);
+	{
+		// Use the weapon's own mesh if it declares one; otherwise fall back to the shared sword asset.
+		USkeletalMesh* WeaponMesh = SwordSkeletalAsset.Get();
+		TSoftObjectPtr<UAnimSequence> PrimaryAnim;
+		TSoftObjectPtr<UAnimSequence> AltAnim;
+		if (ItemDatabase::Contains(ItemId))
+		{
+			const FItemDef& Def = ItemDatabase::Get(ItemId);
+			if (!Def.WeaponMeshPath.IsNull())
+			{
+				WeaponMesh = Def.WeaponMeshPath.LoadSynchronous();
+			}
+			PrimaryAnim = Def.WeaponSwingAnimPath;
+			AltAnim     = Def.WeaponSwingAnimAltPath;
+		}
+		SwordMesh->SetSkeletalMesh(WeaponMesh);
+		SwordMesh->SetVisibility(WeaponMesh != nullptr);
 		Style = ECombatStyle::Melee;
+		if (Combat) { Combat->SetMeleeAnims(PrimaryAnim, AltAnim); }
 		break;
+	}
 	case EEquipKind::Crossbow:
 		SwordMesh->SetSkeletalMesh(CrossbowSkeletalAsset.Get());
 		SwordMesh->SetVisibility(CrossbowSkeletalAsset.Get() != nullptr);

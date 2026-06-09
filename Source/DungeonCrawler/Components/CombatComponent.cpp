@@ -35,9 +35,25 @@ void UCombatComponent::BeginPlay()
 
 	// Force-load the attack anims up front so the .Get() at each use site is valid (unauthored clips no-op).
 	SwingAnim.LoadSynchronous();
+	SwingAnimAlt.LoadSynchronous();
 	DeflectAnim.LoadSynchronous();
 	CrossbowShootAnim.LoadSynchronous();
 	StaffCastAnim.LoadSynchronous();
+}
+
+void UCombatComponent::SetMeleeAnims(const TSoftObjectPtr<UAnimSequence>& Primary, const TSoftObjectPtr<UAnimSequence>& Alt)
+{
+	if (!Primary.IsNull())
+	{
+		SwingAnim = Primary;
+		SwingAnim.LoadSynchronous();
+	}
+	SwingAnimAlt = Alt;
+	if (!SwingAnimAlt.IsNull())
+	{
+		SwingAnimAlt.LoadSynchronous();
+	}
+	bNextSwingLeft = true;
 }
 
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -178,7 +194,19 @@ void UCombatComponent::MeleeAttack()
 	}
 
 	USkeletalMeshComponent* HeldMesh = OwnerChar->GetHeldWeaponMesh();
-	UAnimSequence* Swing = SwingAnim.Get();
+
+	// L/R alternating weapons (e.g. Club): swap primary/alt each swing and record which side fired.
+	UAnimSequence* Swing = nullptr;
+	if (SwingAnimAlt.Get())
+	{
+		bLastSwingWasLeft = bNextSwingLeft;
+		Swing = bNextSwingLeft ? SwingAnim.Get() : SwingAnimAlt.Get();
+		bNextSwingLeft = !bNextSwingLeft;
+	}
+	else
+	{
+		Swing = SwingAnim.Get();
+	}
 	if (HeldMesh && Swing)
 	{
 		HeldMesh->PlayAnimation(Swing, /*bLooping*/ false);
@@ -227,6 +255,8 @@ void UCombatComponent::DoMeleeHit()
 		AlreadyHit.Add(HitActor);
 		if (AMonsterCharacter* Monster = Cast<AMonsterCharacter>(HitActor))
 		{
+			// For L/R alternating weapons, hint the enemy which flinch animation to play.
+			if (SwingAnimAlt.Get()) { Monster->SetPendingFlinchSide(bLastSwingWasLeft); }
 			TotalDealt += Monster->ApplyHitDamage(DamagePerHit, OwnerChar->GetActorLocation());
 		}
 	}

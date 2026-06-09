@@ -33,7 +33,7 @@ FClassLoadout GetClassLoadout(ECharacterClass Class)
 		L.Attributes.Intelligence = 3;
 		L.Attributes.Dexterity = 4;
 		L.Attributes.Vitality = 8;
-		L.WeaponId = FName(TEXT("Sword"));
+		L.WeaponId = FName(TEXT("Club"));
 		L.Name = TEXT("Warrior");
 		break;
 	}

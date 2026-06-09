@@ -477,16 +477,22 @@ void AMonsterCharacter::PlayAttackAnim()
 
 void AMonsterCharacter::PlayFlinchAnim()
 {
+	// Consume any directional hint set by UCombatComponent (directional weapons like the Club signal
+	// which side they struck so the matching L or R flinch plays; single-animation weapons stay random).
+	const bool bHasHint  = bFlinchHintSet;
+	const bool bHintLeft = bPendingFlinchLeft;
+	bFlinchHintSet = false;
+
 	if (!bUsingSkeletalBody || !GetMesh() || bDead)
 	{
 		return;
 	}
 
-	// Pick randomly between primary and alt flinch when both are loaded; fall back to whichever exists.
 	UAnimSequence* Chosen = nullptr;
 	if (FlinchAnim && FlinchAnimAlt)
 	{
-		Chosen = FMath::RandBool() ? FlinchAnim : FlinchAnimAlt;
+		const bool bPlayLeft = bHasHint ? bHintLeft : FMath::RandBool();
+		Chosen = bPlayLeft ? FlinchAnim : FlinchAnimAlt;
 	}
 	else
 	{

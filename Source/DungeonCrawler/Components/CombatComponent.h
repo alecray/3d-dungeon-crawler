@@ -44,6 +44,10 @@ public:
 	void SetStyle(ECombatStyle NewStyle) { CurrentStyle = NewStyle; }
 	ECombatStyle GetStyle() const { return CurrentStyle; }
 
+	/** Overrides the active melee swing animations when the held weapon changes. Pass an empty Alt
+	 *  for single-animation weapons (Sword); pass both for L/R alternating weapons (Club). */
+	void SetMeleeAnims(const TSoftObjectPtr<UAnimSequence>& Primary, const TSoftObjectPtr<UAnimSequence>& Alt);
+
 	/** World time the player last landed a damaging hit (the HUD polls this to flash the hit marker). */
 	double GetLastHitLandedTime() const { return LastHitLandedTime; }
 
@@ -80,6 +84,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TSoftObjectPtr<UAnimSequence> StaffCastAnim = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Weapons/Staff/A_Staff_Cast.A_Staff_Cast")));
 
+	/** Alt swing animation (right-side swing for Club; when set alongside SwingAnim, attacks alternate
+	 *  L/R and the matched flinch direction is signalled to the struck enemy). */
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TSoftObjectPtr<UAnimSequence> SwingAnimAlt;
+
 private:
 	/** Owning player, cached in BeginPlay (used to reach camera, held mesh, stats/resources, skill tree). */
 	UPROPERTY()
@@ -106,6 +115,9 @@ private:
 
 	float LastAttackTime = -1000.f;
 	double LastHitLandedTime = -1.0;
+
+	bool bNextSwingLeft = true;    // toggles each melee attack for L/R alternation
+	bool bLastSwingWasLeft = true; // side used by the in-flight swing; read by DoMeleeHit for flinch hint
 
 	// Hit-stop bookkeeping (counted in real time so the dilation actually un-freezes).
 	bool bHitStopActive = false;
