@@ -22,152 +22,21 @@ log, **K** for the skill tree, **1–8** to select the hotbar slot (swaps the he
 your unlocked active ability, **E** to interact with chests / pickups / NPCs / portals, **Esc** for the
 pause menu (Resume / Settings / **Dev Menu** / Quit). The full list is also in the pause → Settings panel.
 
-## Importing meshes (`Tools/import_meshes.py`)
+## Tools (`tools/`)
 
-Reusable FBX **import pipelines** so you never have to re-toggle import settings between static and
-skeletal meshes again. It defines one locked-in preset for each type (static / skeletal), plus
-single-file and batch helpers. Defaults suit this project: Blender FBX exports (normals imported, not
-recomputed), Nanite **off** on static meshes, materials + textures imported, auto-collision on statics,
-morph targets on skeletals, optional skeleton reuse. All the shared knobs live in one `CONFIG` block at
-the top of the script — set your preferences once and both pipelines follow.
+Headless Python scripts for import pipelines, asset authoring, and level setup. See
+**[`tools/README.md`](tools/README.md)** for full usage of every script:
 
-**In-editor** (Output Log → Cmd bar set to *Python*):
-
-```python
-import importlib, import_meshes; importlib.reload(import_meshes)
-import_meshes.import_static(r"<PROJECT>\blends\world\SM_Tree.fbx", "/Game/World")
-import_meshes.import_skeletal(r"...\SK_Staff.fbx", "/Game/Weapons/Staff",
-                              skeleton="/Game/Weapons/Staff/SKEL_Staff")  # reuse a skeleton (optional)
-import_meshes.import_folder(r"...\blends\world", "/Game/World", kind="static")  # batch a folder
-```
-
-(For `import import_meshes` to resolve, add `Tools/` under **Project Settings → Plugins → Python →
-Additional Paths**, or run the full path once: `py "<PROJECT>/Tools/import_meshes.py"`.)
-
-**Headless** (editor closed) — **use forward slashes**, backslashes mangle the path (`\3` gets eaten):
-
-```
-"<UE>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<PROJECT>/DungeonCrawler.uproject" ^
-    -run=pythonscript -script="<PROJECT>/Tools/import_meshes.py static <PROJECT>/blends/.../SM_Foo.fbx /Game/World" ^
-    -unattended -nopause -nosplash
-```
-
-`-script` args: `static <fbx> <dest>` · `skeletal <fbx> <dest> [skeletonAssetPath]` ·
-`anim <fbx> <dest> <skeletonAssetPath> [name]` · `folder <srcDir> <dest> <static|skeletal>`. (Headless
-argv splits on spaces, so the **paths themselves must not contain spaces** — and this project's path has
-one (`Game Projects`); for spaced paths call the functions from a small runner `.py` instead.)
-
-**Headless animation-only import** (`import_anim` / the `anim` verb) — bring one FBX's animation onto an
-existing skeleton (no mesh re-import), forcing a name (e.g. a single death-anim take). Two gotchas make
-this finicky, so read both before relying on it:
-
-- **Disable Interchange for the run.** UE 5.7 routes FBX import through Interchange, whose import path
-  **asserts in a headless commandlet** (`CurrentApplication.IsValid()` — it wants Slate UI). Force the
-  legacy importer with a process-scoped cvar so the editor's drag-drop Interchange presets are untouched:
-  add `"-ini:Engine:[ConsoleVariables]:Interchange.FeatureFlags.Import.FBX=0"` to the `UnrealEditor-Cmd`
-  args (and/or `unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Import.FBX 0")`
-  at the top of the script).
-- **The rig must have a SINGLE root bone.** The legacy importer rejects multi-root hierarchies
-  (`Multiple roots are found in the bone hierarchy`). Interchange tolerates them — which is why a rig that
-  imports fine via editor drag-drop can still fail headless. If a headless anim import fails on this, either
-  re-export from Blender with one armature/root (disable "Add Leaf Bones", no stray root objects) or just
-  import that one in the editor.
-
-Example runner (handles the spaced path):
-
-```python
-import sys, unreal
-unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Import.FBX 0")  # legacy FBX
-sys.path.insert(0, r"<PROJECT>/Tools"); import import_meshes
-import_meshes.import_anim(r"<PROJECT>/blends/enemies/foo.fbx", "/Game/Enemies",
-                          "/Game/Enemies/SKEL_Foo.SKEL_Foo", name="A_Foo_Death")
-```
-
-**Adding another import pipeline** (e.g. animation-only, or a variant with different settings):
-
-1. Add a builder that returns a configured `unreal.FbxImportUI`, mirroring `build_static_options()` /
-   `build_skeletal_options()`. Set the type (`mesh_type_to_import` + `import_as_skeletal`/`import_mesh`/
-   `import_animations`) and tune the per-type data object (`static_mesh_import_data` /
-   `skeletal_mesh_import_data` / `anim_sequence_import_data`). Use the `_set()` helper — it logs-and-skips
-   any property name that differs in this engine build instead of crashing.
-2. Add a thin wrapper like `import_static()` that calls `_run(fbx, dest, your_options())`.
-3. Put any knob you want shared across pipelines in the `CONFIG` dict at the top.
-4. (Optional) add a verb to `_main()` so it's callable headlessly.
-
-> Note: this uses the legacy `FbxImportUI` path (stable + scriptable in UE 5.7). If a setting is ever
-> ignored, the script logs which property it skipped — switch that pipeline to the Interchange API if needed.
-
-### Drag-drop presets in the Import dialog (Interchange Pipeline Stacks)
-
-For when you import by **dragging an FBX into the Content Browser**, the project also registers two custom
-**Interchange pipeline presets** so the import dialog's **"Pipeline Stack Preset"** dropdown offers
-**"Static Meshes"** and **"Skeletal Meshes"** — each a pipeline asset locked to its type
-(`ForceAllMeshAsType`), with its **own remembered settings**. Pick the matching preset and you stop
-re-tweaking the dialog between types. (This is the drag-drop equivalent of `import_meshes.py`; both work.)
-
-- Preset assets: `/Game/Pipelines/PL_StaticMesh`, `/Game/Pipelines/PL_SkeletalMesh`, built by
-  **`Tools/make_interchange_presets.py`** (run headless with the editor closed, same invocation pattern as
-  above). Re-run it if the assets are missing.
-- Registration: `Config/DefaultEngine.ini` → `[/Script/InterchangeEngine.InterchangeProjectSettings]`
-  `ContentImportSettings.PipelineStacks` (our two stacks prepended to the engine defaults). Editing this
-  needs an **editor restart** to take effect. `DefaultPipelineStack` is left as `"Assets"`, so default
-  behavior is unchanged — the new presets are just selectable.
-- To add another preset (e.g. "Animations"): add a stack in that ini line pointing at a new
-  `/Game/Pipelines/PL_*` asset, and create that asset in `make_interchange_presets.py`.
-
-## Building the town (`Tools/build_town.py`)
-
-The town hub level (`/Game/Maps/Town/L_Town`) is **authored by a headless Python script**, not spawned
-at runtime — `ATownGameMode` only ensures fallback lighting. Running the script (re)builds the whole
-clearing as placed, editable actors in `L_Town`: open-sky backdrop (SkyAtmosphere + atmosphere sun +
-real-time-capture SkyLight + height fog), the **invisible boundary ring** that keeps the player in, the
-enclosing forest (tree line + deeper trees), a distant vista ring, the hub stations (Shop / Blackjack /
-Fishing / enter-dungeon Portal / Bonfire), and scatter scenery.
-
-Run it with the editor **closed**:
-
-```
-"<UE>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" "<PROJECT>/DungeonCrawler.uproject" ^
-    -run=pythonscript -script="<PROJECT>/Tools/build_town.py" -unattended -nopause -nosplash
-```
-
-Key things to know:
-
-- **One knob sizes everything:** `CLEARING_HALF` (cm, default `1100` ≈ 22 m square) drives the boundary,
-  tree ring, station spacing, and scatter. Lower it to shrink the clearing, then re-run.
-- **Everything is anchored to the `PlayerStart`** and filed under the World Outliner folder **`TownHub`**.
-- **It's destructive-but-scoped:** on each run it deletes only actors already in the `TownHub` folder and
-  respawns them — so it won't touch hand-placed actors you keep outside that folder, but **manual edits to
-  `TownHub` actors are lost on re-run.** Save `L_Town` after a run; only re-run when you want to regenerate.
-- **The boundary** is four invisible `BlockAll` boxes (collision on, visibility off), labeled
-  **`Boundary1`–`Boundary4`**, hidden behind the tree line (the trees themselves have no collision). Toggle
-  the viewport collision view (Alt+C) to see them. See the "town clearing" note for resizing.
-
-(Other `Tools/*.py` headless scripts follow the same invocation pattern — e.g. `disable_nanite.py`,
-`place_blackjack.py`, `make_card_material.py`, `add_emissive_to_mbase.py`.)
-
-## Rebuilding the pond water (`Tools/make_water_material.py`)
-
-The fishing pond's water material **`/Game/World/M_PondWater`** is authored entirely in code — rerun the
-script to rebuild it after editing the recipe:
-
-```
-<UE>/Engine/Binaries/Win64/UnrealEditor-Cmd.exe <PROJECT>/DungeonCrawler.uproject ^
-    -run=pythonscript -script="<PROJECT>/Tools/make_water_material.py" -unattended -nopause -nosplash
-```
-
-- **Run with the editor CLOSED** (it deletes + recreates the asset). Use forward slashes in the `-script`
-  path and run it from PowerShell. `AFishingHole` soft-loads `M_PondWater` at runtime (not in the CDO), so
-  the script can freely rebuild it; the actor tints it per-instance via an MID (its **Water Color** knob
-  drives `ShallowColor`).
-- It's a **clarity-first** stylized pond: depth-based shallow→deep color, low opacity + **refraction (IOR
-  ~1.18)** so you see the bottom, a gentle **smooth gradient-noise** normal, a clamped Fresnel sky-rim, and
-  a thin foam line. Everything is a material parameter — tune `RefractionIOR`, `ShallowOpacity`/
-  `DeepOpacity`, `EdgeColor`, `RippleStrength`/`RippleScale`, `Roughness` live on the material.
-- **Gotcha (don't regress):** never drive the normal with `MaterialExpressionVectorNoise` — it's per-pixel
-  cellular noise with no mip-filtering and aliases into TV static. Use smooth `MaterialExpressionNoise`
-  (Gradient) or a panned tiling normal map. And keep emissive "sparkle" off — the locked-bright exposure
-  clips it to white. The script also sets `SM_Fishing_Hole` to complex-as-simple collision.
+| Script | What it does |
+|---|---|
+| `import_meshes.py` | FBX import pipelines (static, skeletal, anim, batch folder) |
+| `make_interchange_presets.py` | Builds the Content Browser drag-drop pipeline preset assets |
+| `build_town.py` | Authors `L_Town` as placed actors (sky, forest, hub stations, scatter) |
+| `make_water_material.py` | Builds `M_PondWater` (clarity-first stylized pond material) |
+| `make_card_material.py` | Builds `M_Card` (unlit masked material for blackjack card faces) |
+| `place_blackjack.py` | Places `ABlackjackTable` into `L_Town` and saves the level |
+| `add_emissive_to_mbase.py` | Adds `EmissiveStrength` param to `M_Base` (default 0, safe to re-run) |
+| `disable_nanite.py` | Turns Nanite off on all static meshes (not needed for this low-poly project) |
 
 ## Core Feature Plan
 
@@ -330,7 +199,7 @@ Flow / UX:
   card on the left. Pressing **E** pulls the player to a fixed seat for a consistent view. The rules engine
   lives in the table; the UI is a left-side control panel (Gold/Bet/buttons), a bottom-center status line,
   and 3D **"Dealer N / You N"** labels beside each row. Card faces decode from PNGs at runtime onto a
-  masked `M_Card` material — see `Tools/` for the headless material/placement scripts.
+  masked `M_Card` material — see `tools/README.md` for the headless material/placement scripts.
 - `AFishingHole` — a town minigame (prototype): cast with `[E]`, reel when the bobber shakes to land a
   random fish (weighted catch table → inventory). Graybox water/bobber/fish with mesh swap-in points.
 - `CharacterClass.h` — the starting-archetype loadouts (Warrior/Ranger/Mage: a stat spread + a weapon).
