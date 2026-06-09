@@ -372,7 +372,13 @@ void UCombatComponent::UseAbility(const FInputActionValue& /*Value*/)
 	case EActiveAbility::Whirlwind:
 		if (Stamina && Stamina->Spend(25.f))
 		{
-			if (HeldMesh && SwingAnim.Get()) { HeldMesh->PlayAnimation(SwingAnim.Get(), false); }
+			// Use the same L/R alternation as a normal swing so the anim matches the equipped weapon.
+			if (HeldMesh)
+			{
+				UAnimSequence* WhirlAnim = (SwingAnimAlt.Get() && !bNextSwingLeft)
+					? SwingAnimAlt.Get() : SwingAnim.Get();
+				if (WhirlAnim) { HeldMesh->PlayAnimation(WhirlAnim, false); }
+			}
 			PerformAreaBurst(350.f, AttackDamage * 1.5f * (Stats ? Stats->GetMeleeDamageMult() : 1.f));
 			AbilityReadyTime.Add(Ability, Now + 6.f);
 		}

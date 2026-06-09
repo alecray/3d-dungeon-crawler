@@ -22,6 +22,7 @@
 #include "ItemPickup.h"
 #include "Portal.h"
 #include "ShopNPC.h"
+#include "MonsterSpawnPedestal.h"
 #include "Projectile.h"
 #include "DeathPoof.h"
 #include "ImpactBurst.h"
@@ -394,6 +395,11 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 		PC->CloseShop();
 		return;
 	}
+	if (PC && PC->IsSpawnMenuOpen())
+	{
+		PC->CloseSpawnMenu();
+		return;
+	}
 	if (PC && PC->IsMapSelectMenuOpen())
 	{
 		PC->CloseMapSelectMenu();
@@ -425,6 +431,13 @@ void AFirstPersonCharacter::Interact(const FInputActionValue& /*Value*/)
 			if (PC)
 			{
 				PC->OpenShop(NPC);
+			}
+		}
+		else if (AMonsterSpawnPedestal* Pedestal = Cast<AMonsterSpawnPedestal>(Hit.GetActor()))
+		{
+			if (PC)
+			{
+				PC->OpenSpawnMenu(Pedestal);
 			}
 		}
 		else if (ABonfire* Fire = Cast<ABonfire>(Hit.GetActor()))
@@ -476,7 +489,7 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 	// A loot pane or shop already open: E closes it.
 	if (const ADungeonPlayerController* PC = Cast<ADungeonPlayerController>(GetController()))
 	{
-		if (PC->IsLootMenuOpen() || PC->IsShopOpen() || PC->IsMapSelectMenuOpen())
+		if (PC->IsLootMenuOpen() || PC->IsShopOpen() || PC->IsSpawnMenuOpen() || PC->IsMapSelectMenuOpen())
 		{
 			return TEXT("Close");
 		}
@@ -503,6 +516,10 @@ FString AFirstPersonCharacter::GetInteractionPrompt() const
 		if (Cast<AShopNPC>(Hit.GetActor()))
 		{
 			return TEXT("Shop");
+		}
+		if (Cast<AMonsterSpawnPedestal>(Hit.GetActor()))
+		{
+			return TEXT("Spawn Monster");
 		}
 		if (Cast<ABonfire>(Hit.GetActor()))
 		{

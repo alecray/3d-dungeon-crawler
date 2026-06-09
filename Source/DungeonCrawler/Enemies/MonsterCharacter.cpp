@@ -259,6 +259,76 @@ void AMonsterCharacter::MakeElite()
 	}
 }
 
+void AMonsterCharacter::SetPassive(bool bInPassive)
+{
+	if (bPassive == bInPassive)
+	{
+		return;
+	}
+	bPassive = bInPassive;
+
+	if (bPassive)
+	{
+		if (!bHasRoamHome) { RoamHome = GetActorLocation(); bHasRoamHome = true; }
+		bRoamHasTarget = false;
+		RoamPauseLeft = FMath::FRandRange(0.6f, 1.8f);          // settle for a beat before the first wander
+		GetCharacterMovement()->MaxWalkSpeed = FMath::Max(80.f, MoveSpeed * 0.4f); // amble, don't sprint
+	}
+	else
+	{
+		// Snap back to full aggressive behaviour: restore chase speed and drop any wander order.
+		GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+		bRoamHasTarget = false;
+		if (AAIController* AI = Cast<AAIController>(GetController())) { AI->StopMovement(); }
+	}
+}
+
+void AMonsterCharacter::TickPassiveRoam(float DeltaSeconds, bool bAnimBusy)
+{
+	// Let a one-shot (e.g. the flinch on the hit that wakes us) finish before resuming the wander.
+	if (bAnimBusy)
+	{
+		return;
+	}
+
+	// Pausing between wanders: stand idle, then pick the next destination when the timer elapses.
+	if (RoamPauseLeft > 0.f)
+	{
+		RoamPauseLeft -= DeltaSeconds;
+		SetLocomotion(false);
+		if (RoamPauseLeft > 0.f)
+		{
+			return;
+		}
+		const float Ang = FMath::FRandRange(0.f, 2.f * PI);
+		const float Rad = RoamRadius * FMath::Sqrt(FMath::FRand()); // sqrt -> uniform over the disc
+		RoamTarget = RoamHome + FVector(FMath::Cos(Ang) * Rad, FMath::Sin(Ang) * Rad, 0.f);
+		bRoamHasTarget = true;
+	}
+
+	if (!bRoamHasTarget)
+	{
+		SetLocomotion(false);
+		return;
+	}
+
+	FVector ToTarget = RoamTarget - GetActorLocation();
+	ToTarget.Z = 0.f;
+	const float D = ToTarget.Size();
+	if (D <= 60.f) // arrived: idle a moment, then wander somewhere new
+	{
+		bRoamHasTarget = false;
+		RoamPauseLeft = FMath::FRandRange(1.2f, 3.5f);
+		SetLocomotion(false);
+		return;
+	}
+
+	// Steer straight toward the point (bOrientRotationToMovement turns us to face it). Small area, so no
+	// navmesh pathing needed — keeps it reliable on any level the pedestal is dropped into.
+	AddMovementInput(ToTarget / D, 1.f);
+	SetLocomotion(true);
+}
+
 void AMonsterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -286,6 +356,13 @@ void AMonsterCharacter::Tick(float DeltaSeconds)
 	const float Now = GetWorld()->GetTimeSeconds();
 	// Hold locomotion while a one-shot anim (attack OR flinch) is playing so it isn't overwritten.
 	const bool bAttacking = (Now < AttackAnimEndTime) || (Now < FlinchAnimEndTime);
+
+	// Passive test dummy: wander idly and ignore the player entirely until first damaged.
+	if (bPassive)
+	{
+		TickPassiveRoam(DeltaSeconds, bAttacking);
+		return;
+	}
 
 	APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!Player)
@@ -546,6 +623,12 @@ float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLoc
 
 void AMonsterCharacter::HandleDamaged(UHealthComponent* /*DamagedComponent*/, float Amount)
 {
+	// A passive test dummy wakes up and turns hostile the instant the player lands a hit.
+	if (bPassive && Amount > 0.f)
+	{
+		SetPassive(false);
+	}
+
 	HitReactTimeLeft = HitReactDuration; // kick off the pop (graybox bodies)
 	PlayFlinchAnim();                    // skeletal hit reaction (no-op without a FlinchAnim / mid-swing)
 

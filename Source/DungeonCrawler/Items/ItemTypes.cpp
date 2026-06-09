@@ -323,10 +323,22 @@ namespace ItemDatabase
 				if (D.Id == Key)
 				{
 					D.WeaponSwingAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(PrimPath));
-					D.WeaponSwingAnimAltPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(AltPath));
+					// Empty string → leave null (no alt anim → single-animation weapon, random flinch).
+					D.WeaponSwingAnimAltPath = (AltPath && AltPath[0] != TEXT('\0'))
+						? TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(AltPath))
+						: TSoftObjectPtr<UAnimSequence>();
 				}
 			}
 		};
+		// Sword-family: explicit single-anim entries so swapping back from Club correctly restores the
+		// sword swing (SetMeleeAnims skips assignment when Primary is null, so without these the Club's
+		// cached animation would persist on the CombatComponent after re-equipping a plain sword).
+		SetWeaponAnims(TEXT("Sword"),
+			TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack"), TEXT(""));
+		SetWeaponAnims(TEXT("IronSword"),
+			TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack"), TEXT(""));
+		SetWeaponAnims(TEXT("RunedBlade"),
+			TEXT("/Game/Weapons/Sword/A_Sword_Attack.A_Sword_Attack"), TEXT(""));
 		// Club: custom mesh + L/R alternating swing animations (paths pre-wired; import to these locations).
 		SetWeaponMesh(TEXT("Club"),  TEXT("/Game/Weapons/Club/SK_Club.SK_Club"));
 		SetWeaponAnims(TEXT("Club"),

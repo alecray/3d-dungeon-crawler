@@ -1,8 +1,10 @@
 #include "TownGameMode.h"
 #include "DayNightCycle.h"
+#include "MonsterSpawnPedestal.h"
 
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "GameFramework/PlayerStart.h"
 
 void ATownGameMode::BuildWorld()
 {
@@ -13,6 +15,7 @@ void ATownGameMode::BuildWorld()
 	EnsureLighting();
 	EnsurePostProcess();
 	EnsureDayNight();
+	EnsureSpawnPedestal();
 }
 
 void ATownGameMode::EnsureDayNight()
@@ -31,4 +34,32 @@ void ATownGameMode::EnsureDayNight()
 	FActorSpawnParameters Params;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	World->SpawnActor<ADayNightCycle>(ADayNightCycle::StaticClass(), FTransform::Identity, Params);
+}
+
+void ATownGameMode::EnsureSpawnPedestal()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	for (TActorIterator<AMonsterSpawnPedestal> It(World); It; ++It)
+	{
+		return; // a pedestal was placed in the level — leave it.
+	}
+
+	// Drop one a few metres in front of the PlayerStart so it's right there when you load the town.
+	FVector Loc(0.f, 0.f, 100.f);
+	FRotator Rot = FRotator::ZeroRotator;
+	for (TActorIterator<APlayerStart> It(World); It; ++It)
+	{
+		const FTransform T = It->GetActorTransform();
+		Loc = T.GetLocation() + T.GetRotation().GetForwardVector() * 400.f + T.GetRotation().GetRightVector() * 300.f;
+		Rot = FRotator(0.f, T.Rotator().Yaw + 180.f, 0.f); // face back toward the player's spawn
+		break;
+	}
+
+	FActorSpawnParameters Params;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	World->SpawnActor<AMonsterSpawnPedestal>(AMonsterSpawnPedestal::StaticClass(), FTransform(Rot, Loc), Params);
 }

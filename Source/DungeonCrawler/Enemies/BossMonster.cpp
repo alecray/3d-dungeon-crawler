@@ -160,6 +160,14 @@ void ABossMonster::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// Passive test dummy (spawned from the town pedestal): let the base class run the idle wander, but
+	// skip every boss special until the player engages it.
+	if (IsPassive())
+	{
+		Super::Tick(DeltaSeconds);
+		return;
+	}
+
 	Super::Tick(DeltaSeconds); // chase / melee / hit-react from the base monster
 
 	if (!Health || Health->IsDead())

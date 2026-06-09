@@ -44,6 +44,17 @@ public:
 	 *  Only set by directional weapons (Club); single-animation weapons (Sword) leave it random. */
 	void SetPendingFlinchSide(bool bLeft) { bPendingFlinchLeft = bLeft; bFlinchHintSet = true; }
 
+	/**
+	 * Test-dummy mode (used by the town spawn pedestal): the monster ignores the player and wanders idly
+	 * around its spawn point, flipping to normal aggressive behaviour the moment it first takes damage.
+	 */
+	void SetPassive(bool bInPassive);
+	bool IsPassive() const { return bPassive; }
+
+	/** Center + radius the passive wander stays within. Call before SetPassive(true); defaults to the
+	 *  spawn location with a modest radius if never set. */
+	void SetRoamHome(const FVector& Center, float Radius) { RoamHome = Center; RoamRadius = FMath::Max(0.f, Radius); bHasRoamHome = true; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -185,8 +196,9 @@ private:
 	UPROPERTY() TObjectPtr<class UAnimSequence> IdleAnim;
 	UPROPERTY() TObjectPtr<class UAnimSequence> AttackAnim;
 	UPROPERTY() TObjectPtr<class UAnimSequence> DeathAnim;   // one-shot, played on death (else the code pop)
-	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnim;    // one-shot hit reaction, played on taking damage
-	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnimAlt; // optional second flinch; randomly alternated
+	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnim;    // one-shot hit reaction — LEFT flinch (A_*_Flinch_L)
+	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnimAlt; // RIGHT flinch (A_*_Flinch_R); random when no hint set,
+	                                                            // directional when UCombatComponent calls SetPendingFlinchSide
 
 	enum class ESkelAnim : uint8 { None, Idle, Run, Attack, Flinch };
 	ESkelAnim AnimState = ESkelAnim::None;
@@ -201,6 +213,17 @@ private:
 
 	bool bFlinchHintSet = false;      // set by SetPendingFlinchSide; consumed by PlayFlinchAnim
 	bool bPendingFlinchLeft = false;  // true = play L flinch, false = play R flinch
+
+	// ---- Passive test-dummy roaming (SetPassive) ----
+	/** Wanders idly within RoamRadius of RoamHome; ignores the player until first damaged. */
+	void TickPassiveRoam(float DeltaSeconds, bool bAnimBusy);
+	bool bPassive = false;
+	bool bHasRoamHome = false;
+	FVector RoamHome = FVector::ZeroVector;
+	float RoamRadius = 400.f;
+	FVector RoamTarget = FVector::ZeroVector;
+	bool bRoamHasTarget = false;
+	float RoamPauseLeft = 0.f;
 
 	bool bHitPending = false;
 	float PendingHitTime = 0.f;

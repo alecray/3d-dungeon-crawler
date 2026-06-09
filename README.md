@@ -36,6 +36,7 @@ Headless Python scripts for import pipelines, asset authoring, and level setup. 
 | `make_card_material.py` | Builds `M_Card` (unlit masked material for blackjack card faces) |
 | `place_blackjack.py` | Places `ABlackjackTable` into `L_Town` and saves the level |
 | `add_emissive_to_mbase.py` | Adds `EmissiveStrength` param to `M_Base` (default 0, safe to re-run) |
+| `make_wisp_material.py` | Builds `M_Wisp` + `MI_Wisp` (unlit emissive with `EmissiveStrength` param); assigns to `SK_Wisp` |
 | `disable_nanite.py` | Turns Nanite off on all static meshes (not needed for this low-poly project) |
 
 ## Core Feature Plan

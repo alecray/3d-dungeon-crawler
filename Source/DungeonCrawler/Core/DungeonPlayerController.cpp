@@ -6,6 +6,8 @@
 #include "SkillTreeWidget.h"
 #include "ShopWidget.h"
 #include "ShopNPC.h"
+#include "MonsterSpawnWidget.h"
+#include "MonsterSpawnPedestal.h"
 #include "PauseMenuWidget.h"
 #include "MapSelectWidget.h"
 #include "ConfirmTravelWidget.h"
@@ -423,6 +425,41 @@ bool ADungeonPlayerController::IsShopOpen() const
 	return ShopWidget && ShopWidget->IsInViewport();
 }
 
+void ADungeonPlayerController::OpenSpawnMenu(AMonsterSpawnPedestal* Pedestal)
+{
+	if (!Pedestal)
+	{
+		return;
+	}
+	if (UMonsterSpawnWidget* Existing = Cast<UMonsterSpawnWidget>(SpawnMenuWidget))
+	{
+		Existing->SetPedestal(Pedestal);
+		Existing->Refresh();
+	}
+	else if (UMonsterSpawnWidget* NewMenu = CreateWidget<UMonsterSpawnWidget>(this, UMonsterSpawnWidget::StaticClass()))
+	{
+		NewMenu->SetPedestal(Pedestal);
+		SpawnMenuWidget = NewMenu;
+		NewMenu->AddToViewport(10);
+	}
+	UpdateInputMode();
+}
+
+void ADungeonPlayerController::CloseSpawnMenu()
+{
+	if (SpawnMenuWidget && SpawnMenuWidget->IsInViewport())
+	{
+		SpawnMenuWidget->RemoveFromParent();
+	}
+	SpawnMenuWidget = nullptr;
+	UpdateInputMode();
+}
+
+bool ADungeonPlayerController::IsSpawnMenuOpen() const
+{
+	return SpawnMenuWidget && SpawnMenuWidget->IsInViewport();
+}
+
 void ADungeonPlayerController::OpenMapSelectMenu(APortal* Portal)
 {
 	if (!Portal || !Portal->IsActive())
@@ -577,6 +614,7 @@ void ADungeonPlayerController::UpdateInputMode()
 		(ChestPane && ChestPane->IsInViewport()) ||
 		(SkillWidget && SkillWidget->IsInViewport()) ||
 		(ShopWidget && ShopWidget->IsInViewport()) ||
+		(SpawnMenuWidget && SpawnMenuWidget->IsInViewport()) ||
 		(MapSelectWidget && MapSelectWidget->IsInViewport()) ||
 		(ConfirmReturnWidget && ConfirmReturnWidget->IsInViewport());
 

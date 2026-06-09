@@ -12,6 +12,7 @@ class UInventoryComponent;
 class ALootChest;
 class AShopNPC;
 class APortal;
+class AMonsterSpawnPedestal;
 enum class ECharacterClass : uint8; // defined in CharacterClass.h
 
 /**
@@ -44,6 +45,11 @@ public:
 	void OpenShop(AShopNPC* NPC);
 	void CloseShop();
 	bool IsShopOpen() const;
+
+	/** Open/close the monster spawn menu for a town test pedestal. */
+	void OpenSpawnMenu(AMonsterSpawnPedestal* Pedestal);
+	void CloseSpawnMenu();
+	bool IsSpawnMenuOpen() const;
 
 	/** Open the map + tier select menu for a town portal interaction.
 	 *  Pass the portal so the widget can read its target map name. If the portal is a return portal
@@ -108,6 +114,7 @@ private:
 	UPROPERTY() TObjectPtr<UInventoryWidget> ChestPane;
 	UPROPERTY() TObjectPtr<UUserWidget> SkillWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> ShopWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> SpawnMenuWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> PauseWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> MapSelectWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> ConfirmReturnWidget;

@@ -19,4 +19,7 @@ protected:
 
 	/** Spawns the town day/night cycle actor if the level doesn't already have one. */
 	void EnsureDayNight();
+
+	/** Drops a monster spawn pedestal (enemy test station) near the PlayerStart if none is placed. */
+	void EnsureSpawnPedestal();
 };
