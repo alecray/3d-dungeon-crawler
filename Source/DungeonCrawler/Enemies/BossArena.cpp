@@ -165,6 +165,7 @@ void ABossArena::StartEncounter(APawn* Player)
 	if (ReturnPortal)
 	{
 		ReturnPortal->SetTargetMapName(TownMapName);
+		ReturnPortal->SetIsReturnPortal(true);
 		ReturnPortal->SetActive(false);
 	}
 
@@ -303,6 +304,12 @@ void ABossArena::OnBossDefeated(UHealthComponent* /*DeadComponent*/)
 	{
 		HealthBar->RemoveFromParent();
 		HealthBar = nullptr;
+	}
+
+	// Record that the player cleared this tier so the next tier unlocks in the map-select screen.
+	if (UDungeonGameInstance* GI = Cast<UDungeonGameInstance>(GetWorld()->GetGameInstance()))
+	{
+		GI->MarkTierBeaten(GI->GetSelectedTier());
 	}
 }
 

@@ -1,4 +1,5 @@
 #include "MonsterTypes.h"
+#include "FrogMonster.h"
 #include "Math/RandomStream.h"
 
 // Read-only catalog of enemy archetypes. The table is built once and cached in function-local statics
@@ -18,21 +19,47 @@ namespace MonsterDatabase
 			Crab.MoveSpeed = 360.f;
 			Crab.AttackDamage = 8.f;
 			Crab.AttackRange = 300.f; // attack from further out so the lunge in the anim closes the gap
-			Crab.BodyScale = 0.9f;
-			Crab.MeshScale = 0.5f; // halve the imported crab
+			Crab.BodyScale = 0.72f;
+			Crab.MeshScale = 0.4f;
 			Crab.XPReward = 20;
-			Crab.CapsuleRadius = 45.f;
-			Crab.CapsuleHalfHeight = 50.f; // low and wide
+			Crab.CapsuleRadius = 32.f;
+			Crab.CapsuleHalfHeight = 40.f;
 			Crab.SkeletalMeshPath = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/SK_Crab.SK_Crab")));
 			Crab.RunAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Run.A_Crab_Run")));
 			Crab.IdleAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Idle.A_Crab_Idle")));
-			Crab.AttackAnimPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Attack.A_Crab_Attack")));
+			Crab.AttackAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Attack.A_Crab_Attack")));
+			Crab.DeathAnimPath     = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Death.A_Crab_Death")));
+			Crab.FlinchAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Flinch_L.A_Crab_Flinch_L")));
+			Crab.FlinchAnimAltPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Crab/A_Crab_Flinch_R.A_Crab_Flinch_R")));
 			Crab.Weight = 100.f;
 			Types.Add(Crab);
 		}
 
-		// NOTE: only the Crab spawns for now (it replaced the graybox humanoid). Brute/Skitterer
-		// definitions can be re-added with non-zero weights later for variety.
+		// Frog — hops toward the player, stands still between hops.
+		{
+			FMonsterDef Frog;
+			Frog.Id          = TEXT("Frog");
+			Frog.MonsterClass = AFrogMonster::StaticClass();
+			Frog.MaxHealth   = 28.f;
+			Frog.MoveSpeed   = 480.f;  // effective speed comes from hop force, not walk speed
+			Frog.AttackDamage = 9.f;
+			Frog.AttackRange = 260.f;  // slightly shorter reach than the crab
+			Frog.BodyScale      = 0.85f;
+			Frog.MeshScale      = 0.5f;
+			Frog.MeshYawOffset  = 0.f;
+			Frog.XPReward    = 22;
+			Frog.CapsuleRadius     = 38.f;
+			Frog.CapsuleHalfHeight = 42.f;
+			Frog.SkeletalMeshPath  = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/SK_Frog.SK_Frog")));
+			Frog.RunAnimPath       = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Walk.A_Frog_Walk")));
+			Frog.IdleAnimPath      = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Idle.A_Frog_Idle")));
+			Frog.AttackAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Attack.A_Frog_Attack")));
+			Frog.DeathAnimPath     = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Death.A_Frog_Death")));
+			Frog.FlinchAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Flinch_L.A_Frog_Flinch_L")));
+			Frog.FlinchAnimAltPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Flinch_R.A_Frog_Flinch_R")));
+			Frog.Weight = 100.f;
+			Types.Add(Frog);
+		}
 
 		return Types;
 	}

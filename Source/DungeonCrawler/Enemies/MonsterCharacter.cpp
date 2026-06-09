@@ -145,10 +145,23 @@ void AMonsterCharacter::ApplyType(FName TypeId)
 	}
 
 	// Skeletal body if a mesh is available; otherwise keep the graybox cube body.
-	if (!SetupSkeletalBody(Def.SkeletalMeshPath, Def.MeshScale, Def.RunAnimPath, Def.IdleAnimPath, Def.AttackAnimPath))
+	if (!SetupSkeletalBody(Def.SkeletalMeshPath, Def.MeshScale, Def.RunAnimPath, Def.IdleAnimPath, Def.AttackAnimPath,
+		Def.DeathAnimPath, Def.FlinchAnimPath))
 	{
 		bUsingSkeletalBody = false;
 		if (BodyRoot) { BodyRoot->SetRelativeScale3D(FVector(BodyScale)); }
+	}
+
+	// Load the optional second flinch for random variety (no-op if path unset or mesh failed to load).
+	if (bUsingSkeletalBody && !Def.FlinchAnimAltPath.IsNull())
+	{
+		FlinchAnimAlt = Def.FlinchAnimAltPath.LoadSynchronous();
+	}
+
+	// Apply per-type mesh yaw offset (overrides the constructor default of -90).
+	if (USkeletalMeshComponent* SkelBody = GetMesh())
+	{
+		SkelBody->SetRelativeRotation(FRotator(0.f, Def.MeshYawOffset, 0.f));
 	}
 }
 
@@ -464,18 +477,35 @@ void AMonsterCharacter::PlayAttackAnim()
 
 void AMonsterCharacter::PlayFlinchAnim()
 {
-	if (!bUsingSkeletalBody || !GetMesh() || !FlinchAnim || bDead)
+	if (!bUsingSkeletalBody || !GetMesh() || bDead)
 	{
 		return;
 	}
+
+	// Pick randomly between primary and alt flinch when both are loaded; fall back to whichever exists.
+	UAnimSequence* Chosen = nullptr;
+	if (FlinchAnim && FlinchAnimAlt)
+	{
+		Chosen = FMath::RandBool() ? FlinchAnim : FlinchAnimAlt;
+	}
+	else
+	{
+		Chosen = FlinchAnim ? FlinchAnim : FlinchAnimAlt;
+	}
+
+	if (!Chosen)
+	{
+		return;
+	}
+
 	const float Now = GetWorld()->GetTimeSeconds();
 	if (Now < AttackAnimEndTime) // don't cut a swing short — let the attack finish
 	{
 		return;
 	}
-	GetMesh()->PlayAnimation(FlinchAnim, /*bLooping*/ false);
+	GetMesh()->PlayAnimation(Chosen, /*bLooping*/ false);
 	AnimState = ESkelAnim::Flinch;
-	FlinchAnimEndTime = Now + FlinchAnim->GetPlayLength();
+	FlinchAnimEndTime = Now + Chosen->GetPlayLength();
 }
 
 float AMonsterCharacter::ApplyHitDamage(float BaseDamage, const FVector& FromLocation)
@@ -583,7 +613,7 @@ void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 		else          { GI->GetStats().MonstersKilled++; }
 	}
 
-	// Stop chasing, drop collision, and let the corpse linger briefly before cleanup.
+	// Stop chasing, drop collision, unpossess.
 	GetCharacterMovement()->StopMovementImmediately();
 	GetCharacterMovement()->DisableMovement();
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -594,7 +624,31 @@ void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 		C->UnPossess();
 	}
 
-	// Poof of particles at death.
+	// Pre-compute spin axis so it's consistent whether the anim delays it or not.
+	DeathSpinAxis = FVector(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(0.5f, 1.5f)).GetSafeNormal();
+
+	// If there's a death animation: play it first, then fire poof + code effect when it ends.
+	// Otherwise go straight to the code effect.
+	if (bUsingSkeletalBody && DeathAnim && GetMesh())
+	{
+		GetMesh()->PlayAnimation(DeathAnim, /*bLooping*/ false);
+		bDeathAnimPlaying = true;
+		const float AnimLen = DeathAnim->GetPlayLength();
+		GetWorld()->GetTimerManager().SetTimer(DeathAnimTimer, this, &AMonsterCharacter::TriggerDeathEffect, AnimLen, false);
+		SetLifeSpan(AnimLen + DeathDuration + 0.5f);
+	}
+	else
+	{
+		TriggerDeathEffect();
+		SetLifeSpan(DeathDuration + 0.5f);
+	}
+}
+
+void AMonsterCharacter::TriggerDeathEffect()
+{
+	bDeathAnimPlaying = false;
+
+	// Poof of particles now that the death anim (if any) has finished.
 	if (UWorld* World = GetWorld())
 	{
 		FActorSpawnParameters P;
@@ -603,40 +657,31 @@ void AMonsterCharacter::HandleDeath(UHealthComponent* /*DeadComponent*/)
 			FTransform(GetActorLocation() + FVector(0.f, 0.f, 30.f)), P);
 	}
 
-	// Prefer a real death animation if one is set: play it once and let it run instead of the code effect.
-	float CorpseLinger = DeathDuration;
-	if (bUsingSkeletalBody && DeathAnim && GetMesh())
-	{
-		GetMesh()->PlayAnimation(DeathAnim, /*bLooping*/ false);
-		bDeathAnimPlaying = true;
-		CorpseLinger = FMath::Max(DeathDuration, DeathAnim->GetPlayLength());
-	}
-
-	// Pop-up & launch death effect (fallback for graybox / no death anim): animate the visible mesh up with
-	// a spin while shrinking to nothing over DeathDuration, then destroy. The poof covers the vanish.
+	// Set up the code-driven sink/spin/shrink effect that plays after the anim.
 	DeathComp = bUsingSkeletalBody ? Cast<USceneComponent>(GetMesh()) : Cast<USceneComponent>(BodyRoot);
-	if (DeathComp && !bDeathAnimPlaying)
+	if (DeathComp)
 	{
 		DeathBaseScale = DeathComp->GetRelativeScale3D();
-		DeathBaseLoc = DeathComp->GetRelativeLocation();
+		DeathBaseLoc   = DeathComp->GetRelativeLocation();
 	}
-	// Random spin axis (biased upward) so each death tumbles differently.
-	DeathSpinAxis = FVector(FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(-1.f, 1.f), FMath::FRandRange(0.5f, 1.5f)).GetSafeNormal();
-	DeathTimeLeft = CorpseLinger;
-
-	SetLifeSpan(CorpseLinger + 0.5f); // safety net in case Tick is disabled
+	DeathTimeLeft = DeathDuration;
 }
 
 void AMonsterCharacter::UpdateDeathEffect(float DeltaSeconds)
 {
+	// Death anim is still playing — TriggerDeathEffect will start the code effect via timer.
+	if (bDeathAnimPlaying)
+	{
+		return;
+	}
+
 	if (DeathTimeLeft <= 0.f)
 	{
 		return;
 	}
 	DeathTimeLeft = FMath::Max(0.f, DeathTimeLeft - DeltaSeconds);
 
-	// A real death animation is playing — just wait it out, then destroy (skip the code sink/spin/shrink).
-	if (bDeathAnimPlaying || !DeathComp)
+	if (!DeathComp)
 	{
 		if (DeathTimeLeft <= 0.f) { Destroy(); }
 		return;

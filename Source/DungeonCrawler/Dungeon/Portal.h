@@ -10,9 +10,9 @@ class UPointLightComponent;
 
 /**
  * A travel portal. Interacting with it (E) saves the profile and opens the target level. Rendered as
- * a procedural "energy gate": a glowing vertical disc, a ring of shards that spins, and a pulsing
- * light (all code-built, no art). Used for the town's enter-dungeon portal and the dungeon's return
- * portals; can start dormant (hidden) and be switched on later (e.g. after the boss dies).
+ * a procedural "energy gate": a glowing disc surrounded by three shard rings spinning at different
+ * speeds, each ring's shards sinusoidally offset in Z to form a helix/vortex silhouette (all
+ * code-built, no art). Can start dormant and be switched on later (e.g. after boss death).
  */
 UCLASS()
 class DUNGEONCRAWLER_API APortal : public AActor
@@ -32,39 +32,56 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Portal")
 	bool bActive = true;
 
+private:
+	bool bIsReturnPortal = false;
+
+public:
+
+	/** Portal energy color — tints the disc, all shard rings, and the point light. */
+	UPROPERTY(EditAnywhere, Category = "Portal|Appearance")
+	FLinearColor TintColor = FLinearColor(0.25f, 0.85f, 1.0f);
+
+	/** Global speed multiplier for ring spin and Z-wave helix motion. */
+	UPROPERTY(EditAnywhere, Category = "Portal|Appearance", meta = (ClampMin = "0.1", ClampMax = "5.0"))
+	float SwirlySpeed = 1.0f;
+
 	FName GetTargetMapName() const { return TargetMapName; }
 	bool IsActive() const { return bActive; }
 	void SetActive(bool bInActive);
 	void SetTargetMapName(FName InMap) { TargetMapName = InMap; }
 
+	/** True for portals spawned inside the dungeon to return the player to town (set by ABossArena).
+	 *  When true the player controller shows a "Leave dungeon?" confirm instead of the map/tier select. */
+	bool IsReturnPortal() const { return bIsReturnPortal; }
+	void SetIsReturnPortal(bool bVal) { bIsReturnPortal = bVal; }
+
 protected:
 	virtual void BeginPlay() override;
 
-	/** Builds a tinted, unlit-looking dynamic material for the portal's emissive parts. */
-	void ApplyGlowMaterial(UStaticMeshComponent* Comp);
+	void ApplyGlowMaterial(UStaticMeshComponent* Comp, float BrightnessMult = 1.0f);
 
 	UPROPERTY(VisibleAnywhere, Category = "Portal")
 	TObjectPtr<USceneComponent> Root;
 
-	/** The glowing portal surface (a thin vertical disc); also the Visibility target for [E]. */
+	/** The glowing portal surface (thin vertical disc); also the Visibility target for [E]. */
 	UPROPERTY(VisibleAnywhere, Category = "Portal")
 	TObjectPtr<UStaticMeshComponent> Disc;
-
-	/** Spins the ring of shards. */
-	UPROPERTY(VisibleAnywhere, Category = "Portal")
-	TObjectPtr<USceneComponent> Spinner;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UStaticMeshComponent>> Shards;
 
 	UPROPERTY(VisibleAnywhere, Category = "Portal")
 	TObjectPtr<UPointLightComponent> Glow;
 
+	// Three shard rings: inner (fast/bright), middle, outer (slow/dim). Shards are positioned and
+	// rotated per-frame in Tick so they can carry a helical Z-wave offset independently.
+	UPROPERTY()
+	TArray<TObjectPtr<UStaticMeshComponent>> Ring0;
+	UPROPERTY()
+	TArray<TObjectPtr<UStaticMeshComponent>> Ring1;
+	UPROPERTY()
+	TArray<TObjectPtr<UStaticMeshComponent>> Ring2;
+
 private:
 	float Elapsed = 0.f;
 
-	static constexpr float CenterZ = 150.f;     // portal center height above the floor
-	static constexpr int32 ShardCount = 12;     // shards around the ring
-	static constexpr float RingRadius = 78.f;   // shard ring radius
+	static constexpr float CenterZ       = 150.f;
 	static constexpr float BaseIntensity = 2600.f;
 };

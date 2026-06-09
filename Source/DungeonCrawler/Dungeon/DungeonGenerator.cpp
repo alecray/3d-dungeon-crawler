@@ -974,11 +974,16 @@ void ADungeonGenerator::ScatterMonsters()
 
 		auto SpawnMonster = [&](const FVector& Offset) -> AMonsterCharacter*
 		{
+			// Roll type first so we can use its spawn class (e.g. AFrogMonster).
+			const FName TypeId = MonsterDatabase::RollRandomType(Rng);
+			const FMonsterDef& Def = MonsterDatabase::Get(TypeId);
+			TSubclassOf<AMonsterCharacter> Class = Def.MonsterClass ? Def.MonsterClass : MonsterClass;
+
 			const FRotator Rot(0.f, Rng.FRandRange(0.f, 360.f), 0.f);
 			if (AMonsterCharacter* Monster = World->SpawnActor<AMonsterCharacter>(
-				MonsterClass, FTransform(Rot, Center + Offset), Params))
+				Class, FTransform(Rot, Center + Offset), Params))
 			{
-				Monster->ApplyType(MonsterDatabase::RollRandomType(Rng));
+				Monster->ApplyType(TypeId);
 				SpawnedActors.Add(Monster);
 				return Monster;
 			}

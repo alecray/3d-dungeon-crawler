@@ -46,10 +46,15 @@ public:
 	bool IsShopOpen() const;
 
 	/** Open the map + tier select menu for a town portal interaction.
-	 *  Pass the portal so the widget can read its target map name. */
+	 *  Pass the portal so the widget can read its target map name. If the portal is a return portal
+	 *  (dungeon → town), shows a "Leave Dungeon?" confirm dialog instead of the full map/tier select. */
 	void OpenMapSelectMenu(APortal* Portal);
 	void CloseMapSelectMenu();
 	bool IsMapSelectMenuOpen() const;
+
+	/** Show the "Leave Dungeon?" confirm dialog for a return portal. */
+	void OpenConfirmReturnMenu(FName TargetMap);
+	void CloseConfirmReturnMenu();
 
 	/** Start-menu Start button: dismiss the menu, hand back control, and fade in from black. */
 	void StartGameFromMenu();
@@ -105,6 +110,7 @@ private:
 	UPROPERTY() TObjectPtr<UUserWidget> ShopWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> PauseWidget;
 	UPROPERTY() TObjectPtr<UUserWidget> MapSelectWidget;
+	UPROPERTY() TObjectPtr<UUserWidget> ConfirmReturnWidget;
 
 	/** The chest whose loot pane is open, so its lid can be closed when the menu closes. */
 	TWeakObjectPtr<ALootChest> OpenChest;

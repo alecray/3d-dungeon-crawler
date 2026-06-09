@@ -446,6 +446,8 @@ All clips must be imported onto the **same skeleton** (`SKEL_YourBoss`). Minimum
 | `A_YourBoss_Death` | Death | One-shot; replaces the code sink/spin effect |
 | `A_YourBoss_Flinch` | Hit-react | One-shot; played on taking damage; optional but recommended |
 
+**Multiple flinch variants (optional):** Regular enemies support two randomised flinch clips via `FMonsterDef::FlinchAnimPath` + `FlinchAnimAltPath` — the engine picks one at random on each hit. The boss currently uses a single `FlinchAnimPath` in `BossMonster.h`. To give a boss the same variety, add a second `TSoftObjectPtr<UAnimSequence> FlinchAnimAltPath` field to your boss subclass header, load it in `BeginPlay`, and store it alongside the loaded `FlinchAnim` — then override `PlayFlinchAnim()` to randomly pick between the two using the same `FMath::RandBool()` pattern in `MonsterCharacter::PlayFlinchAnim`.
+
 Additional clips you may add for new specials (not wired by default — load and play them manually in your special-attack functions):
 
 | Clip | Purpose |

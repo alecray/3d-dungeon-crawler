@@ -156,6 +156,15 @@ void UDungeonGameInstance::MarkBossIntroSeen(FName BossId)
 	}
 }
 
+void UDungeonGameInstance::MarkTierBeaten(int32 Tier)
+{
+	if (Tier > Profile.HighestTierBeaten)
+	{
+		Profile.HighestTierBeaten = Tier;
+		SaveProfile();
+	}
+}
+
 bool UDungeonGameInstance::SaveProfile()
 {
 	UDungeonSaveGame* Save = Cast<UDungeonSaveGame>(

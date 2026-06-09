@@ -5,6 +5,7 @@
 
 class USkeletalMesh;
 class UAnimSequence;
+class AMonsterCharacter;
 
 /**
  * Data definition for a kind of monster. Graybox by default (stats + body scale); if SkeletalMeshPath
@@ -22,6 +23,7 @@ struct FMonsterDef
 	UPROPERTY() float AttackRange = 170.f;
 	UPROPERTY() float BodyScale = 1.f;   // graybox body scale
 	UPROPERTY() float MeshScale = 1.f;   // skeletal-mesh visual scale (capsule auto-fits to it)
+	UPROPERTY() float MeshYawOffset = -90.f; // mesh relative yaw; -90 matches the default UE import orientation
 	UPROPERTY() int32 XPReward = 25;
 	UPROPERTY() float CapsuleRadius = 40.f;
 	UPROPERTY() float CapsuleHalfHeight = 88.f;
@@ -33,9 +35,19 @@ struct FMonsterDef
 	UPROPERTY() TSoftObjectPtr<UAnimSequence> RunAnimPath;
 	UPROPERTY() TSoftObjectPtr<UAnimSequence> IdleAnimPath;
 	UPROPERTY() TSoftObjectPtr<UAnimSequence> AttackAnimPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence> DeathAnimPath;
+	/** Primary hit-react. If FlinchAnimAltPath is also set, the two are chosen at random on each hit. */
+	UPROPERTY() TSoftObjectPtr<UAnimSequence> FlinchAnimPath;
+	UPROPERTY() TSoftObjectPtr<UAnimSequence> FlinchAnimAltPath;
 
 	/** Spawn weight for random selection. */
 	UPROPERTY() float Weight = 1.f;
+
+	/**
+	 * The UObject class to spawn for this monster type. Defaults to AMonsterCharacter when null;
+	 * set to a subclass (e.g. AFrogMonster) when the type needs custom movement or behaviour.
+	 */
+	UPROPERTY() TSubclassOf<AMonsterCharacter> MonsterClass;
 };
 
 /** Code-defined monster registry (no DataTable asset). */

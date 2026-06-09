@@ -30,6 +30,9 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	/** Normalized time of day: 0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset. */
+	float GetTimeOfDay() const { return TimeOfDay; }
+
 protected:
 	virtual void BeginPlay() override;
 

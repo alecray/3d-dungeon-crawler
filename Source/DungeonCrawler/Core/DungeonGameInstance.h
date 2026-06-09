@@ -74,6 +74,11 @@ public:
 	/** Records that a boss type's intro cinematic has played, and writes the profile to disk. */
 	void MarkBossIntroSeen(FName BossId);
 
+	/** Highest difficulty tier the player has fully cleared (-1 = none). Tier N+1 is locked until this reaches N. */
+	int32 GetHighestTierBeaten() const { return Profile.HighestTierBeaten; }
+	/** If Tier is higher than the current record, updates it and saves. */
+	void MarkTierBeaten(int32 Tier);
+
 	/** Write the in-memory profile to the save slot. */
 	UFUNCTION(BlueprintCallable, Category = "Save")
 	bool SaveProfile();

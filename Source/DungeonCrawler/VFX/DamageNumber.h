@@ -29,8 +29,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "DamageNumber")
 	TObjectPtr<UTextRenderComponent> Text;
 
+	/** Dark outline layer — slightly larger, black, rendered just behind the main text. */
+	UPROPERTY(VisibleAnywhere, Category = "DamageNumber")
+	TObjectPtr<UTextRenderComponent> Outline;
+
 private:
 	float Life = 0.f;
 	float MaxLife = 0.9f;
 	FVector Velocity = FVector::ZeroVector;
+
+	// Apex-hold: freeze briefly when the number reaches peak height so the player can read it.
+	bool bApexHeld = false;
+	float ApexHoldLeft = 0.f;
+	static constexpr float ApexHoldDuration = 0.12f;
 };

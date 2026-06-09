@@ -8,6 +8,7 @@
 #include "ShopNPC.h"
 #include "PauseMenuWidget.h"
 #include "MapSelectWidget.h"
+#include "ConfirmTravelWidget.h"
 #include "Portal.h"
 #include "Components/InputComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -429,6 +430,13 @@ void ADungeonPlayerController::OpenMapSelectMenu(APortal* Portal)
 		return;
 	}
 
+	// Return portals (boss room → town) skip the map/tier select and show a simple confirm instead.
+	if (Portal->IsReturnPortal())
+	{
+		OpenConfirmReturnMenu(Portal->GetTargetMapName());
+		return;
+	}
+
 	// If the menu is already open just refresh its target map.
 	if (UMapSelectWidget* Existing = Cast<UMapSelectWidget>(MapSelectWidget))
 	{
@@ -445,7 +453,35 @@ void ADungeonPlayerController::OpenMapSelectMenu(APortal* Portal)
 	MapSelectWidget = NewMenu;
 	NewMenu->AddToViewport(20); // above HUD/hotbar, below pause menu
 
-	UpdateInputMode(); // centrally derive cursor + input mode, consistent with the shop/loot menus
+	UpdateInputMode();
+}
+
+void ADungeonPlayerController::OpenConfirmReturnMenu(FName TargetMap)
+{
+	if (ConfirmReturnWidget && ConfirmReturnWidget->IsInViewport())
+	{
+		return; // already open
+	}
+
+	UConfirmTravelWidget* Widget = CreateWidget<UConfirmTravelWidget>(this, UConfirmTravelWidget::StaticClass());
+	if (!Widget)
+	{
+		return;
+	}
+	Widget->Init(TargetMap);
+	ConfirmReturnWidget = Widget;
+	Widget->AddToViewport(20);
+	UpdateInputMode();
+}
+
+void ADungeonPlayerController::CloseConfirmReturnMenu()
+{
+	if (ConfirmReturnWidget && ConfirmReturnWidget->IsInViewport())
+	{
+		ConfirmReturnWidget->RemoveFromParent();
+	}
+	ConfirmReturnWidget = nullptr;
+	UpdateInputMode();
 }
 
 void ADungeonPlayerController::CloseMapSelectMenu()
@@ -541,7 +577,8 @@ void ADungeonPlayerController::UpdateInputMode()
 		(ChestPane && ChestPane->IsInViewport()) ||
 		(SkillWidget && SkillWidget->IsInViewport()) ||
 		(ShopWidget && ShopWidget->IsInViewport()) ||
-		(MapSelectWidget && MapSelectWidget->IsInViewport());
+		(MapSelectWidget && MapSelectWidget->IsInViewport()) ||
+		(ConfirmReturnWidget && ConfirmReturnWidget->IsInViewport());
 
 	bShowMouseCursor = bUIOpen;
 	if (bUIOpen)

@@ -56,7 +56,8 @@ private:
 	int32 CurrentTier = 0;
 
 	// Widget refs (kept alive as UPROPERTYs so GC doesn't collect them under the widget tree).
-	UPROPERTY() TObjectPtr<UTextBlock> MapNameLabel;       // destination name (refreshed by Init)
-	UPROPERTY() TObjectPtr<UTextBlock> TierLabel;          // "Tier: X" display
-	UPROPERTY() TObjectPtr<UButton>    TierButtons[4];     // 0..3
+	UPROPERTY() TObjectPtr<UTextBlock> MapNameLabel;         // destination name (refreshed by Init)
+	UPROPERTY() TObjectPtr<UTextBlock> TierLabel;            // "Tier: X" display
+	UPROPERTY() TObjectPtr<UButton>    TierButtons[4];       // 0..3
+	UPROPERTY() TObjectPtr<UTextBlock> TierBtnTexts[4];      // text inside each tier button (for lock labels)
 };

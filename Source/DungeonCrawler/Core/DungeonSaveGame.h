@@ -57,6 +57,10 @@ struct FPlayerProfile
 
 	UPROPERTY() TArray<FName> SeenBossIntros; // boss ids whose intro cinematic has already played
 
+	/** Highest difficulty tier the player has fully cleared (boss defeated). -1 = none yet.
+	 *  Tier N+1 is locked until this reaches N. */
+	UPROPERTY() int32 HighestTierBeaten = -1;
+
 	UPROPERTY() FPlayerStats Stats; // lifetime play statistics (Stats screen)
 
 	// Settings (pause menu).

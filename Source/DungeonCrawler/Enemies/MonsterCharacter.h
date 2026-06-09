@@ -118,6 +118,15 @@ protected:
 	/** Builds one graybox cube under BodyRoot. Available to subclasses (e.g. boss morph parts). */
 	UStaticMeshComponent* AddBox(const TCHAR* Name, const FVector& Center, const FVector& SizeCm);
 
+	/** Plays the one-shot attack anim and returns to locomotion when it ends. */
+	virtual void PlayAttackAnim();
+
+	/**
+	 * Switches between the looping run and idle animations. Protected+virtual so subclasses
+	 * (e.g. AFrogMonster) can intercept and suppress the call during custom movement phases.
+	 */
+	virtual void SetLocomotion(bool bMoving);
+
 	/**
 	 * Loads a skeletal mesh + locomotion/attack anims onto the inherited mesh, hides the graybox cubes,
 	 * auto-fits the capsule, and starts the idle anim. Used by ApplyType (typed monsters) and the boss.
@@ -172,15 +181,12 @@ private:
 	UPROPERTY() TObjectPtr<class UAnimSequence> IdleAnim;
 	UPROPERTY() TObjectPtr<class UAnimSequence> AttackAnim;
 	UPROPERTY() TObjectPtr<class UAnimSequence> DeathAnim;   // one-shot, played on death (else the code pop)
-	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnim;  // one-shot hit reaction, played on taking damage
+	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnim;    // one-shot hit reaction, played on taking damage
+	UPROPERTY() TObjectPtr<class UAnimSequence> FlinchAnimAlt; // optional second flinch; randomly alternated
 
 	enum class ESkelAnim : uint8 { None, Idle, Run, Attack, Flinch };
 	ESkelAnim AnimState = ESkelAnim::None;
 
-	/** Plays a looping locomotion anim (run/idle) only when the state actually changes. */
-	void SetLocomotion(bool bMoving);
-	/** Plays the one-shot attack anim and returns to locomotion when it ends. */
-	void PlayAttackAnim();
 	/** Plays the one-shot flinch/hit-react anim (skipped if mid-swing or dead). No-op without a FlinchAnim. */
 	void PlayFlinchAnim();
 
@@ -196,7 +202,7 @@ private:
 	float PendingHitRadius = 0.f;
 	float HitReactTimeLeft = 0.f;
 	bool bDead = false;
-	bool bDeathAnimPlaying = false; // a real death anim is playing — skip the code sink/spin death effect
+	bool bDeathAnimPlaying = false; // death anim is playing; TriggerDeathEffect fires when it finishes
 
 	// Navmesh chase: re-issue MoveTo periodically (the player keeps moving); fall back to direct
 	// steering until a navmesh tile has generated around us.
@@ -205,7 +211,10 @@ private:
 	static constexpr float RepathInterval = 0.3f;
 
 	// ---- Pop-up & launch death effect (code-driven; no authored animation) ----
+	/** Called at the end of the death anim (or immediately if no anim): spawns poof + starts code effect. */
+	void TriggerDeathEffect();
 	void UpdateDeathEffect(float DeltaSeconds);
+	FTimerHandle DeathAnimTimer;
 	UPROPERTY() TObjectPtr<USceneComponent> DeathComp; // the mesh component being animated
 	FVector DeathBaseScale = FVector::OneVector;
 	FVector DeathBaseLoc = FVector::ZeroVector;
