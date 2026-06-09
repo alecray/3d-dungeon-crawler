@@ -1,5 +1,6 @@
 #include "MonsterTypes.h"
 #include "FrogMonster.h"
+#include "WispMonster.h"
 #include "Math/RandomStream.h"
 
 // Read-only catalog of enemy archetypes. The table is built once and cached in function-local statics
@@ -59,6 +60,34 @@ namespace MonsterDatabase
 			Frog.FlinchAnimAltPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Frog/A_Frog_Flinch_R.A_Frog_Flinch_R")));
 			Frog.Weight = 100.f;
 			Types.Add(Frog);
+		}
+
+		// Wisp — hovers and drifts toward the player; damages via proximity aura.
+		// Animation assets are not yet imported; all paths below are pre-wired so the
+		// Wisp auto-loads them as soon as the FBX exports are imported to these locations.
+		{
+			FMonsterDef Wisp;
+			Wisp.Id          = TEXT("Wisp");
+			Wisp.MonsterClass = AWispMonster::StaticClass();
+			Wisp.MaxHealth   = 22.f;
+			Wisp.MoveSpeed   = 160.f;   // slow — danger comes from aura contact, not speed
+			Wisp.AttackDamage = 0.f;    // melee unused; aura damage set on AWispMonster directly
+			Wisp.AttackRange  = 0.f;    // suppresses base-class melee entirely
+			Wisp.BodyScale   = 0.6f;
+			Wisp.MeshScale   = 0.5f;
+			Wisp.XPReward    = 18;
+			Wisp.CapsuleRadius     = 28.f;
+			Wisp.CapsuleHalfHeight = 28.f;
+			Wisp.SkeletalMeshPath  = TSoftObjectPtr<USkeletalMesh>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/SK_Wisp.SK_Wisp")));
+			// Animation paths pre-wired; assets unassigned until Blender exports arrive.
+			Wisp.RunAnimPath       = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/A_Wisp_Walk.A_Wisp_Walk")));
+			Wisp.IdleAnimPath      = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/A_Wisp_Idle.A_Wisp_Idle")));
+			Wisp.AttackAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/A_Wisp_Attack.A_Wisp_Attack")));
+			Wisp.DeathAnimPath     = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/A_Wisp_Death.A_Wisp_Death")));
+			Wisp.FlinchAnimPath    = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/A_Wisp_Flinch_L.A_Wisp_Flinch_L")));
+			Wisp.FlinchAnimAltPath = TSoftObjectPtr<UAnimSequence>(FSoftObjectPath(TEXT("/Game/Enemies/Regular/Wisp/A_Wisp_Flinch_R.A_Wisp_Flinch_R")));
+			Wisp.Weight = 100.f;  // equal weight with Crab and Frog → ~33% each
+			Types.Add(Wisp);
 		}
 
 		return Types;
