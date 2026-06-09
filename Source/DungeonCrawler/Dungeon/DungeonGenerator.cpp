@@ -11,13 +11,16 @@
 #include "Bonfire.h"
 #include "HealthComponent.h"
 
+#include "TownTorch.h"
+
 #include "Engine/PointLight.h"
+#include "Engine/ExponentialHeightFog.h"
 #include "Components/PointLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SceneComponent.h"
-#include "Components/PointLightComponent.h"
-#include "Engine/PointLight.h"
 #include "Engine/StaticMesh.h"
+#include "EngineUtils.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/SoftObjectPath.h"
 
@@ -88,6 +91,21 @@ void ADungeonGenerator::BeginPlay()
 {
 	Super::BeginPlay();
 	Generate();
+
+	// Reduce the level's fog so rooms aren't swallowed — wall torches + floor torches do the work now.
+	if (DungeonFogDensity > 0.f)
+	{
+		for (TActorIterator<AExponentialHeightFog> It(GetWorld()); It; ++It)
+		{
+			if (UExponentialHeightFogComponent* FogComp = It->GetComponent())
+			{
+				FogComp->FogDensity           = DungeonFogDensity;
+				FogComp->bEnableVolumetricFog = false;
+				FogComp->MarkRenderStateDirty();
+			}
+			break;
+		}
+	}
 }
 
 FVector ADungeonGenerator::CellToLocal(int32 X, int32 Y) const
@@ -405,6 +423,24 @@ void ADungeonGenerator::DecorateRooms()
 			if (ABonfire* Fire = World->SpawnActor<ABonfire>(ABonfire::StaticClass(), FTransform(FireLoc), Params))
 			{
 				SpawnedActors.Add(Fire);
+			}
+		}
+	}
+
+	// Standing floor torches at the center of bigger rooms — provides ambient fill light between wall sconces.
+	// Boss room skipped (has chandelier array). Rest rooms skipped (bonfire already illuminates the center).
+	if (RoomTorchMinArea > 0)
+	{
+		for (int32 i = 0; i < Rooms.Num(); ++i)
+		{
+			if (i == BossRoomIndex) { continue; }
+			if (Rooms[i].Type == ERoomType::Rest) { continue; }
+			const FDungeonRoom& Room = Rooms[i];
+			if (Room.W * Room.H < RoomTorchMinArea) { continue; }
+			const FVector TorchLoc = GetRoomCenterWorld(i);
+			if (ATownTorch* Torch = World->SpawnActor<ATownTorch>(ATownTorch::StaticClass(), FTransform(TorchLoc), Params))
+			{
+				SpawnedActors.Add(Torch);
 			}
 		}
 	}

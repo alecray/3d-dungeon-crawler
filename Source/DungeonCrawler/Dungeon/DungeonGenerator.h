@@ -213,7 +213,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Portals")
 	FName TownMapName = TEXT("L_Town");
 
-	// ---- Lighting (wall torches) ----
+	// ---- Lighting (wall torches + room floor torches) ----
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting")
 	bool bSpawnTorches = true;
 
@@ -231,6 +231,16 @@ protected:
 	 *  the imported mesh's native scale. */
 	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "1"))
 	float TorchMeshHeight = 70.f;
+
+	/** Place a standing floor torch at the center of rooms whose area (W×H cells) meets this threshold.
+	 *  0 = never place. Boss room is excluded (has chandelier lights instead). */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Lighting", meta = (ClampMin = "0"))
+	int32 RoomTorchMinArea = 12;
+
+	// ---- Environment ----
+	/** Override the level's ExponentialHeightFog density on load. Set to 0 to leave the level value. */
+	UPROPERTY(EditAnywhere, Category = "Dungeon|Environment", meta = (ClampMin = "0"))
+	float DungeonFogDensity = 0.003f;
 
 	// ---- Determinism ----
 	/** Seed for layout. < 0 picks a fresh random seed every Generate(). */
