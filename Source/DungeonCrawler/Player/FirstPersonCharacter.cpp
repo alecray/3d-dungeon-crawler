@@ -100,6 +100,8 @@ AFirstPersonCharacter::AFirstPersonCharacter()
 	Health = CreateDefaultSubobject<UHealthComponent>(TEXT("Health"));
 	Mana = CreateDefaultSubobject<UResourceComponent>(TEXT("Mana"));
 	Stamina = CreateDefaultSubobject<UResourceComponent>(TEXT("Stamina"));
+	Stamina->SetRegenPerSecond(45.f); // fast recovery — fills ~144 stamina in ~3s (Dark Souls pacing)
+	Stamina->SetRegenDelay(0.3f);     // short delay so brief pauses between swings actually recover
 	Inventory = CreateDefaultSubobject<UInventoryComponent>(TEXT("Inventory"));
 	Hotbar = CreateDefaultSubobject<UHotbarComponent>(TEXT("Hotbar"));
 	SkillTree = CreateDefaultSubobject<USkillTreeComponent>(TEXT("SkillTree"));

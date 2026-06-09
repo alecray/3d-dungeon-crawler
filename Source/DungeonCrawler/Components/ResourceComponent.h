@@ -41,6 +41,9 @@ public:
 	/** Pause/resume passive regen (e.g. while sprinting drains stamina). */
 	void SetRegenPaused(bool bPaused) { bRegenPaused = bPaused; }
 
+	void SetRegenPerSecond(float V) { RegenPerSecond = FMath::Max(0.f, V); }
+	void SetRegenDelay(float V)     { RegenDelay     = FMath::Max(0.f, V); }
+
 protected:
 	virtual void BeginPlay() override;
 
