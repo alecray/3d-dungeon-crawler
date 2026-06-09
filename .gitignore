@@ -73,3 +73,13 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Screenshots
+Screenshots/
+
+# Runtime-baked item icon cache (regenerated on play)
+Content/Images/ItemIcons/
+
+# Python bytecode cache (Tools/)
+__pycache__/
+*.pyc
